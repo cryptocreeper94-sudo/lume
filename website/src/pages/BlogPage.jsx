@@ -1,0 +1,83 @@
+import { Link } from 'react-router-dom'
+
+/* AI-driven blog — seeded with launch content. Will connect to backend CRUD API. */
+const posts = [
+    {
+        slug: 'introducing-lume',
+        title: 'Introducing Lume: The AI-Native Programming Language',
+        excerpt: 'Today we launch Lume — the first language where AI is a syntax primitive, not a library. Program with ask, think, and generate as keywords.',
+        category: 'Launch',
+        date: 'Mar 7, 2026',
+        thumbnail: '/features/ai-syntax.png',
+    },
+    {
+        slug: 'self-sustaining-runtime',
+        title: 'Building Software That Takes Care of Itself',
+        excerpt: 'Lume\'s Milestone 6 introduces four self-sustaining layers: monitoring, healing, optimizing, and evolving. Here\'s how they work together.',
+        category: 'Deep Dive',
+        date: 'Mar 7, 2026',
+        thumbnail: '/features/self-healing.png',
+    },
+    {
+        slug: 'lume-vs-python',
+        title: 'Lume vs. Python for AI Development',
+        excerpt: '90% less code for AI integration. Side-by-side comparison of building AI-powered apps in Lume vs. traditional Python with the OpenAI SDK.',
+        category: 'Comparison',
+        date: 'Mar 6, 2026',
+        thumbnail: '/features/monitoring.png',
+    },
+    {
+        slug: 'pipe-operator-guide',
+        title: 'The Pipe Operator: Elegant Data Transformation',
+        excerpt: 'Chain operations left-to-right with Lume\'s |> operator. Make your data flow readable and composable.',
+        category: 'Tutorial',
+        date: 'Mar 5, 2026',
+        thumbnail: '/features/pipe.png',
+    },
+    {
+        slug: 'trust-layer-integration',
+        title: 'Lume Joins the Trust Layer Ecosystem',
+        excerpt: 'SSO, Signal Chat, hallmarking, and blockchain provenance — Lume programs are now part of the authenticated creation ecosystem.',
+        category: 'Ecosystem',
+        date: 'Mar 4, 2026',
+        thumbnail: '/features/http.png',
+    },
+    {
+        slug: 'healable-decorator',
+        title: 'The @healable Decorator: Self-Healing Functions',
+        excerpt: 'One decorator replaces 15 lines of retry logic. Circuit breakers, exponential backoff, and AI model fallback — all automatic.',
+        category: 'Tutorial',
+        date: 'Mar 3, 2026',
+        thumbnail: '/features/evolving.png',
+    },
+]
+
+export { posts }
+
+export default function BlogPage() {
+    return (
+        <div style={{ minHeight: '100vh' }}>
+            <div className="orb orb-1" />
+            <section className="section" style={{ paddingTop: 120 }}>
+                <div className="section-header">
+                    <span className="section-label">Blog</span>
+                    <h2 className="section-title">Latest from <span className="gradient-wave-text">Lume</span></h2>
+                    <p className="section-subtitle">Tutorials, deep dives, and ecosystem updates</p>
+                </div>
+                <div className="blog-grid">
+                    {posts.map((p, i) => (
+                        <Link to={`/blog/${p.slug}`} key={i} className="blog-card">
+                            <img src={p.thumbnail} alt={p.title} className="blog-card-img" loading="lazy" />
+                            <div className="blog-card-body">
+                                <div className="blog-card-category">{p.category}</div>
+                                <h3 className="blog-card-title">{p.title}</h3>
+                                <p className="blog-card-excerpt">{p.excerpt}</p>
+                                <div className="blog-card-date">{p.date}</div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            </section>
+        </div>
+    )
+}

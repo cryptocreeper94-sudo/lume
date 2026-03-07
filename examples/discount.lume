@@ -1,0 +1,22 @@
+// discount.lume — Shows when/is pattern matching and functions
+
+to calculate_discount(price: number, tier: text) -> number:
+    when tier is:
+        "gold"   -> return price * 0.80
+        "silver" -> return price * 0.90
+        default  -> return price
+
+// Test it out
+show "Gold:   " + calculate_discount(100, "gold")
+show "Silver: " + calculate_discount(100, "silver")
+show "Normal: " + calculate_discount(100, "none")
+
+// Inline tests
+test "gold discount":
+    expect calculate_discount(100, "gold") to equal 80
+
+test "silver discount":
+    expect calculate_discount(100, "silver") to equal 90
+
+test "no discount":
+    expect calculate_discount(100, "none") to equal 100

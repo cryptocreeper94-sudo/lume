@@ -1,0 +1,28 @@
+// interop_demo.lume — Demonstrates M4 interoperability features
+
+// ── Pipe operator: chain functions naturally ──
+to double(n: number) -> n * 2
+to add_one(n: number) -> n + 1
+to square(n: number) -> n * n
+
+let result = 5 |> double |> add_one |> square
+show "5 → double → +1 → square = {result}"
+
+// ── File I/O ──
+write "Hello from Lume!" to "output.txt"
+let content = read "output.txt"
+show "File contents: {content}"
+
+// ── Fetch (HTTP as a language primitive) ──
+// let users = fetch "https://jsonplaceholder.typicode.com/users" as json
+// show "Got {users.length} users"
+
+// ── Pipe with fetch ──
+// let names = fetch "https://api.example.com/users" as json
+//   |> extract_names
+
+// ── String manipulation via pipe ──
+to shout(s: text) -> text:
+    return s + "!!!"
+
+show "hello world" |> shout

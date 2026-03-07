@@ -1,0 +1,14 @@
+// fizzbuzz.lume — Classic FizzBuzz in Lume
+
+to fizzbuzz(n: number):
+    for i in 1 to n:
+        if i % 15 == 0:
+            show "FizzBuzz"
+        else if i % 3 == 0:
+            show "Fizz"
+        else if i % 5 == 0:
+            show "Buzz"
+        else:
+            show i
+
+fizzbuzz(20)

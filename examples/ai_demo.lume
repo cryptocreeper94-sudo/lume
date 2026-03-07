@@ -1,0 +1,29 @@
+// ai_demo.lume — Demonstrates AI integration in Lume
+
+// Simple ask — uses the default model
+let answer = ask "What is the capital of France?"
+show "Answer: {answer}"
+
+// Think — uses analytical mode (lower temperature, system prompt)
+let analysis = think "What are the pros and cons of microservices vs monoliths?"
+show "Analysis: {analysis}"
+
+// Generate — creative mode (higher temperature)
+let poem = generate "Write a haiku about programming"
+show poem
+
+// Model selector — use a specific model
+let claude_answer = ask claude.sonnet "Explain quantum computing in one sentence"
+show claude_answer
+
+// Structured output — parse as JSON
+let data = ask "List 3 programming languages with their year of creation. Return as JSON array." as json
+show data
+
+// Function that uses AI
+to summarize(content: text) -> text:
+    let summary = ask "Summarize this in one sentence: {content}"
+    return summary
+
+let result = summarize("The quick brown fox jumps over the lazy dog. This sentence contains every letter of the English alphabet and is known as a pangram.")
+show result

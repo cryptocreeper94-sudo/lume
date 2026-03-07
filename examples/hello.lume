@@ -1,0 +1,4 @@
+// hello.lume
+let language = "Lume"
+let version = 1
+show "Hello from {language} v{version}"

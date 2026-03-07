@@ -1,0 +1,21 @@
+{
+    "name": "lume",
+    "version": "0.1.0",
+    "description": "Lume — The AI-Native Programming Language",
+    "type": "module",
+    "main": "src/lexer.js",
+    "bin": {
+        "lume": "bin/lume.js"
+    },
+    "scripts": {
+        "test": "node --test tests/unit/*.test.js",
+        "test:integration": "node --test tests/integration/*.test.js"
+    },
+    "keywords": [
+        "language",
+        "ai",
+        "transpiler",
+        "programming-language"
+    ],
+    "license": "MIT"
+}
