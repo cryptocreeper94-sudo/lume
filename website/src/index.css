@@ -2306,9 +2306,34 @@ body {
     }
 }
 
+/* ══════════════════════════════════════════
+   MOBILE — 768px and below
+   ══════════════════════════════════════════ */
 @media (max-width: 768px) {
+
+    /* ── Section Full ── */
     .section-full {
-        padding: 50px 0;
+        padding: 40px 0;
+    }
+
+    .section-full .section-header {
+        padding: 0 20px;
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 24px !important;
+        letter-spacing: -0.5px;
+    }
+
+    .section-subtitle {
+        font-size: 14px;
+    }
+
+    /* ── Full-Width Carousels — stack vertically ── */
+    .full-carousel {
+        grid-template-columns: 1fr;
+        min-height: auto;
     }
 
     .fc-image-side {
@@ -2316,10 +2341,380 @@ body {
     }
 
     .fc-content-side {
-        padding: 24px;
+        padding: 24px 20px;
     }
 
     .fc-title {
+        font-size: 20px;
+    }
+
+    .fc-text {
+        font-size: 14px;
+    }
+
+    .fc-code {
+        font-size: 11px;
+        padding: 12px 14px;
+    }
+
+    .fc-nav {
+        margin-top: 16px;
+    }
+
+    /* ── Carousel controls — touch-friendly 44px targets ── */
+    .carousel-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .carousel-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .carousel-dot.active {
+        width: 28px;
+    }
+
+    /* ── Hero ── */
+    .hero-carousel {
+        height: 60vh;
+    }
+
+    .hero-content {
+        padding: 0 20px;
+        bottom: 8%;
+    }
+
+    .hero-title {
+        font-size: 28px !important;
+        letter-spacing: -1px;
+    }
+
+    .hero-subtitle {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .btn-primary-lg,
+    .btn-glass-lg {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+    }
+
+    .hero-stats {
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 12px 16px;
+        width: 100%;
+    }
+
+    .stat-value {
         font-size: 22px;
+    }
+
+    .stat-divider {
+        height: 30px;
+    }
+
+    .hero-badge {
+        font-size: 11px;
+        padding: 4px 12px;
+    }
+
+    .hero-dots {
+        bottom: 16px;
+    }
+
+    .hero-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .hero-dot.active {
+        width: 28px;
+    }
+
+    /* ── Navigation ── */
+    .nav {
+        padding: 0 16px;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .nav-cta {
+        display: none;
+    }
+
+    .hamburger {
+        display: block;
+    }
+
+    .hamburger-panel {
+        width: 100%;
+    }
+
+    /* ── Code Comparison — stack panels ── */
+    .code-comparison {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .code-panel pre {
+        font-size: 11px;
+        overflow-x: auto;
+    }
+
+    .carousel-slide {
+        padding: 0 16px;
+    }
+
+    .code-savings {
+        font-size: 11px;
+    }
+
+    /* ── Layers Stack ── */
+    .section-full .layers-stack {
+        padding: 0 16px;
+    }
+
+    .layer-card {
+        padding: 16px;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .layer-number {
+        font-size: 20px;
+    }
+
+    .layer-name {
+        font-size: 16px;
+    }
+
+    .layer-desc {
+        font-size: 13px;
+    }
+
+    /* ── Accordion ── */
+    .section-full .accordion-group {
+        padding: 0 16px;
+    }
+
+    .accordion-header {
+        padding: 14px 16px;
+        font-size: 14px;
+    }
+
+    .doc-code {
+        font-size: 11px;
+    }
+
+    /* ── Get Started Strip ── */
+    .get-started-strip {
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 16px;
+    }
+
+    .gs-step {
+        padding: 20px;
+    }
+
+    .gs-divider {
+        display: none;
+    }
+
+    .step-code {
+        font-size: 11px;
+    }
+
+    .step-number {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    /* ── Blog ── */
+    .blog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .blog-card-img {
+        height: 160px;
+    }
+
+    .blog-card-body {
+        padding: 16px;
+    }
+
+    .blog-card-title {
+        font-size: 16px;
+    }
+
+    .blog-post-body {
+        padding: 20px;
+    }
+
+    .blog-post-body h1 {
+        font-size: 24px;
+    }
+
+    /* ── Login ── */
+    .login-card {
+        margin: 20px;
+        padding: 28px 24px;
+        width: calc(100% - 40px);
+        max-width: none;
+    }
+
+    /* ── Affiliate ── */
+    .affiliate-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tier-card {
+        padding: 20px;
+    }
+
+    .referral-box {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .referral-box input {
+        width: 100%;
+        font-size: 12px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+        padding: 40px 20px 24px;
+    }
+
+    .footer-inner {
+        flex-direction: column;
+        gap: 32px;
+    }
+
+    .footer-links {
+        flex-wrap: wrap;
+        gap: 24px;
+    }
+
+    .footer-col {
+        min-width: 120px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        gap: 6px;
+        text-align: center;
+    }
+
+    /* ── Signal Chat ── */
+    .signal-tab {
+        bottom: 16px;
+        right: 16px;
+        font-size: 12px;
+        padding: 10px 14px;
+    }
+
+    .signal-modal {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    /* ── General Mobile ── */
+    .section {
+        padding: 40px 16px;
+    }
+
+    .milestone-badge {
+        font-size: 10px;
+        padding: 4px 10px;
+        bottom: 12px;
+        left: 12px;
+    }
+}
+
+/* ══════════════════════════════════════════
+   VERY SMALL — 480px and below
+   ══════════════════════════════════════════ */
+@media (max-width: 480px) {
+
+    .hero-carousel {
+        height: 55vh;
+    }
+
+    .hero-title {
+        font-size: 24px !important;
+    }
+
+    .hero-subtitle {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .hero-stats {
+        gap: 12px;
+        padding: 10px 12px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .stat-label {
+        font-size: 9px;
+    }
+
+    .fc-image-side {
+        height: 160px;
+    }
+
+    .fc-title {
+        font-size: 18px;
+    }
+
+    .fc-text {
+        font-size: 13px;
+    }
+
+    .fc-code {
+        font-size: 10px;
+    }
+
+    .section-title {
+        font-size: 20px !important;
+    }
+
+    .section-label {
+        font-size: 10px;
+    }
+
+    .nav-title {
+        font-size: 16px;
+    }
+
+    .nav-logo {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
     }
 }
