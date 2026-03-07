@@ -18,6 +18,7 @@ export default function LoginPage() {
 
     return (
         <div className="login-page">
+            <img src="/pages/login-hero.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.15, zIndex: 0 }} />
             <div className="orb orb-1" />
             <div className="orb orb-2" />
             <div className="login-card">

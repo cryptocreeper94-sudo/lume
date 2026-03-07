@@ -87,7 +87,7 @@ function useCarousel(items, autoMs = 0) {
 
 /* ─── Feature Carousel ─── */
 function FeatureCarousel() {
-    const { idx, prev, next, setIdx } = useCarousel(features, 5000)
+    const { idx, prev, next, setIdx } = useCarousel(features, 8000)
     const f = features[idx]
     return (
         <div className="full-carousel">
@@ -114,7 +114,7 @@ function FeatureCarousel() {
 
 /* ─── Ecosystem Carousel ─── */
 function EcoCarousel() {
-    const { idx, prev, next, setIdx } = useCarousel(ecosystem, 6000)
+    const { idx, prev, next, setIdx } = useCarousel(ecosystem, 8000)
     const e = ecosystem[idx]
     return (
         <div className="full-carousel eco-carousel">
@@ -142,7 +142,7 @@ function EcoCarousel() {
 
 /* ─── Milestone Carousel ─── */
 function MilestoneCarousel() {
-    const { idx, prev, next, setIdx } = useCarousel(milestones, 4000)
+    const { idx, prev, next, setIdx } = useCarousel(milestones, 8000)
     const m = milestones[idx]
     const imgs = ['/features/ai-syntax.png', '/features/pipe.png', '/features/ai-syntax.png', '/features/http.png', '/features/monitoring.png', '/features/evolving.png']
     return (

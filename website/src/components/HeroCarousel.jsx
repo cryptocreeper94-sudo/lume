@@ -18,7 +18,7 @@ export default function HeroCarousel() {
 
     useEffect(() => {
         if (paused) return
-        const timer = setInterval(next, 6000)
+        const timer = setInterval(next, 8000)
         return () => clearInterval(timer)
     }, [paused, next])
 

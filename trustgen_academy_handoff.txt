@@ -1,0 +1,109 @@
+TRUSTGEN 3D — Academy Module: 3D & Animation Generation
+Handoff Document for DarkWave Academy Agent
+========================================================
+
+MODULE OVERVIEW
+Module Title: AI-Powered 3D Asset Creation with TrustGen
+Academy URL: https://academy.tlid.io
+TrustGen URL: https://trustgen.tlid.io
+Design System: Ecosystem-wide ultra-premium (void black #06060a, cyan/teal gradients, glassmorphism, Inter + JetBrains Mono fonts)
+
+CURRICULUM OUTLINE
+==================
+
+LESSON 1: Introduction to TrustGen 3D
+- What is AI-powered 3D generation
+- Trust Layer ecosystem integration (SSO via dwtl.io)
+- Hallmarking: every asset gets an on-chain TN-XXXXXXX provenance ID
+- Overview of supported formats (GLTF, FBX, OBJ)
+
+LESSON 2: Text-to-3D Generation
+- Prompt engineering for 3D models
+- Material and texture control
+- Polygon count optimization
+- Export formats and use cases
+- Quality settings and render options
+
+LESSON 3: AI Animation Pipeline
+- Mixamo integration for character rigging
+- Procedural animation generation
+- Bone mapping and weight painting
+- Texture transplanting (UV transfer from GLTF to FBX)
+- Animation blending and transitions
+
+LESSON 4: Blockchain Provenance
+- Hallmarking your 3D assets on Trust Layer
+- Trust stamps for version history
+- Provenance chains and authorship verification
+- Signal rewards for quality contributions
+- IMPORTANT: Signal is a signal, NOT a coin, token, or cryptocurrency
+
+LESSON 5: Ecosystem Integration
+- SSO connectivity (HMAC token exchange via dwtl.io)
+- Signal Chat community (signalchat.tlid.io, #trustgen-support channel)
+- Publishing to Trust Hub (trusthub.tlid.io)
+- Embedding assets in Bomber 3D (bomber.tlid.io) and other ecosystem apps
+- DarkWave Studio IDE integration (studio.tlid.io)
+
+LESSON 6: Advanced Techniques
+- Multi-model composition and scene building
+- Scene generation from text descriptions
+- LOD (Level of Detail) management
+- Performance optimization for web and mobile
+- Batch generation workflows
+
+INTEGRATION POINTS
+==================
+
+SSO Authentication:
+- Students authenticate via Trust Layer SSO
+- Redirect URL: dwtl.io/login?app=academy
+- HMAC-authenticated token exchange for local JWT
+- localStorage keys: academy_token, academy_user
+
+Signal Chat (Real-Time):
+- WebSocket: wss://dwtl.io/ws/chat
+- Channel: #academy-trustgen
+- Auth: POST /api/chat/auth/login with JWT
+- Join: send { type: "join", channel: "#academy-trustgen" }
+- Side-tab widget on right edge (purple-to-cyan gradient)
+
+Progress Tracking:
+- Hallmark completion certificates as on-chain trust stamps
+- Each completed lesson mints a TN-XXXXXXX provenance ID
+- Progress visible in Trust Hub dashboard
+
+Rewards:
+- Earn Signal for course completion and community contributions
+- Signal is a SIGNAL — not a coin, token, or cryptocurrency
+- This is our philosophy to change the language in the digital asset space
+
+DESIGN PROTOCOL
+===============
+
+Follow ecosystem-wide ultra-premium UI/UX:
+- Background: void black (#06060a)
+- Accent colors: cyan (#06b6d4), teal (#14b8a6), sky (#38bdf8)
+- Typography: Inter (UI), JetBrains Mono (code)
+- Cards: glassmorphism (rgba backdrop blur, subtle borders)
+- Layout: 3-column bento grids for lesson cards
+- Navigation: carousels for lesson progression
+- Content: accordion dropdowns for lesson sections
+- Effects: orb floating backgrounds, skeleton reveal transitions, shadow depth
+- Responsive: full-width on mobile, 3-col on desktop
+- NO amber or orange colors anywhere
+
+ECOSYSTEM URLS (CORRECT)
+=========================
+
+Trust Layer (SSO): https://dwtl.io
+Signal Chat: https://signalchat.tlid.io
+TrustGen 3D: https://trustgen.tlid.io
+Bomber 3D: https://bomber.tlid.io
+DarkWave Studio: https://studio.tlid.io
+DarkWave Academy: https://academy.tlid.io
+Trust Hub: https://trusthub.tlid.io
+Trust Golf: https://trustgolf.app
+TrustShield: https://trustshield.tech
+The Arcade: https://darkwavegames.io
+Lume: https://lume-lang.org

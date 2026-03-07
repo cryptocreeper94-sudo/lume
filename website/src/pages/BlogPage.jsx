@@ -58,12 +58,19 @@ export default function BlogPage() {
     return (
         <div style={{ minHeight: '100vh' }}>
             <div className="orb orb-1" />
-            <section className="section" style={{ paddingTop: 120 }}>
-                <div className="section-header">
+
+            {/* Hero Banner */}
+            <div style={{ position: 'relative', height: 300, overflow: 'hidden', marginTop: 64 }}>
+                <img src="/pages/blog-hero.png" alt="Lume Blog" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(6,6,10,0.3), rgba(6,6,10,0.95))' }} />
+                <div style={{ position: 'absolute', bottom: 32, left: 0, right: 0, textAlign: 'center', zIndex: 2 }}>
                     <span className="section-label">Blog</span>
-                    <h2 className="section-title">Latest from <span className="gradient-wave-text">Lume</span></h2>
-                    <p className="section-subtitle">Tutorials, deep dives, and ecosystem updates</p>
+                    <h2 className="section-title" style={{ marginTop: 12 }}>Latest from <span className="gradient-wave-text">Lume</span></h2>
+                    <p className="section-subtitle" style={{ margin: '8px auto 0' }}>Tutorials, deep dives, and ecosystem updates</p>
                 </div>
+            </div>
+
+            <section className="section" style={{ paddingTop: 40 }}>
                 <div className="blog-grid">
                     {posts.map((p, i) => (
                         <Link to={`/blog/${p.slug}`} key={i} className="blog-card">
