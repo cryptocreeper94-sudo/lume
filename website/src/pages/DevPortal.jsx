@@ -2,20 +2,43 @@ import { useState, useEffect } from 'react'
 
 const PIN = '0424'
 
-/* ── Ecosystem Apps ── */
+/* ── Ecosystem Apps (Full Directory — 35 Apps) ── */
 const apps = [
-    { name: 'Lume', url: 'lume-lang.org', status: 'live', stack: 'Vite+React', hosting: 'Vercel' },
-    { name: 'Trust Layer', url: 'dwtl.io', status: 'live', stack: 'Node/Express', hosting: 'Render' },
-    { name: 'TrustGen 3D', url: 'trustgen.tlid.io', status: 'live', stack: 'React+Three.js', hosting: 'Vercel' },
-    { name: 'Bomber 3D', url: 'bomber.tlid.io', status: 'live', stack: 'React+Three.js', hosting: 'Vercel' },
-    { name: 'Signal Chat', url: 'signalchat.tlid.io', status: 'live', stack: 'Node/WS', hosting: 'Render' },
-    { name: 'DarkWave Studio', url: 'studio.tlid.io', status: 'dev', stack: 'React', hosting: 'Vercel' },
-    { name: 'DarkWave Academy', url: 'academy.tlid.io', status: 'planned', stack: 'React', hosting: 'Vercel' },
-    { name: 'Trust Hub', url: 'trusthub.tlid.io', status: 'dev', stack: 'React', hosting: 'Vercel' },
     { name: 'Arbora', url: 'arbora.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Bomber 3D', url: 'bomber.tlid.io', status: 'live', stack: 'React+Three.js', hosting: 'Vercel' },
+    { name: 'Brew & Board Coffee', url: 'brewandboard.coffee', status: 'live', stack: 'React', hosting: 'Vercel' },
     { name: 'Chronicles', url: 'yourlegacy.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'DarkWave Academy', url: 'academy.tlid.io', status: 'planned', stack: 'React', hosting: 'Vercel' },
+    { name: 'DarkWave Studio', url: 'studio.tlid.io', status: 'dev', stack: 'React', hosting: 'Vercel' },
+    { name: 'GarageBot', url: 'garagebot.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Guardian Scanner', url: 'guardianscanner.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Guardian Screener', url: 'guardianscreener.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'TrustShield', url: 'trustshield.tech', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Happy Eats', url: 'happyeats.app', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Lot Ops Pro', url: 'lotopspro.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Lume', url: 'lume-lang.org', status: 'live', stack: 'Vite+React', hosting: 'Vercel' },
+    { name: 'Nashville Painting Pros', url: 'nashpaintpros.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'ORBIT Staffing OS', url: 'orbitstaffing.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Orby Commander', url: 'getorby.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'PaintPros', url: 'paintpros.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Pulse', url: 'darkwavepulse.com', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Signal Chat', url: 'signalchat.tlid.io', status: 'live', stack: 'Node/WS', hosting: 'Render' },
+    { name: 'StrikeAgent', url: 'strikeagent.io', status: 'live', stack: 'React', hosting: 'Vercel' },
     { name: 'The Arcade', url: 'darkwavegames.io', status: 'live', stack: 'React', hosting: 'Vercel' },
     { name: 'THE VOID', url: 'intothevoid.app', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'TL Driver Connect', url: 'tldriverconnect.com', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'TLID.io', url: 'tlid.io', status: 'live', stack: 'Node/Express', hosting: 'Render' },
+    { name: 'TORQUE', url: 'torque.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'TradeWorks AI', url: 'tradeworksai.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Trust Book', url: 'trustbook.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Trust Golf', url: 'trustgolf.app', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Trust Hub', url: 'trusthub.tlid.io', status: 'dev', stack: 'React', hosting: 'Vercel' },
+    { name: 'Trust Layer (SSO)', url: 'dwtl.io', status: 'live', stack: 'Node/Express', hosting: 'Render' },
+    { name: 'TrustGen 3D', url: 'trustgen.tlid.io', status: 'live', stack: 'React+Three.js', hosting: 'Vercel' },
+    { name: 'TrustHome', url: 'trusthome.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'TrustVault', url: 'trustvault.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'VedaSolus', url: 'vedasolus.io', status: 'live', stack: 'React', hosting: 'Vercel' },
+    { name: 'Verdara', url: 'verdara.tlid.io', status: 'live', stack: 'React', hosting: 'Vercel' },
 ]
 
 /* ── API Integrations ── */
@@ -169,9 +192,9 @@ export default function DevPortal() {
 
                         {/* Ecosystem Health */}
                         <div className="bento-card" style={{ padding: 24 }}>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Ecosystem Health</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {apps.slice(0, 6).map((a, i) => (
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Ecosystem Health <span style={{ color: 'var(--accent)', fontSize: 11 }}>{apps.length} apps</span></div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 280, overflowY: 'auto' }}>
+                                {apps.map((a, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <StatusDot status={a.status} />
