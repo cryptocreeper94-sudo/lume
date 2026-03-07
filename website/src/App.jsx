@@ -9,6 +9,7 @@ import BlogPostPage from './pages/BlogPostPage'
 import LoginPage from './pages/LoginPage'
 import AffiliatePage from './pages/AffiliatePage'
 import LegalPage from './pages/LegalPage'
+import DevPortal from './pages/DevPortal'
 
 export default function App() {
     return (
@@ -23,6 +24,7 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/affiliate" element={<AffiliatePage />} />
                 <Route path="/legal" element={<LegalPage />} />
+                <Route path="/dev04" element={<DevPortal />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />
