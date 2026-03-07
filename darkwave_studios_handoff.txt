@@ -1,0 +1,282 @@
+================================================================================
+DARKWAVE STUDIOS — APP CATALOG HANDOFF
+Application: Lume
+================================================================================
+
+APP IDENTITY
+============
+Name:           Lume
+Tagline:        The AI-Native Programming Language
+Domain:         lume-lang.org / lume-lang.com
+Repository:     github.com/cryptocreeper94-sudo/lume
+Deployment:     Vercel (website), Backend TBD (Render/Railway)
+Status:         Active Development — 6 Milestones Complete
+Version:        0.6.0
+Category:       Developer Tools / Programming Language / AI Infrastructure
+
+MARKETING DESCRIPTION
+=====================
+Lume is the first programming language where artificial intelligence is a
+syntax primitive, not a library import. While traditional languages require
+SDKs, API wrappers, and boilerplate to integrate AI, Lume treats AI as a
+native feature of the language itself. Developers write "ask", "think", and
+"generate" as keywords — the same way they write "if" or "for" in any other
+language.
+
+But Lume goes further than any language before it. Lume programs are alive.
+They monitor their own performance, heal themselves when errors occur,
+optimize their own bottlenecks, and evolve their behavior over time. The
+self-sustaining runtime — four layers deep — means that a deployed Lume
+program can run autonomously, only calling a human when it faces a decision
+it genuinely cannot make on its own.
+
+Lume is not just a language. It is the first step toward software that takes
+care of itself.
+
+Built by DarkWave Studios. Powered by Trust Layer. Protected by TrustShield.
+
+ELEVATOR PITCH
+==============
+"What if you could write one line of code to call any AI model — and then
+that code could heal itself, optimize itself, and evolve on its own?"
+
+TARGET AUDIENCE
+===============
+- AI developers tired of SDK boilerplate
+- Backend engineers building autonomous systems
+- Startups that need AI integration without infrastructure complexity
+- Enterprise teams building self-monitoring microservices
+- Trust Layer ecosystem developers building authenticated apps
+
+KEY DIFFERENTIATORS
+===================
+1. AI as syntax (ask/think/generate are keywords, not library calls)
+2. Self-sustaining runtime (4-layer autonomous system)
+3. Trust Layer ecosystem integration (SSO, hallmarks, Signal Chat)
+4. 219 passing tests across 6 milestones
+5. Full toolchain (formatter, linter, REPL, watcher, source maps, IDE)
+6. 90% less code than Python for equivalent AI operations
+
+TECHNICAL SPECIFICATIONS
+========================
+
+TECH STACK
+----------
+Language Core:   JavaScript (Node.js runtime)
+Website:         Vite 6.x + React 19.x + React Router 7.x
+Styling:         Custom CSS (2,300+ lines, ecosystem design system)
+Animations:      Framer Motion + CSS keyframes
+Hosting:         Vercel (frontend), Render/Railway (backend planned)
+Version Control: Git / GitHub
+Design System:   DarkWave Ecosystem Ultra-Premium
+                 (void black #06060a, cyan/teal gradients, glassmorphism,
+                  Inter + JetBrains Mono, orb effects, skeleton transitions)
+
+LINES OF CODE (LOC)
+-------------------
+Component                    LOC      Files
+Language Core (lexer,        5,128    7 files
+  parser, transpiler,
+  formatter, linter,
+  stdlib, runtime)
+Self-Sustaining Runtime      1,223    4 files
+  (monitor, healer,
+  optimizer, evolver)
+Test Suite                   1,998    6 files
+Website (React SPA)          3,519    14 files
+CLI                          347      1 file
+Editor Grammar               235      1 file
+Config/Build                 765      8 files
+                             -----    -----
+TOTAL                        ~12,215  41 files
+
+TEST COVERAGE
+-------------
+Total Tests:     219
+Pass Rate:       100%
+Milestones:      6 of 6
+
+  M1 - Hello World:     32 tests (lexer, parser, transpiler, CLI)
+  M2 - Core Language:   32 tests (if/else, functions, loops, types, modules)
+  M3 - AI Integration:  30 tests (ask/think/generate, Result type)
+  M4 - Interoperability: 41 tests (fetch, pipe, read/write, stdlib)
+  M5 - Tooling & IDE:   28 tests (formatter, linter, source maps)
+  M6 - Self-Sustaining: 56 tests (monitor, healer, optimizer, evolver)
+
+ARCHITECTURE
+============
+
+Language Pipeline:
+  .lume source -> Lexer -> Token Stream -> Parser -> AST -> Transpiler -> .js
+
+Self-Sustaining Runtime (4 Layers):
+  Layer 1: Self-Monitoring  — Function metrics, AI call stats, memory, dashboards
+  Layer 2: Self-Healing     — Retry, circuit breakers, model fallback chains
+  Layer 3: Self-Optimizing  — Bottleneck detection, mutation log, rollback
+  Layer 4: Self-Evolving    — Pattern learning, cost analysis, evolution decisions
+
+Toolchain:
+  - lume run <file>     — Transpile + execute
+  - lume build <file>   — Transpile only
+  - lume test <file>    — Run test blocks
+  - lume fmt <file>     — Format source code
+  - lume lint <file>    — Lint with 15 rules + suggested fixes
+  - lume repl           — Interactive REPL with multi-line support
+  - lume watch <file>   — File watcher with auto-rebuild
+  - lume ast <file>     — Print AST
+  - lume tokens <file>  — Print token stream
+
+WEBSITE STRUCTURE
+=================
+
+Pages:
+  /              — Landing page (hero slideshow, features, code comparison,
+                   architecture, milestones, docs, ecosystem, get started)
+  /blog          — AI-driven blog grid (6 seeded posts, CRUD-ready)
+  /blog/:slug    — Individual blog post viewer
+  /login         — Trust Layer SSO + email/password login
+  /affiliate     — 4-tier referral program + blockchain hallmarks
+  /legal         — Terms, privacy, DMCA, affiliate terms
+
+Components:
+  - HeroCarousel     — 4-slide photorealistic slideshow (8s per slide)
+  - FeatureCarousel  — 7-slide full-width image+content carousel
+  - EcoCarousel      — 6-slide ecosystem app carousel
+  - MilestoneCarousel— 6-slide progress bar carousel
+  - SignalChatWidget — Side-tab real-time chat (WebSocket-ready)
+  - Nav              — Scroll-aware navigation with active routing
+  - Footer           — Ecosystem branded footer
+  - HamburgerMenu    — Mobile slide-in navigation
+
+Photorealistic Images: 18 AI-generated images across all pages
+
+ECOSYSTEM INTEGRATION
+=====================
+
+TRUST LAYER SSO
+- Auth flow:  Redirect -> dwtl.io/login?app=lume -> HMAC token exchange
+- Storage:    localStorage (lume_token, lume_user)
+- Endpoint:   POST dwtl.io/api/sso/exchange
+- JWT-based session management
+
+SIGNAL CHAT
+- WebSocket:  wss://dwtl.io/ws/chat
+- Auth:       POST /api/chat/auth/login with JWT
+- Channel:    #lume-support
+- Widget:     Side-tab on right edge, slide-in modal
+
+BLOCKCHAIN HALLMARKS
+- Hallmark ID: TN-XXXXXXX format
+- On-chain provenance for Lume programs
+- Trust stamps for authorship verification
+- Integration via Trust Layer blockchain API
+
+SIGNAL REWARDS
+- Signal is a SIGNAL — NOT a coin, token, or cryptocurrency
+- Earned through referrals, hallmarking, ecosystem contributions
+- 4 affiliate tiers: Bronze (10%), Silver (15%), Gold (20%), Diamond (25%)
+- 30-day cookie tracking for referral attribution
+
+API CONNECTIVITY FOR DARKWAVESTUDIOS.IO
+=======================================
+
+LUME BACKEND API (Planned — for DarkWave Studios catalog integration)
+
+Base URL:  https://api.lume-lang.org (planned)
+Auth:      Bearer JWT via Trust Layer SSO exchange
+
+Catalog Endpoints (for DarkWave Studios):
+  GET  /api/meta               — App metadata (version, status, stats)
+  GET  /api/meta/health        — Health check
+  GET  /api/meta/stats         — LOC, test count, milestone status
+
+Blog Endpoints:
+  GET  /api/blog               — List posts (paginated)
+  GET  /api/blog/:slug         — Single post
+  POST /api/blog               — Create post (auth required)
+  PUT  /api/blog/:slug         — Update post (auth required)
+  DEL  /api/blog/:slug         — Delete post (auth required)
+
+Affiliate Endpoints:
+  GET  /api/affiliate/stats    — User's referral stats (auth required)
+  POST /api/affiliate/generate — Generate referral code (auth required)
+  GET  /api/affiliate/tiers    — Tier definitions
+
+Hallmark Endpoints:
+  POST /api/hallmark           — Submit program for hallmarking
+  GET  /api/hallmark/:id       — Get hallmark status
+  GET  /api/hallmark/verify/:tn — Verify a TN-XXXXXXX ID
+
+DARKWAVE STUDIOS CATALOG ENTRY
+==============================
+
+App Name:        Lume
+App ID:          lume
+Category:        Developer Tools
+Subcategory:     Programming Language
+Status:          Active
+Version:         0.6.0
+Author:          DarkWave Studios LLC
+License:         MIT (language), Proprietary (website)
+Live URL:        https://lume-lang.org
+Repo:            github.com/cryptocreeper94-sudo/lume
+npm Package:     lume-lang (planned)
+Trust Layer ID:  app_lume
+Signal Channel:  #lume-support
+
+Dependencies:
+  - Trust Layer SSO (dwtl.io) — authentication
+  - Signal Chat (signalchat.tlid.io) — community messaging
+  - TrustShield (trustshield.tech) — security monitoring
+
+Connected Apps:
+  - TrustGen 3D (trustgen.tlid.io) — 3D creation powered by Lume
+  - Bomber 3D (bomber.tlid.io) — game logic scripted in Lume
+  - DarkWave Studio (studio.tlid.io) — Lume development IDE
+  - Trust Hub (trusthub.tlid.io) — ecosystem hub
+  - DarkWave Academy (academy.tlid.io) — Lume tutorials
+
+WEBHOOK/EVENT INTEGRATION (for darkwavestudios.io)
+===================================================
+
+Events Lume can emit to DarkWave Studios:
+  - app.health.check      — Periodic health status
+  - app.deploy.complete    — New version deployed
+  - app.test.results       — Test suite results (219 tests)
+  - blog.post.published    — New blog post created
+  - hallmark.created       — New hallmark minted
+  - affiliate.conversion   — New referral conversion
+  - user.signup            — New user registered
+
+Events Lume can consume from DarkWave Studios:
+  - catalog.app.updated    — Catalog entry changed
+  - catalog.featured       — App featured on darkwavestudios.io
+  - ecosystem.announcement — Ecosystem-wide announcement
+
+Webhook Format:
+  POST https://api.lume-lang.org/webhooks/darkwave
+  Content-Type: application/json
+  X-DarkWave-Signature: HMAC-SHA256
+  {
+    "event": "catalog.app.updated",
+    "timestamp": "2026-03-07T12:25:00Z",
+    "data": { ... }
+  }
+
+DESIGN SYSTEM COMPLIANCE
+=========================
+Lume follows the DarkWave Ecosystem Ultra-Premium Design Protocol:
+  - Background:   Void black (#06060a)
+  - Accents:      Cyan (#06b6d4), Teal (#14b8a6), Sky (#38bdf8)
+  - Typography:   Inter (UI), JetBrains Mono (code)
+  - Cards:        Glassmorphism (rgba backdrop-filter blur, subtle borders)
+  - Layout:       3-column bento grids, full-width carousels
+  - Effects:      Orb floating backgrounds, skeleton transitions, shadow depth
+  - Navigation:   Scroll-aware nav, accordion dropdowns, carousel controls
+  - Responsive:   Desktop-first, mobile-adaptive
+  - Prohibited:   Amber, orange, or warm colors
+
+================================================================================
+END OF HANDOFF — LUME FOR DARKWAVESTUDIOS.IO
+DarkWave Studios LLC | March 2026
+================================================================================
