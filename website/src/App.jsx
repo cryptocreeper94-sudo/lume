@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import AffiliatePage from './pages/AffiliatePage'
 import LegalPage from './pages/LegalPage'
 import DevPortal from './pages/DevPortal'
+import SmsOptIn from './pages/SmsOptIn'
 
 export default function App() {
     return (
@@ -25,6 +26,7 @@ export default function App() {
                 <Route path="/affiliate" element={<AffiliatePage />} />
                 <Route path="/legal" element={<LegalPage />} />
                 <Route path="/dev04" element={<DevPortal />} />
+                <Route path="/sms-optin" element={<SmsOptIn />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />
