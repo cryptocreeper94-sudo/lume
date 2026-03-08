@@ -160,6 +160,23 @@ export class Transpiler {
                 return this._emitConfigBlock('optimizer', node)
             case NodeType.EvolveBlock:
                 return this._emitConfigBlock('evolver', node)
+
+            // ── English Mode (M7) Node Types ──
+            case NodeType.VariableAccess: return this._emitVariableAccess(node)
+            case NodeType.StoreOperation: return this._emitStoreOperation(node)
+            case NodeType.DeleteOperation: return this._emitDeleteOperation(node)
+            case NodeType.CreateOperation: return this._emitCreateOperation(node)
+            case NodeType.UpdateOperation: return this._emitUpdateOperation(node)
+            case NodeType.SendOperation: return this._emitSendOperation(node)
+            case NodeType.FilterOperation: return this._emitFilterOperation(node)
+            case NodeType.SortOperation: return this._emitSortOperation(node)
+            case NodeType.ConnectionSetup: return this._emitConnectionSetup(node)
+            case NodeType.EventListener: return this._emitEventListener(node)
+            case NodeType.NavigateOperation: return this._emitNavigateOperation(node)
+            case NodeType.DelayStatement: return this._emitDelayStatement(node)
+            case NodeType.RawBlock: return this._emitRawBlock(node)
+            case NodeType.HealableDecorator: return this._indent('// @healable (English Mode decorator)')
+
             default:
                 // Expression statement
                 return this._indent(this._emitExpression(node) + ';')
@@ -660,6 +677,140 @@ export class Transpiler {
 
     _indent(line) {
         return '  '.repeat(this.indentLevel) + line
+    }
+
+    // ══════════════════════════════════════
+    //  ENGLISH MODE (M7) EMISSIONS
+    // ══════════════════════════════════════
+
+    _emitVariableAccess(node) {
+        const target = this._sanitizeName(node.target)
+        if (node.source) {
+            const source = this._sanitizeName(node.source)
+            return this._indent(`const ${target} = await db.query('SELECT * FROM ${source} WHERE id = ?', [${target}_id]);`)
+        }
+        return this._indent(`const ${target}_data = ${target};`)
+    }
+
+    _emitStoreOperation(node) {
+        const value = this._sanitizeName(node.value)
+        const target = this._sanitizeName(node.target || 'database')
+        return this._indent(`await db.insert('${target}', ${value});`)
+    }
+
+    _emitDeleteOperation(node) {
+        const target = this._sanitizeName(node.target)
+        if (node.source) {
+            const source = this._sanitizeName(node.source)
+            return this._indent(`await db.delete('${source}', { where: { id: ${target}_id } });`)
+        }
+        return this._indent(`await db.delete('${target}');`)
+    }
+
+    _emitCreateOperation(node) {
+        const target = this._sanitizeName(node.target)
+        const fields = (node.fields || []).map(f => `${f}: null`).join(', ')
+        if (fields) {
+            return this._indent(`const ${target} = await db.create('${target}', { ${fields} });`)
+        }
+        return this._indent(`const ${target} = await db.create('${target}', {});`)
+    }
+
+    _emitUpdateOperation(node) {
+        const target = this._sanitizeName(node.target)
+        if (node.value) {
+            return this._indent(`await db.update('${target}', { value: ${JSON.stringify(node.value)} });`)
+        }
+        return this._indent(`await db.update('${target}', {});`)
+    }
+
+    _emitSendOperation(node) {
+        const payload = this._sanitizeName(node.payload)
+        if (node.target) {
+            return this._indent(`await fetch(${JSON.stringify(node.target)}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(${payload}) });`)
+        }
+        return this._indent(`emit(${JSON.stringify(payload)}, ${payload});`)
+    }
+
+    _emitFilterOperation(node) {
+        const target = this._sanitizeName(node.target)
+        if (node.condition) {
+            return this._indent(`const filtered_${target} = ${target}.filter(item => ${this._naturalConditionToJS(node.condition)});`)
+        }
+        return this._indent(`const filtered_${target} = ${target}.filter(Boolean);`)
+    }
+
+    _emitSortOperation(node) {
+        const target = this._sanitizeName(node.target)
+        const order = node.order === 'desc' ? -1 : 1
+        if (node.by) {
+            const by = this._sanitizeName(node.by)
+            return this._indent(`${target}.sort((a, b) => ${order === -1 ? '(b.' + by + ' > a.' + by + ' ? 1 : -1)' : '(a.' + by + ' > b.' + by + ' ? 1 : -1)'});`)
+        }
+        return this._indent(`${target}.sort(${order === -1 ? '(a, b) => (b > a ? 1 : -1)' : ''});`)
+    }
+
+    _emitConnectionSetup(node) {
+        return this._indent(`const connection = await connect(${JSON.stringify(node.target)});`)
+    }
+
+    _emitEventListener(node) {
+        const element = this._sanitizeName(node.element)
+        const event = node.event || 'click'
+        const lines = []
+        lines.push(this._indent(`document.querySelector('#${element}').addEventListener('${event}', (event) => {`))
+        this.indentLevel++
+        lines.push(this._indent('// Handler code'))
+        this.indentLevel--
+        lines.push(this._indent('});'))
+        return lines
+    }
+
+    _emitNavigateOperation(node) {
+        const target = node.target
+        if (target.startsWith('http') || target.startsWith('/')) {
+            return this._indent(`window.location.href = ${JSON.stringify(target)};`)
+        }
+        return this._indent(`navigate(${JSON.stringify(target)});`)
+    }
+
+    _emitDelayStatement(node) {
+        const ms = node.duration || 1000
+        return this._indent(`await new Promise(resolve => setTimeout(resolve, ${ms}));`)
+    }
+
+    _emitRawBlock(node) {
+        // Raw JavaScript passthrough — no transformation
+        const lines = node.code.split('\n').map(l => this._indent(l))
+        return lines
+    }
+
+    _sanitizeName(name) {
+        if (!name) return '_unnamed'
+        return name.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, '_$1')
+    }
+
+    _naturalConditionToJS(condition) {
+        if (!condition) return 'true'
+        // Convert natural language conditions to JS expressions
+        return condition
+            .replace(/\b(is|equals?)\b/gi, '===')
+            .replace(/\b(is not|isn'?t|does not equal)\b/gi, '!==')
+            .replace(/\b(greater than|more than|above|over)\b/gi, '>')
+            .replace(/\b(less than|fewer than|below|under)\b/gi, '<')
+            .replace(/\b(at least|>=)\b/gi, '>=')
+            .replace(/\b(at most|<=)\b/gi, '<=')
+            .replace(/\b(and)\b/gi, '&&')
+            .replace(/\b(or)\b/gi, '||')
+            .replace(/\b(not|!)\b/gi, '!')
+            .replace(/\b(contains|includes)\b/gi, '.includes')
+            .replace(/\b(starts with)\b/gi, '.startsWith')
+            .replace(/\b(ends with)\b/gi, '.endsWith')
+            .replace(/\b(exists|defined|truthy)\b/gi, '!== undefined')
+            .replace(/\b(empty|blank)\b/gi, '.length === 0')
+            .replace(/\b(true)\b/gi, 'true')
+            .replace(/\b(false)\b/gi, 'false')
+            .trim()
     }
 }
 

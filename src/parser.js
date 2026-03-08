@@ -72,6 +72,22 @@ export const NodeType = {
     ResultPattern: 'ResultPattern',
     BlockStatement: 'BlockStatement',
     CommentNode: 'CommentNode',
+
+    // ── English Mode (M7) AST Types ──
+    VariableAccess: 'VariableAccess',
+    StoreOperation: 'StoreOperation',
+    DeleteOperation: 'DeleteOperation',
+    CreateOperation: 'CreateOperation',
+    UpdateOperation: 'UpdateOperation',
+    SendOperation: 'SendOperation',
+    FilterOperation: 'FilterOperation',
+    SortOperation: 'SortOperation',
+    ConnectionSetup: 'ConnectionSetup',
+    EventListener: 'EventListener',
+    NavigateOperation: 'NavigateOperation',
+    DelayStatement: 'DelayStatement',
+    RawBlock: 'RawBlock',
+    HealableDecorator: 'HealableDecorator',
 }
 
 // ── Parser ──

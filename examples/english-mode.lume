@@ -1,0 +1,33 @@
+mode: english
+# Example English Mode Lume Program
+# This file demonstrates the Intent Resolver pipeline
+
+# Basic operations
+get the user's name
+show the name on screen
+
+# Database operations
+create a new user with name and email
+save the data to the database
+get all users from the database
+filter users where age is greater than 18
+sort users by name
+delete the old record
+
+# API operations
+send the response to the client
+connect to the database
+
+# Timing
+wait 2 seconds
+
+# Compound sentences (split by "then")
+get the data then show it on screen
+
+# Raw JavaScript escape hatch
+raw:
+    const customLib = require('custom-lib')
+    customLib.doSomething()
+
+# Show the result
+show "Hello from English Mode!"

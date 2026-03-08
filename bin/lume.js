@@ -16,8 +16,9 @@
  *   lume test [file]     Run test blocks
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
-import { resolve, basename, extname } from 'node:path'
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs'
+import { resolve, basename, extname, dirname } from 'node:path'
+import { createHash } from 'node:crypto'
 import { tokenize } from '../src/lexer.js'
 import { parse } from '../src/parser.js'
 import { transpile } from '../src/transpiler.js'
@@ -26,8 +27,10 @@ import { format } from '../src/formatter.js'
 import { lint, formatFindings } from '../src/linter.js'
 import { startREPL } from '../src/repl.js'
 import { startWatch } from '../src/watcher.js'
+import { detectMode, resolveEnglishFile, matchPattern } from '../src/intent-resolver/index.js'
+import { generateSourceMap } from '../src/sourcemap.js'
 
-const VERSION = '0.5.0'
+const VERSION = '0.7.0'
 
 const COLORS = {
     reset: '\x1b[0m',
@@ -73,6 +76,10 @@ function main() {
             return printTokens(args[1])
         case 'test':
             return runTests(args[1])
+        case 'explain':
+            return explainFile(args[1])
+        case 'verify':
+            return verifyHash(args)
         case 'version':
         case '--version':
         case '-v':
@@ -109,11 +116,95 @@ function readSource(filepath) {
     }
 }
 
-function compile(source, filename) {
+function compile(source, filename, options = {}) {
+    const mode = detectMode(source)
+
+    if (mode === 'english' || mode === 'natural') {
+        // ═══ ENGLISH MODE: Intent Resolver → AST → Transpiler ═══
+        // Bypasses Lexer and Parser entirely
+        return compileEnglish(source, filename, mode, options)
+    }
+
+    // ═══ STANDARD MODE: Lexer → Parser → Transpiler ═══
     const tokens = tokenize(source, filename)
     const ast = parse(tokens, filename)
     const js = transpile(ast, filename)
-    return { tokens, ast, js }
+    return { tokens, ast, js, mode: 'standard' }
+}
+
+async function compileEnglish(source, filename, mode, options = {}) {
+    const lockPath = resolve(dirname(resolve(filename)), '.lume', 'compile-lock.json')
+    let lockCache = null
+
+    // Load compile lock cache if it exists
+    if (existsSync(lockPath)) {
+        try {
+            const lockData = JSON.parse(readFileSync(lockPath, 'utf-8'))
+            lockCache = lockData.cache || {}
+        } catch { /* ignore corrupt lock */ }
+    }
+
+    const result = await resolveEnglishFile(source, {
+        filename,
+        lockCache,
+        model: options.model || process.env.LUME_AI_MODEL || 'gpt-4o-mini',
+        projectRoot: process.cwd(),
+        securityConfig: loadSecurityConfig(),
+        strict: options.strict,
+    })
+
+    // Print diagnostics
+    const blocked = result.diagnostics.filter(d => d.type === 'error')
+    const warnings = result.diagnostics.filter(d => d.type === 'warning' || d.type === 'confirm')
+    const infos = result.diagnostics.filter(d => d.type === 'info')
+
+    if (infos.length > 0 && !options.quiet) {
+        for (const d of infos) {
+            console.log(color('dim', `  ${d.message}`))
+        }
+    }
+    if (warnings.length > 0) {
+        console.log(color('yellow', `\n  ⚠ ${warnings.length} warning(s)`))
+        for (const d of warnings) {
+            console.log(color('yellow', `    Line ${d.line}: ${d.message}`))
+        }
+    }
+    if (blocked.length > 0) {
+        console.error(color('red', `\n  ✖ ${blocked.length} error(s) — compilation blocked`))
+        for (const d of blocked) {
+            console.error(color('red', `    Line ${d.line}: ${d.message}`))
+        }
+        process.exit(1)
+    }
+
+    // Build AST wrapper (same shape as Parser output)
+    const ast = {
+        type: 'Program',
+        body: result.ast,
+        mode,
+    }
+
+    // Transpile
+    const js = transpile(ast, filename)
+
+    // Generate source map
+    const sourceMap = generateSourceMap(source, js, filename)
+
+    // Print stats
+    if (!options.quiet) {
+        console.log(color('cyan', `\n  ✦ English Mode — ${result.stats.resolvedLines} lines resolved`))
+        console.log(color('dim', `    Layer A (patterns): ${result.stats.patternMatches} · Layer B (AI): ${result.stats.aiResolutions} · Auto-corrections: ${result.stats.autoCorrections}`))
+    }
+
+    return { ast, js, mode, diagnostics: result.diagnostics, stats: result.stats, certificate: result.certificate, sourceMap }
+}
+
+function loadSecurityConfig() {
+    const configPath = resolve(process.cwd(), '.lume', 'security-config.json')
+    if (existsSync(configPath)) {
+        try { return JSON.parse(readFileSync(configPath, 'utf-8')) } catch { /* default */ }
+    }
+    return { level: 'standard' }
 }
 
 function runFile(filepath, flags = []) {
@@ -151,10 +242,70 @@ function buildFile(filepath, flags = []) {
     const { source, filename } = readSource(filepath)
 
     try {
-        const { js } = compile(source, filename)
-        const outPath = filepath.replace(/\.lume$/, '.js')
-        writeFileSync(outPath, js, 'utf-8')
-        console.log(color('green', `✓ Compiled ${filename} → ${basename(outPath)}`))
+        const result = compile(source, filename, { quiet: flags.includes('--quiet') })
+
+        // Handle async (English Mode returns a Promise)
+        const finish = (compiled) => {
+            const outPath = filepath.replace(/\.lume$/, '.js')
+            let output = compiled.js
+
+            // Prepend security certificate if present
+            if (compiled.certificate) {
+                output = compiled.certificate + '\n\n' + output
+            }
+
+            // Append source map if present
+            if (compiled.sourceMap) {
+                output += '\n' + compiled.sourceMap.toComment()
+            }
+
+            writeFileSync(outPath, output, 'utf-8')
+            console.log(color('green', `✓ Compiled ${filename} → ${basename(outPath)}`))
+
+            // Generate compile lock (English Mode)
+            if (compiled.mode === 'english' || compiled.mode === 'natural') {
+                const lumeDir = resolve(dirname(resolve(filepath)), '.lume')
+                if (!existsSync(lumeDir)) mkdirSync(lumeDir, { recursive: true })
+
+                const inputHash = createHash('sha256').update(source).digest('hex')
+                const outputHash = createHash('sha256').update(output).digest('hex')
+
+                const lock = {
+                    version: VERSION,
+                    mode: compiled.mode,
+                    source: filename,
+                    compiled: new Date().toISOString(),
+                    inputHash,
+                    outputHash,
+                    stats: compiled.stats,
+                    certificate: compiled.certificate ? true : false,
+                    cache: {},
+                }
+
+                // Cache resolved lines for deterministic recompilation
+                if (compiled.ast?.body) {
+                    for (const node of compiled.ast.body) {
+                        if (node.resolvedBy) {
+                            lock.cache[node.line] = { ast: node, confidence: node.confidence || 1.0 }
+                        }
+                    }
+                }
+
+                writeFileSync(resolve(lumeDir, 'compile-lock.json'), JSON.stringify(lock, null, 2), 'utf-8')
+                console.log(color('dim', `  ✓ Compile lock written to .lume/compile-lock.json`))
+                console.log(color('dim', `  ✓ Input hash:  ${inputHash.substring(0, 16)}...`))
+                console.log(color('dim', `  ✓ Output hash: ${outputHash.substring(0, 16)}...`))
+            }
+        }
+
+        if (result instanceof Promise) {
+            result.then(finish).catch(err => {
+                console.error(color('red', err.message))
+                process.exit(1)
+            })
+        } else {
+            finish(result)
+        }
     } catch (err) {
         console.error(color('red', err.message))
         process.exit(1)
@@ -295,6 +446,65 @@ function printTokens(filepath) {
     }
 }
 
+// ─── M11 Preview: Explain ───
+function explainFile(filepath) {
+    const { source, filename } = readSource(filepath)
+    const lines = source.split('\n')
+    const mode = detectMode(source)
+
+    console.log(color('magenta', `\n  ✦ Lume Explain — ${filename}`))
+    console.log(color('dim', `  Mode: ${mode} · ${lines.length} lines\n`))
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (!line || line.startsWith('#') || line.startsWith('//') || line.startsWith('mode:')) continue
+
+        // Try pattern matching to explain
+        const result = matchPattern(line)
+        if (result.matched) {
+            console.log(color('cyan', `  Line ${i + 1}: `) + color('dim', `"${line}"`))
+            console.log(color('green', `    → ${result.ast.type}: `) + JSON.stringify(result.ast, null, 2).split('\n').map((l, j) => j === 0 ? l : '      ' + l).join('\n'))
+            console.log()
+        } else {
+            console.log(color('cyan', `  Line ${i + 1}: `) + color('dim', `"${line}"`))
+            console.log(color('yellow', `    → Could not resolve (would use AI in compile mode)`))
+            console.log()
+        }
+    }
+}
+
+// ─── Verify ───
+function verifyHash(args) {
+    const hashFlag = args.find(a => a.startsWith('--hash'))
+    if (!hashFlag) {
+        console.error(color('red', 'Usage: lume verify --hash <hash>'))
+        process.exit(1)
+    }
+    const hash = args[args.indexOf(hashFlag) + 1] || hashFlag.split('=')[1]
+    if (!hash) {
+        console.error(color('red', 'Error: No hash provided'))
+        process.exit(1)
+    }
+    console.log(color('magenta', `\n  ✦ Lume Security Verify`))
+    console.log(color('dim', `  Hash: ${hash}`))
+    console.log(color('dim', `  Checking compile lock files...\n`))
+
+    // Search for compile locks matching this hash
+    const lumeDir = resolve(process.cwd(), '.lume')
+    if (existsSync(resolve(lumeDir, 'compile-lock.json'))) {
+        const lock = JSON.parse(readFileSync(resolve(lumeDir, 'compile-lock.json'), 'utf-8'))
+        if (lock.outputHash?.startsWith(hash) || lock.inputHash?.startsWith(hash)) {
+            console.log(color('green', '  ✓ VERIFIED — hash matches compile lock'))
+            console.log(color('dim', `    Source: ${lock.source}`))
+            console.log(color('dim', `    Compiled: ${lock.compiled}`))
+            console.log(color('dim', `    Mode: ${lock.mode}`))
+            return
+        }
+    }
+    console.log(color('red', '  ✖ NOT VERIFIED — no matching compile lock found'))
+    process.exit(1)
+}
+
 function printHelp() {
     console.log(`
 ${color('magenta', `  ✦ Lume v${VERSION}`)} ${color('dim', '— The AI-Native Programming Language')}
@@ -306,6 +516,8 @@ ${color('bold', '  USAGE')}
 ${color('bold', '  COMMANDS')}
     ${color('cyan', 'run')} <file>                  Run a Lume program
     ${color('cyan', 'build')} <file>                Compile to JavaScript
+    ${color('cyan', 'explain')} <file>              Explain code in plain English (M11)
+    ${color('cyan', 'verify')} --hash <hash>        Verify security certificate
     ${color('cyan', 'fmt')} <file> [--check|--diff]  Format source code
     ${color('cyan', 'lint')} <file>                 Analyze for issues
     ${color('cyan', 'repl')}                        Start interactive REPL
@@ -315,6 +527,15 @@ ${color('bold', '  COMMANDS')}
     ${color('cyan', 'tokens')} <file>               Print the token stream
     ${color('cyan', 'version')}                     Show version
     ${color('cyan', 'help')}                        Show this help
+
+${color('bold', '  ENGLISH MODE')} ${color('dim', '(M7 — Natural Language)')}
+    mode: english                 ${color('dim', 'First line of .lume file enables English Mode')}
+    mode: natural                 ${color('dim', 'Same as english, also enables multilingual (M8)')}
+    "get the user name"           ${color('dim', 'Pattern-matched to AST node')}
+    "show it on screen"           ${color('dim', 'Pronoun resolution + context')}
+    raw:                          ${color('dim', 'Escape hatch for raw JavaScript')}
+    .lume/compile-lock.json       ${color('dim', 'Deterministic build cache')}
+    .lume/security-config.json    ${color('dim', 'Security scan level config')}
 
 ${color('bold', '  AI FEATURES')}
     ask "prompt"                  ${color('dim', 'Standard AI call (temp 0.7)')}
