@@ -1,17 +1,30 @@
 /**
  * ====== Lume Source Map Generator ======
  * Generates source maps mapping transpiled JavaScript lines back to Lume source lines.
- * Simple line-based mapping for debugging.
+ * Enhanced with English Mode metadata (Gap 6): instruction, resolved_by, confidence, ast_node.
  */
 
 export class SourceMap {
     constructor(lumeFilename) {
         this.lumeFilename = lumeFilename
-        this.mappings = []  // { jsLine, lumeLine, name? }
+        this.mappings = []  // { jsLine, lumeLine, name?, lume_instruction?, resolved_by?, confidence?, ast_node? }
     }
 
     addMapping(jsLine, lumeLine, name = null) {
         this.mappings.push({ jsLine, lumeLine, name })
+    }
+
+    /** Gap 6: Enhanced mapping with English Mode metadata */
+    addEnhancedMapping(jsLine, lumeLine, meta = {}) {
+        this.mappings.push({
+            js_line: jsLine,
+            lume_line: lumeLine,
+            lume_instruction: meta.instruction || null,
+            resolved_by: meta.resolvedBy || null,
+            confidence: meta.confidence || null,
+            ast_node: meta.astType || null,
+            name: meta.name || null,
+        })
     }
 
     // Resolve a JS error line back to original Lume line

@@ -34,6 +34,8 @@ import { explainNode, explainAST as explainASTFull, summarizeAST, explainFile as
 import { parseAppDescription, generateProjectStructure } from '../src/intent-resolver/app-generator.js'
 import { createBundle, getCompileCommand } from '../src/intent-resolver/bundler.js'
 import { diffAST, formatDiff, nodeIdentity } from '../src/intent-resolver/ast-differ.js'
+import { canonicalizeFile, isCanonical, loadStyleConfig } from '../src/intent-resolver/canonicalizer.js'
+import { translateError, formatEnglishError, createStepDebugger } from '../src/intent-resolver/error-translator.js'
 import { loadVoiceConfig, matchesVoiceCommand } from '../src/intent-resolver/voice-config.js'
 import { processTranscription, processCorrection, splitRunOnSentences } from '../src/intent-resolver/voice-input.js'
 
@@ -107,6 +109,10 @@ function main() {
             return verifyHash(args)
         case 'init':
             return initCmd(flags)
+        case 'canonicalize':
+            return canonicalizeCmd(args[1], flags)
+        case 'debug':
+            return debugCmd(args[1], flags)
         case 'version':
         case '--version':
         case '-v':
@@ -948,6 +954,104 @@ function initCmd(flags) {
     console.log(color('dim', '    lume run main.lume     Run your app'))
     console.log(color('dim', '    lume repl              Start interactive mode'))
     console.log(color('dim', '    lume help              See all commands\n'))
+}
+
+// ─── Gap 4: Canonicalize Command ───
+function canonicalizeCmd(filepath, flags = []) {
+    if (!filepath) {
+        console.error(color('red', 'Usage: lume canonicalize <file.lume>'))
+        process.exit(1)
+    }
+    const source = readSource(filepath)
+    const config = loadStyleConfig(path.dirname(filepath))
+    const result = canonicalizeFile(source, config)
+
+    if (flags.includes('--check')) {
+        if (result.summary.modified === 0) {
+            console.log(color('green', '✓ File is in canonical form'))
+            process.exit(0)
+        } else {
+            console.log(color('yellow', `⚠ ${result.summary.modified} of ${result.summary.total} lines are non-canonical:`))
+            for (const line of result.lines) {
+                if (line.wasModified) {
+                    console.log(color('red', `  - Line ${line.lineNum}: "${line.original.trim()}"`))
+                    console.log(color('green', `  + Line ${line.lineNum}: "${line.canonical}"`))
+                    line.changes.forEach(c => console.log(color('dim', `      (${c})`)))
+                }
+            }
+            process.exit(1)
+        }
+    }
+
+    if (flags.includes('--apply')) {
+        fs.writeFileSync(filepath, result.output, 'utf-8')
+        console.log(color('green', `✓ Canonicalized ${result.summary.modified} lines in ${filepath}`))
+        return
+    }
+
+    // Default: show diff
+    if (result.summary.modified === 0) {
+        console.log(color('green', '✓ File is already in canonical form'))
+    } else {
+        console.log(color('cyan', `Canonicalization preview for ${filepath}:`))
+        console.log(color('dim', `(${result.summary.modified} of ${result.summary.total} lines would change)\n`))
+        for (const line of result.lines) {
+            if (line.wasModified) {
+                console.log(color('red', `  - ${line.original.trim()}`))
+                console.log(color('green', `  + ${line.canonical}`))
+                line.changes.forEach(c => console.log(color('dim', `      (${c})`)))
+                console.log()
+            }
+        }
+        console.log(color('dim', 'Run with --apply to save changes.'))
+    }
+}
+
+// ─── Gap 6: Debug Command ───
+async function debugCmd(filepath, flags = []) {
+    if (!filepath) {
+        console.error(color('red', 'Usage: lume debug <file.lume>'))
+        process.exit(1)
+    }
+    const source = readSource(filepath)
+    const mode = detectMode(source)
+
+    if (mode === 'standard') {
+        console.log(color('yellow', 'Debug mode with enhanced errors is only available for English Mode (.lume files with "mode: english").'))
+        console.log(color('dim', 'Falling back to standard run...'))
+        return runFile(filepath, flags)
+    }
+
+    // Compile with source maps
+    const compiled = await compileEnglish(source, filepath, mode, {
+        nonInteractive: flags.includes('--non-interactive'),
+    })
+    if (!compiled) return
+
+    const sm = generateSourceMap(source, compiled.js, filepath)
+
+    if (flags.includes('--step')) {
+        // Step-through debugger
+        const steps = createStepDebugger(compiled.ast || [], sm)
+        console.log(color('cyan', `\n  Step-through debug: ${filepath} (${steps.length} steps)\n`))
+        for (const step of steps) {
+            console.log(color('magenta', `  [${step.step}/${step.total}]`) + color('dim', ` Line ${step.line}: `) + `"${step.instruction}"`)
+            console.log(color('dim', `    → ${step.astType} (resolved by ${step.resolvedBy})`))
+        }
+        return
+    }
+
+    // Normal debug run: execute with enhanced error translation
+    console.log(color('cyan', `\n  Lume Debug Mode: ${filepath}\n`))
+    try {
+        const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor
+        const fn = new AsyncFunction(compiled.js)
+        await fn()
+        console.log(color('green', '\n  ✓ Program completed without errors'))
+    } catch (err) {
+        const translated = translateError(err, sm)
+        console.error(formatEnglishError(translated, filepath))
+    }
 }
 
 function printHelp() {

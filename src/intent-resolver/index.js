@@ -32,6 +32,10 @@ import { resetFileScope, updateMemory, resolvePronoun, getAutocorrectContext } f
 import { aiResolve, batchResolve } from './ai-resolver.js'
 import { detectLanguage } from './lang-detect.js'
 import { resolveMultilingualVerb, translateVerb, getLocalizedError } from './pattern-library-i18n.js'
+import { ClarificationCache, enterClarificationMode, formatPlaygroundClarification } from './clarification.js'
+import { detectCompoundStart, parseCompoundConditional } from './logic-blocks.js'
+import { parseUsingDirective, buildModuleIndex, resolveReference, formatModuleError } from './module-resolver.js'
+import { extractHints, summarizeHints } from './hint-parser.js'
 
 /**
  * Check if a file should use English Mode
@@ -62,11 +66,19 @@ export async function resolveEnglishFile(source, options = {}) {
 
     const ast = []
     const diagnostics = []
-    const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0 }
+    const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0, clarifications: 0, logicBlocks: 0, hints: 0 }
     const unresolvedLines = [] // Queue for batch AI resolution
     const detectedLanguages = new Map() // Track language per line
     const isMultilingual = mode === 'natural' // mode: natural enables multilingual
     const langOverride = options.lang || null // --lang flag override
+
+    // Gap 1: Clarification cache
+    const clarificationCache = new ClarificationCache(options.projectRoot || '.')
+    if (options.reclarify) clarificationCache.clear()
+
+    // Gap 3: Parse using: directives and build module index
+    const usingFiles = []
+    const moduleIndex = options.projectRoot ? buildModuleIndex(options.projectRoot) : { definitions: {}, files: {} }
 
     for (let i = versionLine; i < lines.length; i++) {
         const rawLine = lines[i]
@@ -77,6 +89,28 @@ export async function resolveEnglishFile(source, options = {}) {
         if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) {
             stats.skipped++
             continue
+        }
+
+        // Gap 3: Parse using: directives
+        const usingDirective = parseUsingDirective(trimmed)
+        if (usingDirective) {
+            if (usingDirective.type === 'file') usingFiles.push(usingDirective.path)
+            else if (usingDirective.candidates) usingFiles.push(...usingDirective.candidates)
+            diagnostics.push({ type: 'info', code: 'LUME-I006', line: lineNum, message: `Module import: ${trimmed}` })
+            continue
+        }
+
+        // Gap 2: Detect compound conditional blocks
+        const compoundStart = detectCompoundStart(trimmed)
+        if (compoundStart) {
+            const result = parseCompoundConditional(lines, i, lineNum)
+            if (result) {
+                guardianScan(result.node, lineNum, diagnostics, options)
+                ast.push(result.node)
+                stats.logicBlocks++
+                i = result.endIdx
+                continue
+            }
         }
 
         // Handle raw: escape hatch blocks
@@ -151,48 +185,56 @@ export async function resolveEnglishFile(source, options = {}) {
             }
             const resolveText = pronounResolved.text
 
+            // Gap 5: Extract hint annotations before matching
+            const { instruction: hintCleanText, hints, hasHints } = extractHints(resolveText)
+            const matchText = hasHints ? hintCleanText : resolveText
+            if (hasHints) {
+                stats.hints++
+                diagnostics.push({ type: 'info', code: 'LUME-I007', line: lineNum, message: `Hints detected: ${summarizeHints(hints)}` })
+            }
+
             // Check for temporal expressions
-            const temporal = resolveTemporal(resolveText)
+            const temporal = resolveTemporal(matchText)
 
             // ═══ TOLERANCE CHAIN ═══
 
             // Step 1: Exact Pattern Match (Layer A)
-            const exactMatch = matchPattern(resolveText)
+            const exactMatch = matchPattern(matchText)
             if (exactMatch.matched) {
-                const node = { ...exactMatch.ast, line: lineNum, resolvedBy: 'layer_a_exact', ...(isMultilingual ? { language: lineLanguage } : {}) }
+                const node = { ...exactMatch.ast, line: lineNum, resolvedBy: 'layer_a_exact', ...(hasHints ? { hints } : {}), ...(isMultilingual ? { language: lineLanguage } : {}) }
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
-                updateMemory(lineNum, extractSubject(resolveText), extractVerb(resolveText), node)
+                updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
                 stats.layerA++
                 continue
             }
 
             // Step 2: Fuzzy Pattern Match (85%+ similarity)
-            const fuzzyResult = fuzzyMatch(resolveText)
+            const fuzzyResult = fuzzyMatch(matchText)
             if (fuzzyResult) {
-                const node = { ...fuzzyResult.ast, line: lineNum, resolvedBy: 'layer_a_fuzzy', similarity: fuzzyResult.score, ...(isMultilingual ? { language: lineLanguage } : {}) }
+                const node = { ...fuzzyResult.ast, line: lineNum, resolvedBy: 'layer_a_fuzzy', similarity: fuzzyResult.score, ...(hasHints ? { hints } : {}), ...(isMultilingual ? { language: lineLanguage } : {}) }
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
-                updateMemory(lineNum, extractSubject(resolveText), extractVerb(resolveText), node)
+                updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
                 stats.layerA++
-                diagnostics.push({ type: 'info', code: 'LUME-I003', line: lineNum, message: `Fuzzy match (${(fuzzyResult.score * 100).toFixed(0)}%): "${resolveText}" → pattern "${fuzzyResult.pattern}"` })
+                diagnostics.push({ type: 'info', code: 'LUME-I003', line: lineNum, message: `Fuzzy match (${(fuzzyResult.score * 100).toFixed(0)}%): "${matchText}" → pattern "${fuzzyResult.pattern}"` })
                 continue
             }
 
             // Step 3: Word-Bag Match
-            const bagResult = wordBagMatch(resolveText)
+            const bagResult = wordBagMatch(matchText)
             if (bagResult) {
-                const node = { ...bagResult.ast, line: lineNum, resolvedBy: 'layer_a_wordbag', similarity: bagResult.score, ...(isMultilingual ? { language: lineLanguage } : {}) }
+                const node = { ...bagResult.ast, line: lineNum, resolvedBy: 'layer_a_wordbag', similarity: bagResult.score, ...(hasHints ? { hints } : {}), ...(isMultilingual ? { language: lineLanguage } : {}) }
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
-                updateMemory(lineNum, extractSubject(resolveText), extractVerb(resolveText), node)
+                updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
                 stats.layerA++
-                diagnostics.push({ type: 'info', code: 'LUME-I003', line: lineNum, message: `Word-bag match (${(bagResult.score * 100).toFixed(0)}%): "${resolveText}"` })
+                diagnostics.push({ type: 'info', code: 'LUME-I003', line: lineNum, message: `Word-bag match (${(bagResult.score * 100).toFixed(0)}%): "${matchText}"` })
                 continue
             }
 
             // Steps 4-7: Queue for AI resolution (batched)
-            unresolvedLines.push({ text: resolveText, line: lineNum, temporal })
+            unresolvedLines.push({ text: matchText, line: lineNum, temporal, hints: hasHints ? hints : null, originalText: resolveText })
         }
     }
 
@@ -204,24 +246,46 @@ export async function resolveEnglishFile(source, options = {}) {
 
         for (let i = 0; i < results.length; i++) {
             const { resolved, ast: aiAst, confidence, error } = results[i]
-            const { line, text } = unresolvedLines[i]
+            const { line, text, hints: lineHints } = unresolvedLines[i]
 
             if (resolved && confidence >= 0.8) {
                 // Step 4: High confidence — apply silently
-                const node = { ...aiAst, line, resolvedBy: 'layer_b_ai', confidence }
+                const node = { ...aiAst, line, resolvedBy: 'layer_b_ai', confidence, ...(lineHints ? { hints: lineHints } : {}) }
                 guardianScan(node, line, diagnostics, options)
                 ast.push(node)
                 stats.layerB++
                 diagnostics.push({ type: 'info', code: 'LUME-I003', line, message: `AI resolved (${(confidence * 100).toFixed(0)}% confidence): "${text}"` })
             } else if (resolved && confidence >= 0.5) {
-                // Step 5: Low confidence — needs confirmation
-                const node = { ...aiAst, line, resolvedBy: 'layer_b_ai_low', confidence, needsConfirmation: true }
-                ast.push(node)
-                stats.layerB++
-                diagnostics.push({ type: 'confirm', code: 'LUME-W001', line, message: `Low confidence (${(confidence * 100).toFixed(0)}%): "${text}" → I think you mean: ${JSON.stringify(aiAst)}. Is that right?` })
+                // Step 5: Low confidence — Gap 1: Interactive Clarification Mode
+                const clarResult = await enterClarificationMode(text, line, confidence, {
+                    nonInteractive: options.nonInteractive,
+                    aiResults: [{ interpretation: aiAst?.value || text, ast: aiAst, confidence }],
+                    cache: clarificationCache,
+                })
+                if (clarResult.resolved) {
+                    const node = clarResult.ast || { ...aiAst, line, resolvedBy: clarResult.fromCache ? 'clarification_cache' : 'clarification_interactive', confidence: 1.0 }
+                    ast.push(node)
+                    stats.clarifications++
+                    diagnostics.push({ type: 'info', code: 'LUME-I008', line, message: `Clarified${clarResult.fromCache ? ' (cached)' : ''}: "${text}" → ${clarResult.resolvedAs || 'developer choice'}` })
+                } else if (clarResult.rephrased) {
+                    unresolvedLines.push({ text: clarResult.newText, line, temporal: null, hints: lineHints })
+                } else if (clarResult.error) {
+                    diagnostics.push(clarResult.error)
+                }
             } else if (resolved && confidence > 0) {
-                // Step 6: Very low confidence — show options
-                diagnostics.push({ type: 'ambiguous', code: 'LUME-W001', line, message: `Very low confidence (${(confidence * 100).toFixed(0)}%): "${text}". Multiple interpretations possible.` })
+                // Step 6: Very low confidence — Gap 1: Clarification with more options
+                const clarResult = await enterClarificationMode(text, line, confidence, {
+                    nonInteractive: options.nonInteractive,
+                    cache: clarificationCache,
+                })
+                if (clarResult.resolved && clarResult.ast) {
+                    ast.push(clarResult.ast)
+                    stats.clarifications++
+                } else if (clarResult.error) {
+                    diagnostics.push(clarResult.error)
+                } else {
+                    diagnostics.push({ type: 'ambiguous', code: 'LUME-W001', line, message: `Very low confidence (${(confidence * 100).toFixed(0)}%): "${text}". Multiple interpretations possible.` })
+                }
             } else {
                 // Step 7: Unresolvable
                 diagnostics.push({ type: 'error', code: 'LUME-E001', line, message: `Unresolvable: "${text}". ${error || 'Try rephrasing.'}` })
@@ -421,3 +485,21 @@ export { diffAST, detectConflicts, renderInLanguage, formatDiff, nodeIdentity } 
 
 // ── M13: Zero-Dependency Runtime ──
 export { createBundle, getCompileCommand, detectRuntimeFeatures, detectPlatform, supportedTargets } from './bundler.js'
+
+// ── Gap 1: Interactive Clarification ──
+export { ClarificationCache, enterClarificationMode, formatPlaygroundClarification, formatVoiceClarification, generateOptions } from './clarification.js'
+
+// ── Gap 2: Natural Language Logic Blocks ──
+export { detectCompoundStart, parseCompoundConditional, compileConditionExpression } from './logic-blocks.js'
+
+// ── Gap 3: Implicit Module Resolution ──
+export { parseUsingDirective, buildModuleIndex, resolveReference, formatModuleError, detectCircularDeps } from './module-resolver.js'
+
+// ── Gap 4: Canonical Formatter ──
+export { canonicalize, canonicalizeFile, isCanonical, loadStyleConfig, VERB_SYNONYMS } from './canonicalizer.js'
+
+// ── Gap 5: Hint Annotations ──
+export { extractHints, summarizeHints, generateCacheWrapper, generateRetryWrapper, generateTimeoutWrapper } from './hint-parser.js'
+
+// ── Gap 6: Error Translation ──
+export { translateError, formatEnglishError, createStepDebugger } from './error-translator.js'

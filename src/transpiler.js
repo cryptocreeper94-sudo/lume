@@ -21,6 +21,7 @@
  */
 
 import { NodeType } from './parser.js'
+import { compileConditionExpression } from './intent-resolver/logic-blocks.js'
 
 export class Transpiler {
     constructor(ast, filename = '<stdin>') {
@@ -176,6 +177,9 @@ export class Transpiler {
             case NodeType.DelayStatement: return this._emitDelayStatement(node)
             case NodeType.RawBlock: return this._emitRawBlock(node)
             case NodeType.HealableDecorator: return this._indent('// @healable (English Mode decorator)')
+
+            // ── Gap 2: Compound Logic Blocks ──
+            case 'CompoundIfStatement': return this._emitCompoundIf(node)
 
             default:
                 // Expression statement
@@ -782,6 +786,61 @@ export class Transpiler {
     _emitRawBlock(node) {
         // Raw JavaScript passthrough — no transformation
         const lines = node.code.split('\n').map(l => this._indent(l))
+        return lines
+    }
+
+    // ══════════════════════════════════════
+    //  GAP 2: COMPOUND LOGIC BLOCKS
+    // ══════════════════════════════════════
+
+    _emitCompoundIf(node) {
+        const lines = []
+        let conditionExpr = compileConditionExpression(node.conditions, node.mode)
+        if (node.negated) conditionExpr = `!(${conditionExpr})`
+
+        lines.push(this._indent(`if (${conditionExpr}) {`))
+        this.indentLevel++
+        // Emit body — body lines are strings (English instructions resolved elsewhere)
+        for (const bodyLine of (node.body || [])) {
+            if (typeof bodyLine === 'string') {
+                lines.push(this._indent(`// ${bodyLine}`))
+            } else {
+                const l = this._emitNode(bodyLine)
+                if (l) lines.push(...(Array.isArray(l) ? l : [l]))
+            }
+        }
+        this.indentLevel--
+
+        // Else-if blocks
+        if (node.elseIf) {
+            for (const elseIf of node.elseIf) {
+                const elseCondExpr = elseIf.condition.negated
+                    ? `!(${this._naturalConditionToJS(elseIf.condition.expression)})`
+                    : this._naturalConditionToJS(elseIf.condition.expression)
+                lines.push(this._indent(`} else if (${elseCondExpr}) {`))
+                this.indentLevel++
+                for (const b of (elseIf.body || [])) {
+                    if (typeof b === 'string') lines.push(this._indent(`// ${b}`))
+                    else { const l = this._emitNode(b); if (l) lines.push(...(Array.isArray(l) ? l : [l])) }
+                }
+                this.indentLevel--
+            }
+        }
+
+        // Else block
+        if (node.else) {
+            lines.push(this._indent('} else {'))
+            this.indentLevel++
+            for (const b of (node.else.body || [])) {
+                if (typeof b === 'string') lines.push(this._indent(`// ${b}`))
+                else { const l = this._emitNode(b); if (l) lines.push(...(Array.isArray(l) ? l : [l])) }
+            }
+            this.indentLevel--
+            lines.push(this._indent('}'))
+        } else {
+            lines.push(this._indent('}'))
+        }
+
         return lines
     }
 
