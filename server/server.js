@@ -11,6 +11,7 @@ import affiliateRoutes from './routes/affiliate.js'
 import smsRoutes from './routes/sms.js'
 import hallmarkRoutes from './routes/hallmark.js'
 import emailRoutes from './routes/email.js'
+import compileRoutes from './routes/compile.js'
 
 dotenv.config()
 
@@ -88,6 +89,14 @@ app.use('/api/sms', smsRoutes)
 app.use('/api/hallmark', hallmarkRoutes)
 app.use('/api/email', emailRoutes)
 
+// Compile sandbox — stricter rate limit
+const compileLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    message: { error: 'Too many compile requests, slow down.' }
+})
+app.use('/api/compile', compileLimiter, compileRoutes)
+
 // ── 404 ──
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' })
@@ -133,6 +142,9 @@ app.listen(PORT, () => {
     GET  /api/hallmark/user/mine
     POST /api/email/welcome
     POST /api/email/verify
+    POST /api/compile/compile
+    POST /api/compile/run
+    POST /api/compile/explain
   ────────────────────────
     `)
 })
