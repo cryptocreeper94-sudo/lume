@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 
 const slides = [
-    { image: '/heroes/hero-ai-code.png', label: 'AI-Native Syntax', title: 'Code That Thinks', subtitle: 'The first language where AI isn\'t an import — it\'s syntax. Call any model with a single keyword.' },
-    { image: '/heroes/hero-neural-brain.png', label: 'Intelligent Runtime', title: 'Built for Intelligence', subtitle: 'ask, think, and generate are language primitives. 12 models, 3 providers, zero configuration.' },
-    { image: '/heroes/hero-self-healing.png', label: 'Self-Healing Programs', title: 'Software That Heals', subtitle: 'Automatic retry with backoff, circuit breakers, and AI model fallback chains. Your code recovers itself.' },
-    { image: '/heroes/hero-evolution.png', label: 'Autonomous Evolution', title: 'Programs That Evolve', subtitle: 'Monitor, optimize, and evolve autonomously. Four self-sustaining layers that make your software alive.' },
+    { image: '/heroes/hero-ai-code.png', label: 'Voice-to-Code', title: 'Speak Your Code', subtitle: 'The first programming language you can speak. Say what you want — the compiler understands. No syntax to memorize. No middleman.' },
+    { image: '/heroes/hero-neural-brain.png', label: 'Natural Language Compiler', title: 'English Is Syntax', subtitle: '"Get the user\'s name from the database" compiles directly. Not a prompt. Not AI-generated code. Direct compilation of human language.' },
+    { image: '/heroes/hero-self-healing.png', label: 'Certified at Birth', title: 'Security Built In', subtitle: 'Every instruction is security-scanned at the AST level during compilation. Output includes a tamper-evident certificate. No bolt-on tools needed.' },
+    { image: '/heroes/hero-evolution.png', label: 'Zero Cognitive Distance', title: 'Think It. Say It. Run It.', subtitle: 'The distance between what you think and what the compiler receives approaches zero. The dissonance disappears.' },
 ]
 
 export default function HeroCarousel() {
@@ -33,7 +33,7 @@ export default function HeroCarousel() {
 
             <div className="hero-content">
                 <div className="hero-badge skeleton-reveal">
-                    <span className="badge-dot" /> The AI-Native Programming Language
+                    <span className="badge-dot" /> The First Programming Language You Can Speak
                 </div>
                 <p className={`hero-slide-label ${slides[current] ? 'active' : ''}`} key={`label-${current}`}>
                     {slides[current].label}
@@ -55,18 +55,23 @@ export default function HeroCarousel() {
                 </div>
                 <div className="hero-stats">
                     <div className="stat">
-                        <span className="stat-value">219</span>
+                        <span className="stat-value">366</span>
                         <span className="stat-label">Tests Passing</span>
                     </div>
                     <div className="stat-divider" />
                     <div className="stat">
-                        <span className="stat-value">6</span>
+                        <span className="stat-value">13</span>
                         <span className="stat-label">Milestones</span>
                     </div>
                     <div className="stat-divider" />
                     <div className="stat">
-                        <span className="stat-value">4</span>
-                        <span className="stat-label">Self-Sustaining Layers</span>
+                        <span className="stat-value">3</span>
+                        <span className="stat-label">Security Layers</span>
+                    </div>
+                    <div className="stat-divider" />
+                    <div className="stat">
+                        <span className="stat-value">🎤</span>
+                        <span className="stat-label">Voice Input</span>
                     </div>
                 </div>
             </div>

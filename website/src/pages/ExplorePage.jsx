@@ -3,13 +3,13 @@ import HeroCarousel from '../components/HeroCarousel'
 
 /* ─── Feature Cards ─── */
 const features = [
-    { title: 'AI as Syntax', text: 'ask, think, and generate are language primitives. Call any model with one keyword — no SDK, no boilerplate.', code: 'let summary = ask claude.sonnet "Summarize this"', img: '/features/ai-syntax.png' },
-    { title: 'Self-Healing Functions', text: 'Automatic retry with exponential backoff, circuit breakers, and AI model fallback chains built-in.', img: '/features/self-healing.png', code: '@healable\nto fetch_data(url: text):\n    return fetch url as json' },
-    { title: 'Real-Time Monitoring', text: 'Built-in dashboards tracking function performance, errors, latency, AI costs, and memory — live.', img: '/features/monitoring.png', code: 'monitor:\n    dashboard: true\n    alert_on: error_rate > 0.05' },
-    { title: 'Self-Optimizing Runtime', text: 'Detects slow functions, high error rates, and expensive AI calls — then suggests or auto-applies fixes.', img: '/features/optimizing.png' },
-    { title: 'Pipe Operator', text: 'Chain operations elegantly: data flows left-to-right through typed transformations.', code: 'let result = data |> parse |> validate |> save', img: '/features/pipe.png' },
-    { title: 'Native HTTP & I/O', text: 'First-class fetch with automatic JSON parsing. Read/write files as language keywords.', img: '/features/http.png', code: 'let data = fetch "api.com/users" as json' },
-    { title: 'Self-Evolving Runtime', text: 'Learns usage patterns, benchmarks AI models, analyzes costs, and evolves autonomously.', img: '/features/evolving.png' },
+    { title: '🎤 Voice-to-Code', text: 'Speak your code. The compiler understands natural speech — filler words, stuttering, homophones — and compiles it. No typing required.', code: '"get the users name" → VariableAccess { target: "user_name" }' },
+    { title: '🔒 Certified at Birth', text: 'Every instruction is security-scanned at the AST level during compilation. Output includes a tamper-evident SHA-256 certificate.', code: 'LUME SECURITY CERTIFIED ✓\nHash: a3f8b2c1e9d4...' },
+    { title: '🧠 English Mode', text: '"Get the user\'s name from the database" compiles directly to JavaScript. Not a prompt. Not AI-generated. The compiler resolves intent.', code: 'mode: english\nget the users name from the database\nshow it on the screen' },
+    { title: '🔗 7-Layer Tolerance', text: 'Misspelled? Ambiguous? Informal? The compiler tries 7 resolution layers before giving up — exact match, fuzzy, auto-correct, context, temporal, i18n, AI.', code: '"git teh usrs naem" → auto-corrected → VariableAccess' },
+    { title: '⚡ AI as Syntax', text: 'ask, think, and generate are language primitives. Call any model with one keyword — no SDK, no boilerplate.', code: 'let summary = ask claude.sonnet "Summarize this"' },
+    { title: '🛡️ Self-Healing Functions', text: 'Automatic retry with exponential backoff, circuit breakers, and AI model fallback chains built-in.', code: '@healable\nto fetch_data(url: text):\n    return fetch url as json' },
+    { title: '📊 Self-Sustaining Runtime', text: 'Monitor, Heal, Optimize, Evolve — four layers that make your software alive and self-managing.', code: 'monitor:\n    dashboard: true\n    alert_on: error_rate > 0.05' },
 ]
 
 /* ─── Code Comparison Slides ─── */
@@ -49,7 +49,14 @@ const milestones = [
     { n: 3, title: 'AI Integration', desc: 'ask/think/generate — 12 models, 3 providers.', tests: 94 },
     { n: 4, title: 'Interoperability', desc: 'fetch, pipe, read/write, stdlib (67 fns).', tests: 135 },
     { n: 5, title: 'Tooling & IDE', desc: 'Formatter, linter, REPL, watcher, source maps.', tests: 159 },
-    { n: 6, title: 'Self-Sustaining', desc: 'Monitor, Heal, Optimize, Evolve.', tests: 219, active: true },
+    { n: 6, title: 'Self-Sustaining', desc: 'Monitor, Heal, Optimize, Evolve.', tests: 219 },
+    { n: 7, title: 'English Mode', desc: 'Intent Resolver, Pattern Library, Auto-Correct.', tests: 280 },
+    { n: 8, title: 'Auto-Correct', desc: '500-term dictionary, fuzzy matching.', tests: 295 },
+    { n: 9, title: 'Tolerance Chain', desc: '7-layer fallback with confidence scoring.', tests: 310 },
+    { n: 10, title: 'Security Layer', desc: 'AST scanning, certificates, 11 threat categories.', tests: 330 },
+    { n: 11, title: 'Voice Input', desc: 'Transcription cleanup, homophones, stutter collapse.', tests: 345 },
+    { n: 12, title: 'Voice CLI', desc: 'lume voice with commands, flags, config.', tests: 355 },
+    { n: 13, title: 'Playground', desc: 'Sandbox IDE, mic button, security tab.', tests: 366, active: true },
 ]
 
 /* ─── Docs ─── */
@@ -90,23 +97,21 @@ function FeatureCarousel() {
     const { idx, prev, next, setIdx } = useCarousel(features, 8000)
     const f = features[idx]
     return (
-        <div className="full-carousel">
-            <div className="fc-image-side">
-                <img src={f.img} alt={f.title} key={idx} />
-                <div className="fc-overlay" />
-            </div>
-            <div className="fc-content-side">
-                <div className="fc-counter">{String(idx + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}</div>
-                <h3 className="fc-title">{f.title}</h3>
-                <p className="fc-text">{f.text}</p>
-                {f.code && <pre className="fc-code"><code>{f.code}</code></pre>}
-                <div className="fc-nav">
-                    <button className="carousel-btn" onClick={prev}>←</button>
-                    <div className="carousel-dots">
-                        {features.map((_, i) => <button key={i} className={`carousel-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} />)}
-                    </div>
-                    <button className="carousel-btn" onClick={next}>→</button>
+        <div className="bento-card" style={{ maxWidth: 900, margin: '0 auto', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 24px 0' }}>
+                <div style={{ flex: 1 }}>
+                    <div className="fc-counter">{String(idx + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}</div>
+                    <h3 className="fc-title" style={{ fontSize: 22 }}>{f.title}</h3>
+                    <p className="fc-text">{f.text}</p>
                 </div>
+            </div>
+            {f.code && <pre style={{ margin: '16px 24px 24px', padding: '16px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#00b894', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{f.code}</pre>}
+            <div className="fc-nav" style={{ padding: '0 24px 20px' }}>
+                <button className="carousel-btn" onClick={prev}>←</button>
+                <div className="carousel-dots">
+                    {features.map((_, i) => <button key={i} className={`carousel-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} />)}
+                </div>
+                <button className="carousel-btn" onClick={next}>→</button>
             </div>
         </div>
     )
@@ -144,7 +149,7 @@ function EcoCarousel() {
 function MilestoneCarousel() {
     const { idx, prev, next, setIdx } = useCarousel(milestones, 8000)
     const m = milestones[idx]
-    const imgs = ['/features/ai-syntax.png', '/features/pipe.png', '/features/ai-syntax.png', '/features/http.png', '/features/monitoring.png', '/features/evolving.png']
+    const imgs = ['/features/ai-syntax.png', '/features/pipe.png', '/features/ai-syntax.png', '/features/http.png', '/features/monitoring.png', '/features/evolving.png', '/features/ai-syntax.png', '/features/self-healing.png', '/features/monitoring.png', '/features/http.png', '/features/pipe.png', '/features/evolving.png', '/features/monitoring.png']
     return (
         <div className="full-carousel milestone-carousel">
             <div className="fc-image-side">
@@ -250,6 +255,173 @@ export default function ExplorePage() {
                 </div>
             </section>
 
+            {/* ── Voice-to-Code ── */}
+            <section id="voice" className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">New Technology</span>
+                    <h2 className="section-title" style={{ maxWidth: 800 }}>
+                        The First Language You Can <span className="gradient-wave-text">Speak</span>
+                    </h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Not voice commands. Not dictation to a text editor. Not AI-generated code.
+                        Your voice enters the compiler directly. The compiler understands you.
+                    </p>
+                </div>
+                <div style={{ maxWidth: 900, margin: '40px auto 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="bento-card" style={{ padding: '24px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                            🎤 You Say
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text-bright)', lineHeight: 2.2 }}>
+                            <div style={{ padding: '6px 12px', background: 'rgba(6,182,212,0.08)', borderRadius: 6, marginBottom: 4 }}>"um get the users name from the database"</div>
+                            <div style={{ padding: '6px 12px', background: 'rgba(6,182,212,0.08)', borderRadius: 6, marginBottom: 4 }}>"and then show it on the screen"</div>
+                            <div style={{ padding: '6px 12px', background: 'rgba(6,182,212,0.08)', borderRadius: 6 }}>"if the name is empty show please enter your name"</div>
+                        </div>
+                    </div>
+                    <div className="bento-card" style={{ padding: '24px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#00b894', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                            ✓ Compiler Receives
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: '#00b894', lineHeight: 2.2 }}>
+                            <div style={{ padding: '6px 12px', background: 'rgba(0,184,148,0.08)', borderRadius: 6, marginBottom: 4 }}>get the users name from the database</div>
+                            <div style={{ padding: '6px 12px', background: 'rgba(0,184,148,0.08)', borderRadius: 6, marginBottom: 4 }}>show it on the screen</div>
+                            <div style={{ padding: '6px 12px', background: 'rgba(0,184,148,0.08)', borderRadius: 6 }}>if the name is empty show please enter your name</div>
+                        </div>
+                    </div>
+                </div>
+                <div style={{ maxWidth: 900, margin: '16px auto 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                    {[
+                        { icon: '🔇', label: 'Filler Stripping', desc: '"um", "uh", "like" removed' },
+                        { icon: '🔁', label: 'Stutter Collapse', desc: '"get get" → "get"' },
+                        { icon: '🌐', label: 'Homophones', desc: '"write" vs "right" resolved' },
+                        { icon: '✂️', label: 'Run-on Splitting', desc: '"and then" → new line' },
+                    ].map((f, i) => (
+                        <div key={i} className="bento-card" style={{ padding: '16px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 24, marginBottom: 6 }}>{f.icon}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-bright)', marginBottom: 4 }}>{f.label}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{f.desc}</div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── English Mode Demo ── */}
+            <section id="english-mode" className="section-full" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Compiler Innovation</span>
+                    <h2 className="section-title" style={{ maxWidth: 800 }}>
+                        English <span className="gradient-wave-text">Compiles Directly</span>
+                    </h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Not AI-generated code. Not a prompt to an LLM. The compiler reads English instructions and
+                        resolves them through a 7-layer Tolerance Chain into Abstract Syntax Tree nodes.
+                    </p>
+                </div>
+                <div style={{ maxWidth: 900, margin: '40px auto 0' }}>
+                    <div className="bento-card" style={{ padding: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 320 }}>
+                            <div style={{ padding: '24px', borderRight: '1px solid var(--glass-border)' }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                                    ✍️ You Write (English)
+                                </div>
+                                <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-bright)', lineHeight: 2, margin: 0, whiteSpace: 'pre-wrap' }}>{`mode: english
+
+get the user's name from the database
+show it on the screen
+if the name is empty
+  show "Please enter your name"
+save the result to the profile`}</pre>
+                            </div>
+                            <div style={{ padding: '24px' }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#00b894', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                                    ⚙️ Compiler Produces (JavaScript)
+                                </div>
+                                <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#00b894', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>{`const user_name = await db.get("user_name");
+console.log(user_name);
+if (!user_name) {
+  console.log("Please enter your name");
+}
+await db.save("profile", result);`}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16 }}>
+                        <div className="bento-card" style={{ padding: '20px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>34+</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Pattern Library patterns</div>
+                        </div>
+                        <div className="bento-card" style={{ padding: '20px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>7</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Tolerance Chain layers</div>
+                        </div>
+                        <div className="bento-card" style={{ padding: '20px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>0.85</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Confidence threshold</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Security — Certified at Birth ── */}
+            <section id="security-home" className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Security Architecture</span>
+                    <h2 className="section-title" style={{ maxWidth: 800 }}>
+                        Certified at <span className="gradient-wave-text">Birth</span>
+                    </h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        No existing language scans for security during compilation.
+                        Lume checks every instruction against 11 threat categories in real-time at the AST level —
+                        before a single line of JavaScript is generated.
+                    </p>
+                </div>
+                <div style={{ maxWidth: 900, margin: '40px auto 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="bento-card" style={{ padding: '24px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#00b894', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                            🔒 3-Layer Security Model
+                        </div>
+                        {[
+                            { n: '1', name: 'Input Security', desc: 'Pre-compilation: scans English instructions for 11 threat categories', color: '#fdcb6e' },
+                            { n: '2', name: 'Guardian Scanner', desc: 'During compilation: scans each AST node in real-time as it is created', color: '#00b894' },
+                            { n: '3', name: 'Sandbox Mode', desc: 'Pre-execution: shows everything the program WOULD do before it runs', color: '#74b9ff' },
+                        ].map((l, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
+                                <div style={{
+                                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: `${l.color}22`, border: `1px solid ${l.color}44`, color: l.color,
+                                    fontSize: 12, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0,
+                                }}>{l.n}</div>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-bright)' }}>{l.name}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>{l.desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="bento-card" style={{ padding: '24px', fontFamily: 'var(--font-mono)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#00b894', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                            ✓ Security Certificate
+                        </div>
+                        <pre style={{ fontSize: 11, color: 'var(--text-bright)', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', background: 'rgba(0,0,0,0.3)', padding: 16, borderRadius: 8 }}>{`/**
+ * LUME SECURITY CERTIFIED ✓
+ * Source: app.lume (mode: english, 47 lines)
+ * AST nodes scanned: 47/47 passed
+ * Raw blocks scanned: 2/2 passed
+ * Input method: voice
+ * Compiled: 2026-09-15T14:30:00Z
+ * Hash: a3f8b2c1e9d4...
+ * Verify: lume verify --hash a3f8b2c1e9d4
+ */`}</pre>
+                    </div>
+                </div>
+                <div className="bento-card" style={{ maxWidth: 900, margin: '16px auto 0', padding: '20px 24px', textAlign: 'center', background: 'linear-gradient(135deg, rgba(0,184,148,0.06) 0%, rgba(6,182,212,0.06) 100%)' }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-bright)', lineHeight: 1.7, margin: 0 }}>
+                        "ESLint, SonarQube, and Snyk scan <em>after</em> compilation. They see code, not intent.<br />
+                        <span className="gradient-wave-text">Lume scans during compilation. It sees intent.</span>"
+                    </p>
+                </div>
+            </section>
+
             {/* ── Features — Full-width Carousel ── */}
             <section id="features" className="section-full" data-reveal>
                 <div className="section-header">
@@ -315,7 +487,7 @@ export default function ExplorePage() {
             <section id="milestones" className="section-full section-dark" data-reveal>
                 <div className="section-header">
                     <span className="section-label">Journey</span>
-                    <h2 className="section-title">6 <span className="gradient-wave-text">Milestones</span> · 219 Tests</h2>
+                    <h2 className="section-title">13 <span className="gradient-wave-text">Milestones</span> · 366 Tests</h2>
                 </div>
                 <MilestoneCarousel />
             </section>
