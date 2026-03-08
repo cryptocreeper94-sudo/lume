@@ -11,6 +11,8 @@ import AffiliatePage from './pages/AffiliatePage'
 import LegalPage from './pages/LegalPage'
 import DevPortal from './pages/DevPortal'
 import SmsOptIn from './pages/SmsOptIn'
+import SecurityPage from './pages/SecurityPage'
+import PricingPage from './pages/PricingPage'
 
 export default function App() {
     return (
@@ -27,6 +29,8 @@ export default function App() {
                 <Route path="/legal" element={<LegalPage />} />
                 <Route path="/dev04" element={<DevPortal />} />
                 <Route path="/sms-optin" element={<SmsOptIn />} />
+                <Route path="/security" element={<SecurityPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />

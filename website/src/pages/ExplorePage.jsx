@@ -195,6 +195,61 @@ export default function ExplorePage() {
             {/* Hero Slideshow */}
             <HeroCarousel />
 
+            {/* ── Cognitive Distance ── */}
+            <section className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Core Concept</span>
+                    <h2 className="section-title" style={{ maxWidth: 700 }}>
+                        Eliminating <span className="gradient-wave-text">Cognitive Distance</span>
+                    </h2>
+                    <p className="section-subtitle" style={{ maxWidth: 600, margin: '12px auto 0' }}>
+                        Every programming language creates cognitive dissonance — you think in human language but write in machine language. Lume eliminates the distance between the two.
+                    </p>
+                </div>
+                <div style={{ maxWidth: 760, margin: '40px auto 0' }}>
+                    <div className="bento-card" style={{ overflow: 'hidden' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Era</th>
+                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Language</th>
+                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Distance</th>
+                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, display: 'none' }}></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    { era: '1950s', lang: 'Assembly', dist: 'Maximum', bar: 10, what: '"Add two numbers" → MOV AX, 5 / ADD AX, 3' },
+                                    { era: '1970s', lang: 'C', dist: 'High', bar: 7.5, what: '"Add two numbers" → int result = a + b;' },
+                                    { era: '1990s', lang: 'Python', dist: 'Medium', bar: 5, what: '"Add two numbers" → result = a + b' },
+                                    { era: '2020s', lang: 'AI Agents', dist: 'Medium-High', bar: 6.5, what: 'Ask AI → AI writes code → you review → you run' },
+                                    { era: '2026', lang: 'Lume', dist: 'Near-Zero', bar: 0.5, what: '"Add two numbers" → add two numbers', highlight: true },
+                                ].map((r, i) => (
+                                    <tr key={i} style={{ borderBottom: i < 4 ? '1px solid var(--border)' : 'none', background: r.highlight ? 'rgba(6,182,212,0.06)' : 'transparent' }}>
+                                        <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{r.era}</td>
+                                        <td style={{ padding: '14px 16px', color: r.highlight ? 'var(--accent-glow)' : 'var(--text-bright)', fontWeight: r.highlight ? 700 : 500 }}>{r.lang}</td>
+                                        <td style={{ padding: '14px 16px', minWidth: 200 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{ flex: 1, height: 6, borderRadius: 99, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${r.bar * 10}%`, height: '100%', borderRadius: 99, background: r.highlight ? 'var(--accent-glow)' : 'var(--text-muted)', transition: 'width 1s ease' }} />
+                                                </div>
+                                                <span style={{ fontSize: 11, color: r.highlight ? 'var(--accent-glow)' : 'var(--text-muted)', fontWeight: 600, minWidth: 85, textAlign: 'right' }}>{r.dist}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="bento-card" style={{ padding: '28px 24px', marginTop: 16, textAlign: 'center', background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(20,184,166,0.05) 100%)' }}>
+                        <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-bright)', lineHeight: 1.7, margin: 0 }}>
+                            "Other tools add an AI between you and your code.<br />
+                            <span className="gradient-wave-text">Lume removes the code between you and your machine.</span>"
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             {/* ── Features — Full-width Carousel ── */}
             <section id="features" className="section-full" data-reveal>
                 <div className="section-header">

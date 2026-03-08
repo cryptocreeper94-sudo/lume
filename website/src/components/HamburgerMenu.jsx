@@ -39,6 +39,12 @@ export default function HamburgerMenu() {
                     <Link to="/blog" className="hamburger-link" onClick={() => setOpen(false)}>
                         <span className="hamburger-link-icon">📝</span> Blog
                     </Link>
+                    <Link to="/security" className="hamburger-link" onClick={() => setOpen(false)}>
+                        <span className="hamburger-link-icon">🛡️</span> Security
+                    </Link>
+                    <Link to="/pricing" className="hamburger-link" onClick={() => setOpen(false)}>
+                        <span className="hamburger-link-icon">💎</span> Pricing
+                    </Link>
                     <div className="hamburger-section">Ecosystem</div>
                     <a href="https://dwtl.io" target="_blank" rel="noopener" className="hamburger-link">
                         <span className="hamburger-link-icon">🔐</span> Trust Layer (SSO)

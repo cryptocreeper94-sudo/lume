@@ -68,6 +68,19 @@ const codebase = [
     { module: 'CLI', file: 'bin/lume.js', loc: 347, desc: 'Command-line interface: run, build, test, fmt, lint, repl, watch, ast, tokens. Version 0.6.0.' },
 ]
 
+/* ── Milestones 7-13 Roadmap ── */
+const milestones = [
+    { id: 7, title: 'English Mode', status: 'next', dep: 'M1-6', criteria: 45, desc: 'Plain English → AST → JavaScript. Intent Resolver (Layer A pattern matching + Layer B AI), Auto-Correct, 7-step Tolerance Chain, Security Layer (11 threats), Guardian Output Scanner, Compile Lock, Source Maps.' },
+    { id: 8, title: 'Multilingual Mode', status: 'planned', dep: 'M7', criteria: 9, desc: 'Any human language as input. Auto-detect language per line. Top 10 languages. mode: natural header. Same AST/JS output regardless of input language.' },
+    { id: 9, title: 'Voice-to-Code', status: 'planned', dep: 'M8', criteria: 10, desc: 'Spoken language → Whisper/Web Speech API → Intent Resolver. Browser mic button + CLI lume listen. Verbal cues for structure, pause detection, self-correction.' },
+    { id: 10, title: 'Visual Context + Full-Stack Gen', status: 'planned', dep: 'M7', criteria: 14, desc: 'UI Element Registry, spatial/style resolution (CSS), component generation. Full-stack app generation from plain English descriptions with --preview flag.' },
+    { id: 11, title: 'Reverse Mode (Code→Language)', status: 'planned', dep: 'M7', criteria: 6, desc: 'lume explain — any JS/TS/Lume file explained in plain language. Line-by-line or summary mode. Output in any language.' },
+    { id: 12, title: 'Collaborative Intent', status: 'planned', dep: 'M8', criteria: 6, desc: 'Multi-developer, multi-language on same project. AST-level diffing (Phase A). Real-time sync (Phase B stretch goal). Language-neutral merges.' },
+    { id: 13, title: 'Zero-Dependency Runtime', status: 'planned', dep: 'M7', criteria: 5, desc: 'Natural language → standalone binary via Bun compile. Cross-compile linux/macos/windows/wasm. No Node.js, no browser, no runtime needed.' },
+]
+
+const LAUNCH_DATE = new Date('2026-08-23T00:00:00')
+
 /* ── Talking Points ── */
 const talkingPoints = [
     { q: 'What is Lume?', a: 'Lume is the first programming language where AI is a syntax primitive, not a library. You write "ask gpt4" the same way you\'d write "if" or "for" — it\'s a keyword in the language itself. No SDK, no boilerplate, no configuration.' },
@@ -133,8 +146,12 @@ export default function DevPortal() {
         )
     }
 
+    const [openMs, setOpenMs] = useState(null)
+    const daysToLaunch = Math.max(0, Math.ceil((LAUNCH_DATE - new Date()) / 86400000))
+
     const tabs = [
         { id: 'overview', label: '◈ Overview', icon: '◈' },
+        { id: 'roadmap', label: '🚀 Roadmap', icon: '🚀' },
         { id: 'apps', label: '🌐 Apps', icon: '🌐' },
         { id: 'apis', label: '🔌 APIs', icon: '🔌' },
         { id: 'codebase', label: '📦 Codebase', icon: '📦' },
@@ -258,11 +275,70 @@ export default function DevPortal() {
                             </div>
                         </div>
 
+                        {/* Launch Countdown */}
+                        <div className="bento-card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Launch Date</div>
+                            <div style={{ fontSize: 48, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{daysToLaunch}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>days until Aug 23, 2026</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontFamily: 'var(--font-mono)' }}>M7-13 · 125 acceptance criteria</div>
+                        </div>
+
                         {/* Analytics placeholder */}
                         <div className="bento-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
                             <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>📊</div>
                             <div style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 600 }}>Analytics</div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Awaiting handoff integration</div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══ ROADMAP TAB ═══ */}
+                {activeTab === 'roadmap' && (
+                    <div>
+                        <div className="bento-card" style={{ padding: 20, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-bright)' }}>Milestones 7-13: Natural Language Evolution</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>From English Mode to Universal Programming · Launch: Aug 23, 2026</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{daysToLaunch}d</div>
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>to launch</div>
+                            </div>
+                        </div>
+                        <div className="accordion-group">
+                            {milestones.map((m, i) => (
+                                <div key={i} className={`accordion ${openMs === i ? 'open' : ''}`}>
+                                    <button className="accordion-header" onClick={() => setOpenMs(openMs === i ? null : i)}>
+                                        <span className="accordion-icon" style={{ fontSize: 14, fontFamily: 'var(--font-mono)', color: m.status === 'next' ? 'var(--accent-glow)' : 'var(--text-muted)' }}>M{m.id}</span>
+                                        <span className="accordion-title" style={{ flex: 1, textAlign: 'left' }}>
+                                            {m.title}
+                                            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>dep: {m.dep}</span>
+                                        </span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
+                                            <span style={{ fontSize: 11, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{m.criteria} criteria</span>
+                                            <span style={{
+                                                fontSize: 10, padding: '2px 8px', borderRadius: 999, fontWeight: 600,
+                                                background: m.status === 'next' ? 'rgba(0,184,148,0.15)' : 'rgba(99,110,114,0.1)',
+                                                color: m.status === 'next' ? '#00b894' : '#636e72',
+                                                border: `1px solid ${m.status === 'next' ? 'rgba(0,184,148,0.3)' : 'rgba(99,110,114,0.2)'}`
+                                            }}>
+                                                {m.status === 'next' ? 'NEXT' : 'PLANNED'}
+                                            </span>
+                                        </span>
+                                        <span className="accordion-arrow">▼</span>
+                                    </button>
+                                    <div className="accordion-body">
+                                        <div className="accordion-content">
+                                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>{m.desc}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bento-card" style={{ padding: 20, marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, textAlign: 'center' }}>
+                            <div><div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>125</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Acceptance Criteria</div></div>
+                            <div><div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>7</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>New Milestones</div></div>
+                            <div><div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>4,000+</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Lines of Spec</div></div>
                         </div>
                     </div>
                 )}

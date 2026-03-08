@@ -25,8 +25,9 @@ export default function Nav() {
                     <a href="/#features" className="nav-link">Features</a>
                     <a href="/#code" className="nav-link">Code</a>
                     <a href="/#architecture" className="nav-link">Architecture</a>
+                    <Link to="/security" className={`nav-link ${isActive('/security')}`}>Security</Link>
+                    <Link to="/pricing" className={`nav-link ${isActive('/pricing')}`}>Pricing</Link>
                     <Link to="/blog" className={`nav-link ${isActive('/blog')}`}>Blog</Link>
-                    <a href="/#docs" className="nav-link">Docs</a>
                     <Link to="/affiliate" className={`nav-link ${isActive('/affiliate')}`}>Affiliate</Link>
                 </div>
                 <div className="nav-right">
