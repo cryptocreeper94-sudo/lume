@@ -2,7 +2,16 @@ import { Resend } from 'resend'
 import { Router } from 'express'
 
 const router = Router()
-const resend = new Resend(process.env.RESEND_API_KEY)
+
+// Lazy-init Resend client — don't crash at startup if key is missing
+let resend = null
+function getResend() {
+    if (!resend) {
+        if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured')
+        resend = new Resend(process.env.RESEND_API_KEY)
+    }
+    return resend
+}
 
 // ── Send Welcome Email ──
 router.post('/welcome', async (req, res) => {
@@ -10,7 +19,7 @@ router.post('/welcome', async (req, res) => {
         const { email, name } = req.body
         if (!email) return res.status(400).json({ error: 'Email required' })
 
-        await resend.emails.send({
+        await getResend().emails.send({
             from: 'DarkWave Studios <noreply@lume-lang.org>',
             to: email,
             subject: 'Welcome to Lume — The AI-Native Programming Language',
@@ -42,7 +51,7 @@ router.post('/welcome', async (req, res) => {
 router.post('/verify', async (req, res) => {
     try {
         const { email, code } = req.body
-        await resend.emails.send({
+        await getResend().emails.send({
             from: 'Lume <noreply@lume-lang.org>',
             to: email,
             subject: `Your Lume verification code: ${code}`,
