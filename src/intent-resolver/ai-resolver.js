@@ -141,7 +141,13 @@ ${JSON.stringify(context, null, 2)}`,
 async function callAI(prompt, model = 'gpt-4o-mini') {
     const apiKey = process.env.OPENAI_API_KEY || process.env.LUME_AI_KEY
     if (!apiKey) {
-        throw new Error('No AI API key configured. Set OPENAI_API_KEY or LUME_AI_KEY in .env')
+        // Graceful degradation: no API key → return a structured hint
+        return JSON.stringify({
+            type: 'IntentBlock',
+            intent: 'unresolved',
+            confidence: 0,
+            _hint: 'No AI API key configured. Set OPENAI_API_KEY or LUME_AI_KEY. Try rephrasing with simpler patterns: get X, show X, save X to Y, create a new X.'
+        })
     }
 
     const baseUrl = process.env.LUME_AI_URL || 'https://api.openai.com/v1'

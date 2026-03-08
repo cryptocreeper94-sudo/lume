@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { fetchPosts } from '../api/blogApi'
 
-/* AI-driven blog — seeded with launch content. Will connect to backend CRUD API. */
-const posts = [
+/* Fallback seed data — used when backend is unreachable */
+const SEED_POSTS = [
     {
         slug: 'introducing-lume',
         title: 'Introducing Lume: The AI-Native Programming Language',
@@ -52,9 +54,30 @@ const posts = [
     },
 ]
 
-export { posts }
-
 export default function BlogPage() {
+    const [posts, setPosts] = useState(SEED_POSTS)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        let cancelled = false
+        fetchPosts({ limit: 50 })
+            .then(data => {
+                if (!cancelled && data.posts && data.posts.length > 0) {
+                    setPosts(data.posts.map(p => ({
+                        slug: p.slug,
+                        title: p.title,
+                        excerpt: p.excerpt,
+                        category: (p.tags && p.tags[0]) || 'Article',
+                        date: new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        thumbnail: p.thumbnail || '/features/ai-syntax.png',
+                    })))
+                }
+            })
+            .catch(() => { /* Keep seed data on error */ })
+            .finally(() => { if (!cancelled) setLoading(false) })
+        return () => { cancelled = true }
+    }, [])
+
     return (
         <div style={{ minHeight: '100vh' }}>
             <div className="orb orb-1" />
@@ -71,6 +94,11 @@ export default function BlogPage() {
             </div>
 
             <section className="section" style={{ paddingTop: 40 }}>
+                {loading && (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                        Loading posts...
+                    </div>
+                )}
                 <div className="blog-grid">
                     {posts.map((p, i) => (
                         <Link to={`/blog/${p.slug}`} key={i} className="blog-card">

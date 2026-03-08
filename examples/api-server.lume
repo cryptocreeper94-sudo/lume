@@ -1,0 +1,32 @@
+mode: english
+
+# ═══════════════════════════════════════════════════════════
+#  api-server.lume — REST API in plain English (English Mode)
+#  This file demonstrates the full English → AST pipeline
+# ═══════════════════════════════════════════════════════════
+
+# Data setup
+create a new user list with name, email, role
+set the port to 3000
+
+# CRUD operations
+get all users from the database
+create a new user with name "Alice", email "alice@example.com"
+save the user to the database
+show the user list on screen
+
+# Filtering and sorting
+sort the users by name ascending
+for each user in the user list
+  show the user on console
+
+# Error handling
+try to connect to the database
+  or fail with connection refused
+
+# Cleanup
+delete the expired sessions from the cache
+send a notification to the admin
+
+# Return
+return the server status

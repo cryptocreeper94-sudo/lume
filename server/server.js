@@ -56,7 +56,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         app: 'lume-server',
-        version: '0.6.0',
+        version: '0.8.0',
         uptime: Math.floor(process.uptime()),
         timestamp: new Date().toISOString()
     })
@@ -66,15 +66,15 @@ app.get('/api/health', (req, res) => {
 app.get('/api/meta', (req, res) => {
     res.json({
         name: 'Lume',
-        version: '0.6.0',
+        version: '0.8.0',
         status: 'active',
         category: 'Developer Tools',
         stack: 'Node/Express + PostgreSQL',
         website: 'https://lume-lang.org',
         repo: 'github.com/cryptocreeper94-sudo/lume',
-        tests: 219,
-        milestones: 6,
-        loc: 12215,
+        tests: 366,
+        milestones: 13,
+        loc: 10800,
         ecosystem: 'Trust Layer'
     })
 })
@@ -102,7 +102,7 @@ app.use((err, req, res, next) => {
 // ── Start ──
 app.listen(PORT, () => {
     console.log(`
-  ⚡ Lume Server v0.6.0
+  ⚡ Lume Server v0.8.0
   ────────────────────────
   Port:     ${PORT}
   Env:      ${process.env.NODE_ENV || 'development'}

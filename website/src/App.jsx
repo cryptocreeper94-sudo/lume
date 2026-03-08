@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './stores/authStore'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import SignalChatWidget from './components/SignalChatWidget'
@@ -13,10 +14,11 @@ import DevPortal from './pages/DevPortal'
 import SmsOptIn from './pages/SmsOptIn'
 import SecurityPage from './pages/SecurityPage'
 import PricingPage from './pages/PricingPage'
+import PlaygroundPage from './pages/PlaygroundPage'
 
 export default function App() {
     return (
-        <>
+        <AuthProvider>
             <Nav />
             <HamburgerMenu />
             <Routes>
@@ -31,10 +33,11 @@ export default function App() {
                 <Route path="/sms-optin" element={<SmsOptIn />} />
                 <Route path="/security" element={<SecurityPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/playground" element={<PlaygroundPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />
             <SignalChatWidget />
-        </>
+        </AuthProvider>
     )
 }

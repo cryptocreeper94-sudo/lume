@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+const API = import.meta.env.VITE_API_URL || ''
+
 const PIN = '0424'
 
 /* ── Ecosystem Apps (Full Directory — 35 Apps) ── */
@@ -63,20 +65,22 @@ const codebase = [
     { module: 'Evolver (L4)', file: 'src/runtime/evolver.js', loc: 310, desc: 'Layer 4: Self-Evolving. Dependency monitoring, AI model benchmarking, cost analysis, pattern learning (hot paths, time-based). Evolution decisions with approve/reject/auto-apply workflow.' },
     { module: 'Formatter', file: 'src/formatter.js', loc: 140, desc: 'Auto-formats .lume source: tabs→spaces, trailing whitespace, blank line limiting, consistent indentation, operator spacing.' },
     { module: 'Linter', file: 'src/linter.js', loc: 260, desc: '15 lint rules across error, warning, style, and perf categories. Suggested auto-fixes. Checks naming conventions, AI prompt quality, line length, etc.' },
-    { module: 'REPL', file: 'src/repl.js', loc: 220, desc: 'Interactive Read-Eval-Print-Loop with multi-line block support, persistent scope, colored output, history, and special commands (.help, .ast, .tokens).' },
+    { module: 'REPL', file: 'src/repl.js', loc: 235, desc: 'Interactive Read-Eval-Print-Loop v0.3.0 with multi-line block support, persistent scope, English Mode toggle (.mode), colored output, history, and special commands.' },
     { module: 'Stdlib', file: 'src/stdlib.js', loc: 240, desc: '5 modules (text, math, list, time, convert) with 67 utility functions. Exposed via use text, use math, etc.' },
-    { module: 'CLI', file: 'bin/lume.js', loc: 347, desc: 'Command-line interface: run, build, test, fmt, lint, repl, watch, ast, tokens. Version 0.6.0.' },
+    { module: 'CLI', file: 'bin/lume.js', loc: 770, desc: 'Command-line interface: run, build, explain, listen, create, bundle, compile, diff, verify, fmt, lint, repl, watch, test, ast, tokens. Version 0.8.0.' },
+    { module: 'Error Formatter', file: 'src/error-formatter.js', loc: 170, desc: 'Human-readable error messages with source context, color output, "did you mean?" suggestions, and Levenshtein distance typo correction for 30+ common misspellings.' },
+    { module: 'Barrel (index)', file: 'src/index.js', loc: 68, desc: 'Main entry point for @lume/compiler npm package. Re-exports 19 named exports across core pipeline, intent resolver, formatting, and convenience compile() function.' },
 ]
 
 /* ── Milestones 7-13 Roadmap ── */
 const milestones = [
-    { id: 7, title: 'English Mode', status: 'next', dep: 'M1-6', criteria: 45, desc: 'Plain English → AST → JavaScript. Intent Resolver (Layer A pattern matching + Layer B AI), Auto-Correct, 7-step Tolerance Chain, Security Layer (11 threats), Guardian Output Scanner, Compile Lock, Source Maps.' },
-    { id: 8, title: 'Multilingual Mode', status: 'planned', dep: 'M7', criteria: 9, desc: 'Any human language as input. Auto-detect language per line. Top 10 languages. mode: natural header. Same AST/JS output regardless of input language.' },
-    { id: 9, title: 'Voice-to-Code', status: 'planned', dep: 'M8', criteria: 10, desc: 'Spoken language → Whisper/Web Speech API → Intent Resolver. Browser mic button + CLI lume listen. Verbal cues for structure, pause detection, self-correction.' },
-    { id: 10, title: 'Visual Context + Full-Stack Gen', status: 'planned', dep: 'M7', criteria: 14, desc: 'UI Element Registry, spatial/style resolution (CSS), component generation. Full-stack app generation from plain English descriptions with --preview flag.' },
-    { id: 11, title: 'Reverse Mode (Code→Language)', status: 'planned', dep: 'M7', criteria: 6, desc: 'lume explain — any JS/TS/Lume file explained in plain language. Line-by-line or summary mode. Output in any language.' },
-    { id: 12, title: 'Collaborative Intent', status: 'planned', dep: 'M8', criteria: 6, desc: 'Multi-developer, multi-language on same project. AST-level diffing (Phase A). Real-time sync (Phase B stretch goal). Language-neutral merges.' },
-    { id: 13, title: 'Zero-Dependency Runtime', status: 'planned', dep: 'M7', criteria: 5, desc: 'Natural language → standalone binary via Bun compile. Cross-compile linux/macos/windows/wasm. No Node.js, no browser, no runtime needed.' },
+    { id: 7, title: 'English Mode', status: 'done', dep: 'M1-6', criteria: 45, desc: 'Plain English → AST → JavaScript. Intent Resolver (Layer A pattern matching + Layer B AI), Auto-Correct, 7-step Tolerance Chain, Security Layer (11 threats), Guardian Output Scanner, Compile Lock, Source Maps.' },
+    { id: 8, title: 'Multilingual Mode', status: 'done', dep: 'M7', criteria: 9, desc: 'Any human language as input. Auto-detect language per line. Top 10 languages. mode: natural header. Same AST/JS output regardless of input language.' },
+    { id: 9, title: 'Voice-to-Code', status: 'done', dep: 'M8', criteria: 10, desc: 'Spoken language → Whisper/Web Speech API → Intent Resolver. Browser mic button + CLI lume listen. Verbal cues for structure, pause detection, self-correction.' },
+    { id: 10, title: 'Visual Context + Full-Stack Gen', status: 'done', dep: 'M7', criteria: 14, desc: 'UI Element Registry, spatial/style resolution (CSS), component generation. Full-stack app generation from plain English descriptions with --preview flag.' },
+    { id: 11, title: 'Reverse Mode (Code→Language)', status: 'done', dep: 'M7', criteria: 6, desc: 'lume explain — any JS/TS/Lume file explained in plain language. Line-by-line or summary mode. Output in any language.' },
+    { id: 12, title: 'Collaborative Intent', status: 'done', dep: 'M8', criteria: 6, desc: 'Multi-developer, multi-language on same project. AST-level diffing (Phase A). Real-time sync (Phase B stretch goal). Language-neutral merges.' },
+    { id: 13, title: 'Zero-Dependency Runtime', status: 'done', dep: 'M7', criteria: 5, desc: 'Natural language → standalone binary via Bun compile. Cross-compile linux/macos/windows/wasm. No Node.js, no browser, no runtime needed.' },
 ]
 
 const LAUNCH_DATE = new Date('2026-08-23T00:00:00')
@@ -87,13 +91,13 @@ const talkingPoints = [
     { q: 'How is it different from Python + OpenAI?', a: '90% less code. In Python you need 11 lines of SDK setup to make one AI call. In Lume it\'s one line: let answer = ask gpt4 "Summarize this". And Lume programs can heal themselves, optimize themselves, and evolve autonomously — Python can\'t do any of that.' },
     { q: 'What is the self-sustaining runtime?', a: 'Four layers that make Lume programs autonomous. Layer 1 monitors performance in real-time. Layer 2 heals errors automatically with retry and circuit breakers. Layer 3 optimizes bottlenecks. Layer 4 evolves the program over time — learning patterns, benchmarking AI models, reducing costs. Your code takes care of itself.' },
     { q: 'How does hallmarking work?', a: 'Every Lume program can be stamped on Trust Layer\'s blockchain with a unique TN-XXXXXXX identifier. This gives cryptographic proof of who wrote it and when. It\'s provenance for code — like a digital signature that can\'t be forged.' },
-    { q: 'What\'s the tech stack?', a: 'The language is built in JavaScript (Node.js) — a lexer tokenizes source, a parser builds an AST, and a transpiler emits JavaScript. The website is Vite + React with our ecosystem design system. 219 tests across 6 milestones. Everything is MIT licensed.' },
+    { q: 'What\'s the tech stack?', a: 'The language is built in JavaScript (Node.js) — a lexer tokenizes source, a parser builds an AST, and a transpiler emits JavaScript. The Intent Resolver handles English Mode with 102 deterministic patterns. The website is Vite + React with our ecosystem design system. 366 tests (333 unit + 33 integration) across 13 milestones. 10.8K lines of source. Everything is MIT licensed.' },
     { q: 'What is Signal?', a: 'Signal is our native digital asset. It\'s a signal — not a coin, not a token, not a cryptocurrency. We\'re changing the language in this space. You earn Signal through referrals, hallmarking, and ecosystem contributions.' },
     { q: 'How does it fit in the ecosystem?', a: 'Lume is part of the Trust Layer ecosystem. SSO authentication via dwtl.io. Real-time chat via Signal Chat. 3D creation via TrustGen. Gaming via Bomber 3D. All connected through shared identity and shared design language.' },
 ]
 
 function StatusDot({ status }) {
-    const colors = { live: '#00b894', connected: '#00b894', dev: '#fdcb6e', planned: '#636e72', ready: '#74b9ff' }
+    const colors = { live: '#00b894', connected: '#00b894', dev: '#fdcb6e', planned: '#636e72', ready: '#74b9ff', done: '#00b894' }
     return <span style={{ width: 8, height: 8, borderRadius: '50%', background: colors[status] || '#636e72', display: 'inline-block', boxShadow: `0 0 6px ${colors[status] || '#636e72'}` }} />
 }
 
@@ -104,6 +108,16 @@ export default function DevPortal() {
     const [activeTab, setActiveTab] = useState('overview')
     const [openRef, setOpenRef] = useState(null)
     const [openTp, setOpenTp] = useState(null)
+
+    // Live backend data
+    const [serverHealth, setServerHealth] = useState(null)
+    const [serverMeta, setServerMeta] = useState(null)
+
+    useEffect(() => {
+        if (!authenticated) return
+        fetch(`${API}/api/health`).then(r => r.json()).then(setServerHealth).catch(() => { })
+        fetch(`${API}/api/meta`).then(r => r.json()).then(setServerMeta).catch(() => { })
+    }, [authenticated])
 
     const handlePin = (e) => {
         e.preventDefault()
@@ -196,14 +210,14 @@ export default function DevPortal() {
                 {/* ═══ OVERVIEW TAB ═══ */}
                 {activeTab === 'overview' && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-                        {/* Quick Stats */}
+                        {/* Quick Stats — live from /api/meta */}
                         <div className="bento-card" style={{ padding: 24 }}>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Lume Language</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Lume Language {serverHealth?.status === 'ok' && <span style={{ fontSize: 10, color: '#00b894', fontFamily: 'var(--font-mono)' }}>● LIVE</span>}</div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>219</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tests Passing</div></div>
-                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>6</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Milestones</div></div>
-                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>12.2K</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Lines of Code</div></div>
-                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>41</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Source Files</div></div>
+                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{serverMeta?.tests || 366}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tests Passing</div></div>
+                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{serverMeta?.milestones || 13}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Milestones</div></div>
+                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{serverMeta?.loc ? (serverMeta.loc / 1000).toFixed(1) + 'K' : '10.8K'}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Lines of Code</div></div>
+                                <div><div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{serverMeta?.version || 'v0.8.0'}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{serverHealth ? `Uptime: ${Math.floor(serverHealth.uptime / 60)}m` : 'Version'}</div></div>
                             </div>
                         </div>
 
@@ -322,7 +336,7 @@ export default function DevPortal() {
                                                 color: m.status === 'next' ? '#00b894' : '#636e72',
                                                 border: `1px solid ${m.status === 'next' ? 'rgba(0,184,148,0.3)' : 'rgba(99,110,114,0.2)'}`
                                             }}>
-                                                {m.status === 'next' ? 'NEXT' : 'PLANNED'}
+                                                {m.status === 'done' ? 'DONE' : m.status === 'next' ? 'NEXT' : 'PLANNED'}
                                             </span>
                                         </span>
                                         <span className="accordion-arrow">▼</span>

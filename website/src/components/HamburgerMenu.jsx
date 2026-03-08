@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../stores/authStore'
 
 export default function HamburgerMenu() {
     const [open, setOpen] = useState(false)
+    const { isAuthenticated, user, logout } = useAuth()
 
     return (
         <>
@@ -56,9 +58,21 @@ export default function HamburgerMenu() {
                         <span className="hamburger-link-icon">🎨</span> TrustGen 3D
                     </a>
                     <div className="hamburger-section">Account</div>
-                    <Link to="/login" className="hamburger-link" onClick={() => setOpen(false)}>
-                        <span className="hamburger-link-icon">🔑</span> Sign In
-                    </Link>
+                    {isAuthenticated ? (
+                        <>
+                            <div className="hamburger-link" style={{ cursor: 'default' }}>
+                                <span className="hamburger-link-icon">👤</span> {user?.display_name || user?.email}
+                            </div>
+                            <button className="hamburger-link" onClick={() => { logout(); setOpen(false) }}
+                                style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit', padding: 'inherit' }}>
+                                <span className="hamburger-link-icon">🚪</span> Sign Out
+                            </button>
+                        </>
+                    ) : (
+                        <Link to="/login" className="hamburger-link" onClick={() => setOpen(false)}>
+                            <span className="hamburger-link-icon">🔑</span> Sign In
+                        </Link>
+                    )}
                     <Link to="/affiliate" className="hamburger-link" onClick={() => setOpen(false)}>
                         <span className="hamburger-link-icon">🤝</span> Affiliate Program
                     </Link>
@@ -70,3 +84,4 @@ export default function HamburgerMenu() {
         </>
     )
 }
+

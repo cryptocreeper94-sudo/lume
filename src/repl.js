@@ -14,6 +14,7 @@ import { createInterface } from 'node:readline'
 import { tokenize } from './lexer.js'
 import { parse } from './parser.js'
 import { transpile } from './transpiler.js'
+import { matchPattern } from './intent-resolver/pattern-library.js'
 
 const COLORS = {
     reset: '\x1b[0m',
@@ -35,6 +36,7 @@ export class REPL {
         this.multiLine = ''
         this.inBlock = false
         this.blockDepth = 0
+        this.mode = 'lume' // 'lume' or 'english'
     }
 
     start() {
@@ -44,8 +46,8 @@ export class REPL {
             prompt: color('cyan', 'lume> '),
         })
 
-        console.log(color('magenta', '\n  ✦ Lume REPL v0.2.0'))
-        console.log(color('dim', '  Type .help for commands, .exit to quit\n'))
+        console.log(color('magenta', '\n  ✦ Lume REPL v0.3.0'))
+        console.log(color('dim', '  Type .help for commands, .mode to toggle English Mode, .exit to quit\n'))
 
         rl.prompt()
 
@@ -95,7 +97,11 @@ export class REPL {
 
             // Single line evaluation
             if (trimmed.length > 0) {
-                this._evaluate(trimmed)
+                if (this.mode === 'english') {
+                    this._evaluateEnglish(trimmed)
+                } else {
+                    this._evaluate(trimmed)
+                }
             }
             rl.prompt()
         })
@@ -112,10 +118,19 @@ export class REPL {
                 console.log(color('cyan', '\n  REPL Commands:'))
                 console.log('  .help     Show this help')
                 console.log('  .clear    Clear the screen')
+                console.log('  .mode     Toggle English Mode')
                 console.log('  .ast      Show AST for last input')
                 console.log('  .tokens   Show tokens for last input')
                 console.log('  .history  Show history')
                 console.log('  .exit     Exit REPL\n')
+                break
+            case '.mode':
+                this.mode = this.mode === 'lume' ? 'english' : 'lume'
+                rl.setPrompt(this.mode === 'english' ? color('green', 'english> ') : color('cyan', 'lume> '))
+                console.log(color('cyan', `  Mode: ${this.mode}`))
+                if (this.mode === 'english') {
+                    console.log(color('dim', '  Type natural English. Pattern matching active. 102 patterns loaded.'))
+                }
                 break
             case '.clear':
                 console.clear()
@@ -204,6 +219,21 @@ export class REPL {
             }
         } catch (e) {
             console.log(color('red', e.message))
+        }
+    }
+
+    _evaluateEnglish(source) {
+        this.history.push(source)
+        const result = matchPattern(source)
+        if (result.matched) {
+            console.log(color('green', '✓ ') + color('cyan', result.ast.type))
+            const entries = Object.entries(result.ast).filter(([k]) => k !== 'type')
+            for (const [key, value] of entries) {
+                console.log(color('dim', `  ${key}: `) + color('green', JSON.stringify(value)))
+            }
+        } else {
+            console.log(color('yellow', '⚠ Unresolved: ') + color('dim', `"${source}"`))
+            console.log(color('dim', '  Would use Layer B (AI) in full compiler'))
         }
     }
 }

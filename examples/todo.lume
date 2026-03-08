@@ -1,0 +1,26 @@
+// ═══════════════════════════════════════════════════════════
+//  todo.lume — A todo list in Lume
+//  Run: lume run examples/todo.lume
+// ═══════════════════════════════════════════════════════════
+
+// Simple todo list using arrays and functions
+let tasks = ["Learn Lume syntax", "Build a CLI tool", "Deploy to production"]
+let done = [false, false, false]
+
+to markDone(index: number):
+    show "Completed: " + tasks[index]
+
+to showList():
+    show "--- Todo List ---"
+    for i in 0 to 2:
+        if done[i]:
+            show "  [x] " + tasks[i]
+        else:
+            show "  [ ] " + tasks[i]
+    show "-----------------"
+
+// Run the app
+show "Todo App — 3 tasks loaded"
+showList()
+markDone(0)
+showList()

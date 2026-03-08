@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../stores/authStore'
+import { getAffiliateStats, generateReferralCode, trackReferral } from '../api/affiliateApi'
 
 const tiers = [
     { icon: '🥉', name: 'Bronze', rate: '10%', desc: '0–5 referrals', color: '#cd7f32' },
@@ -8,8 +10,40 @@ const tiers = [
 ]
 
 export default function AffiliatePage() {
+    const { token, isAuthenticated, user } = useAuth()
     const [copied, setCopied] = useState(false)
-    const refLink = 'https://lume-lang.org/?ref=YOUR_CODE'
+    const [stats, setStats] = useState(null)
+    const [refCode, setRefCode] = useState(null)
+    const [loading, setLoading] = useState(false)
+
+    // Track incoming referrals from URL
+    useEffect(() => { trackReferral() }, [])
+
+    // Fetch affiliate stats + referral code for authenticated users
+    useEffect(() => {
+        if (!isAuthenticated || !token) return
+        setLoading(true)
+
+        // User already has a referral code from registration
+        if (user?.referral_code) {
+            setRefCode(user.referral_code)
+        }
+
+        getAffiliateStats(token)
+            .then(data => { if (data) setStats(data) })
+            .catch(() => { })
+            .finally(() => setLoading(false))
+    }, [isAuthenticated, token, user])
+
+    const handleGenerateCode = async () => {
+        if (!token) return
+        const data = await generateReferralCode(token)
+        if (data?.code) setRefCode(data.code)
+    }
+
+    const refLink = refCode
+        ? `https://lume-lang.org/?ref=${refCode}`
+        : 'https://lume-lang.org/?ref=YOUR_CODE'
 
     const copyLink = () => {
         navigator.clipboard.writeText(refLink)
@@ -45,12 +79,45 @@ export default function AffiliatePage() {
                     ))}
                 </div>
 
+                {/* Stats Panel — only shown for authenticated users */}
+                {isAuthenticated && stats && (
+                    <div style={{
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12,
+                        margin: '24px 0', padding: 20,
+                        background: 'rgba(16,16,26,0.72)', backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12
+                    }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-glow)' }}>{stats.referral_count || 0}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Referrals</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-glow)' }}>{stats.signal_earned || '0.00'}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Signal Earned</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-glow)' }}>{stats.tier || user?.tier || 'Bronze'}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Current Tier</div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="referral-box">
                     <div style={{ flex: '0 0 auto' }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Your Referral Link</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sign in to generate your unique code</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {isAuthenticated
+                                ? (refCode ? 'Share this link to earn Signal rewards' : 'Generate your referral code below')
+                                : 'Sign in to generate your unique code'
+                            }
+                        </div>
                     </div>
                     <input readOnly value={refLink} />
+                    {isAuthenticated && !refCode && (
+                        <button className="btn-copy" onClick={handleGenerateCode} disabled={loading}>
+                            Generate Code
+                        </button>
+                    )}
                     <button className="btn-copy" onClick={copyLink}>
                         {copied ? '✓ Copied!' : 'Copy'}
                     </button>

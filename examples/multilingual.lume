@@ -1,0 +1,31 @@
+mode: natural
+# Lume Multilingual Example
+# Demonstrates mode: natural with mixed languages
+
+# English
+get the user's name from the database
+show the result
+
+# Spanish (Español)
+crear un nuevo usuario con nombre y correo
+mostrar los datos del usuario
+
+# French (Français)
+supprimer l'utilisateur sélectionné
+afficher le message de confirmation
+
+# German (Deutsch)
+speichern die Benutzerdaten in der Datenbank
+anzeigen die Ergebnisse
+
+# Portuguese (Português)
+criar um novo registro
+mostrar todos os usuários
+
+# Japanese (日本語)
+表示する ユーザーデータ
+作成する 新しいレコード
+
+# Chinese (中文)
+显示 用户数据
+删除 旧记录

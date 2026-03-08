@@ -27,9 +27,11 @@ import { matchPattern, patterns } from './pattern-library.js'
 import { similarity, wordBagSimilarity, correctSentence } from './fuzzy-matcher.js'
 import { splitSentence } from './sentence-splitter.js'
 import { resolveTemporal } from './temporal-resolver.js'
-import { checkSecurity, scanASTNode, formatThreat, generateCertificate } from './security-layer.js'
+import { checkSecurity, scanASTNode, formatThreat, generateCertificate, THREAT_CATEGORIES } from './security-layer.js'
 import { resetFileScope, updateMemory, resolvePronoun, getAutocorrectContext } from './context-engine.js'
 import { aiResolve, batchResolve } from './ai-resolver.js'
+import { detectLanguage } from './lang-detect.js'
+import { resolveMultilingualVerb, translateVerb, getLocalizedError } from './pattern-library-i18n.js'
 
 /**
  * Check if a file should use English Mode
@@ -45,8 +47,8 @@ export function detectMode(source) {
  * Main resolve function — processes an entire English Mode file
  *
  * @param {string} source - The full .lume file content
- * @param {object} options - { noAutocorrect, strict, lockCache, projectRoot, model }
- * @returns {object} { ast[], diagnostics[], certificate, stats }
+ * @param {object} options - { noAutocorrect, strict, lockCache, projectRoot, model, lang }
+ * @returns {object} { ast[], diagnostics[], certificate, stats, detectedLanguages }
  */
 export async function resolveEnglishFile(source, options = {}) {
     const lines = source.split('\n')
@@ -62,6 +64,9 @@ export async function resolveEnglishFile(source, options = {}) {
     const diagnostics = []
     const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0 }
     const unresolvedLines = [] // Queue for batch AI resolution
+    const detectedLanguages = new Map() // Track language per line
+    const isMultilingual = mode === 'natural' // mode: natural enables multilingual
+    const langOverride = options.lang || null // --lang flag override
 
     for (let i = versionLine; i < lines.length; i++) {
         const rawLine = lines[i]
@@ -77,6 +82,17 @@ export async function resolveEnglishFile(source, options = {}) {
         // Handle raw: escape hatch blocks
         if (trimmed === 'raw:') {
             const rawBlock = collectRawBlock(lines, i + 1)
+            // Security: scan raw blocks for dangerous patterns
+            const rawThreats = scanRawBlock(rawBlock.code, lineNum)
+            if (rawThreats.length > 0) {
+                diagnostics.push(...rawThreats)
+                const blocked = rawThreats.some(t => t.level === 'BLOCK')
+                if (blocked) {
+                    ast.push({ type: 'RawBlock', code: `/* BLOCKED: raw block failed security scan */`, line: lineNum })
+                    i = rawBlock.endLine
+                    continue
+                }
+            }
             ast.push({ type: 'RawBlock', code: rawBlock.code, line: lineNum })
             i = rawBlock.endLine
             diagnostics.push({ type: 'info', code: 'LUME-I004', line: lineNum, message: 'Raw block — bypassing Intent Resolver' })
@@ -95,6 +111,25 @@ export async function resolveEnglishFile(source, options = {}) {
             }
         }
 
+        // Step 0.3: Multilingual verb translation (mode: natural only)
+        let processedInput = corrected
+        let lineLanguage = 'en'
+        if (isMultilingual) {
+            const langResult = langOverride
+                ? { code: langOverride, language: langOverride, confidence: 1.0 }
+                : detectLanguage(corrected)
+            lineLanguage = langResult.code
+            detectedLanguages.set(lineNum, { code: langResult.code, language: langResult.language, confidence: langResult.confidence })
+
+            if (langResult.code !== 'en') {
+                const verbResult = translateVerb(corrected, langResult.code)
+                if (verbResult) {
+                    processedInput = verbResult.translated
+                    diagnostics.push({ type: 'info', code: 'LUME-I005', line: lineNum, message: `[${langResult.language}] "${verbResult.originalVerb}" → "${verbResult.verb}"` })
+                }
+            }
+        }
+
         // Step 0.5: Security check on input
         const secCheck = checkSecurity(corrected, options.securityConfig || {})
         if (secCheck.blocked) {
@@ -106,7 +141,7 @@ export async function resolveEnglishFile(source, options = {}) {
         }
 
         // Step 0.7: Split compound sentences
-        const operations = splitSentence(corrected)
+        const operations = splitSentence(processedInput)
 
         for (const op of operations) {
             // Resolve pronouns
@@ -124,7 +159,7 @@ export async function resolveEnglishFile(source, options = {}) {
             // Step 1: Exact Pattern Match (Layer A)
             const exactMatch = matchPattern(resolveText)
             if (exactMatch.matched) {
-                const node = { ...exactMatch.ast, line: lineNum, resolvedBy: 'layer_a_exact' }
+                const node = { ...exactMatch.ast, line: lineNum, resolvedBy: 'layer_a_exact', ...(isMultilingual ? { language: lineLanguage } : {}) }
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
                 updateMemory(lineNum, extractSubject(resolveText), extractVerb(resolveText), node)
@@ -135,7 +170,7 @@ export async function resolveEnglishFile(source, options = {}) {
             // Step 2: Fuzzy Pattern Match (85%+ similarity)
             const fuzzyResult = fuzzyMatch(resolveText)
             if (fuzzyResult) {
-                const node = { ...fuzzyResult.ast, line: lineNum, resolvedBy: 'layer_a_fuzzy', similarity: fuzzyResult.score }
+                const node = { ...fuzzyResult.ast, line: lineNum, resolvedBy: 'layer_a_fuzzy', similarity: fuzzyResult.score, ...(isMultilingual ? { language: lineLanguage } : {}) }
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
                 updateMemory(lineNum, extractSubject(resolveText), extractVerb(resolveText), node)
@@ -147,7 +182,7 @@ export async function resolveEnglishFile(source, options = {}) {
             // Step 3: Word-Bag Match
             const bagResult = wordBagMatch(resolveText)
             if (bagResult) {
-                const node = { ...bagResult.ast, line: lineNum, resolvedBy: 'layer_a_wordbag', similarity: bagResult.score }
+                const node = { ...bagResult.ast, line: lineNum, resolvedBy: 'layer_a_wordbag', similarity: bagResult.score, ...(isMultilingual ? { language: lineLanguage } : {}) }
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
                 updateMemory(lineNum, extractSubject(resolveText), extractVerb(resolveText), node)
@@ -207,6 +242,7 @@ export async function resolveEnglishFile(source, options = {}) {
         ast,
         diagnostics,
         certificate,
+        detectedLanguages: Object.fromEntries(detectedLanguages),
         stats: {
             ...stats,
             totalLines: lines.length,
@@ -336,9 +372,52 @@ function guardianScan(node, lineNum, diagnostics, options) {
     }
 }
 
+/* ── Raw Block Security Scanner ──────────────────────── */
+const RAW_BLOCK_THREATS = [
+    { pattern: /\beval\s*\(/, category: 'SYSTEM_COMMANDS', message: 'eval() is blocked in raw blocks — use a function instead' },
+    { pattern: /\bnew\s+Function\s*\(/, category: 'SYSTEM_COMMANDS', message: 'new Function() is blocked — use a named function instead' },
+    { pattern: /\bchild_process\b/, category: 'SYSTEM_COMMANDS', message: 'child_process access blocked in raw blocks' },
+    { pattern: /\brequire\s*\(\s*['"]child_process/, category: 'SYSTEM_COMMANDS', message: 'child_process import blocked' },
+    { pattern: /\bprocess\.exit\b/, category: 'SYSTEM_COMMANDS', message: 'process.exit() blocked — use return instead' },
+    { pattern: /\bfs\s*\.\s*(?:unlink|rmdir|rm)Sync\b/, category: 'FILE_DESTRUCTION', message: 'File deletion blocked in raw blocks' },
+    { pattern: /\bfs\s*\.\s*(?:writeFile|appendFile)Sync?\s*\(.*(?:\/etc|\/usr|\/bin|C:\\\\Windows)/i, category: 'FILE_DESTRUCTION', message: 'System file write blocked' },
+    { pattern: /\bexecSync\b|\bspawnSync\b/, category: 'SYSTEM_COMMANDS', message: 'Synchronous process execution blocked' },
+    { pattern: /\bprocess\.env\b.*(?:=|delete)/, category: 'CREDENTIAL_EXPOSURE', message: 'Modifying environment variables blocked' },
+    { pattern: /\bglobal\s*\.\s*(?:process|require|__dirname)/, category: 'PRIVILEGE_ESCALATION', message: 'Global scope manipulation blocked' },
+]
+
+function scanRawBlock(code, lineNum) {
+    const threats = []
+    for (const { pattern, category, message } of RAW_BLOCK_THREATS) {
+        if (pattern.test(code)) {
+            const cat = THREAT_CATEGORIES[category] || { level: 'BLOCK', code: 'LUME-E003', label: category }
+            threats.push({ type: 'error', code: cat.code, level: cat.level, line: lineNum, message: `[guardian:raw] ${message}` })
+        }
+    }
+    return threats
+}
+
 /* ── Exports ─────────────────────────────────────────── */
 export { matchPattern } from './pattern-library.js'
 export { autoCorrect } from './auto-correct.js'
 export { splitSentence } from './sentence-splitter.js'
 export { checkSecurity, scanASTNode } from './security-layer.js'
 export { resolveTemporal } from './temporal-resolver.js'
+export { detectLanguage, supportedLanguages } from './lang-detect.js'
+export { resolveMultilingualVerb, translateVerb, getLocalizedError } from './pattern-library-i18n.js'
+
+// ── M9: Voice-to-Code ──
+export { processTranscription, transcriptionToLume } from './voice-input.js'
+
+// ── M10: Visual Context Awareness ──
+export { UIRegistry, getComponentTemplate, SPATIAL_MAP, STYLE_MAP } from './ui-registry.js'
+export { parseAppDescription, generateProjectStructure } from './app-generator.js'
+
+// ── M11: Reverse Mode ──
+export { explainNode, explainAST, summarizeAST, explainFile as explainFileAST } from './explainer.js'
+
+// ── M12: Collaborative Intent ──
+export { diffAST, detectConflicts, renderInLanguage, formatDiff, nodeIdentity } from './ast-differ.js'
+
+// ── M13: Zero-Dependency Runtime ──
+export { createBundle, getCompileCommand, detectRuntimeFeatures, detectPlatform, supportedTargets } from './bundler.js'

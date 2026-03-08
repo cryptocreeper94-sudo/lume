@@ -1,21 +1,61 @@
 {
-    "name": "lume",
-    "version": "0.1.0",
-    "description": "Lume — The AI-Native Programming Language",
+    "name": "@lume/compiler",
+    "version": "0.8.0",
+    "description": "Lume — The AI-Native Programming Language. Write English, ship JavaScript.",
     "type": "module",
-    "main": "src/lexer.js",
+    "main": "src/index.js",
+    "exports": {
+        ".": "./src/index.js",
+        "./lexer": "./src/lexer.js",
+        "./parser": "./src/parser.js",
+        "./transpiler": "./src/transpiler.js",
+        "./intent-resolver": "./src/intent-resolver/index.js",
+        "./stdlib": "./src/stdlib.js",
+        "./formatter": "./src/formatter.js",
+        "./linter": "./src/linter.js"
+    },
     "bin": {
         "lume": "bin/lume.js"
     },
+    "files": [
+        "bin/",
+        "src/",
+        "README.md",
+        "LICENSE"
+    ],
     "scripts": {
         "test": "node --test tests/unit/*.test.js",
-        "test:integration": "node --test tests/integration/*.test.js"
+        "test:m7": "node --test tests/unit/milestone7.test.js",
+        "test:m8-13": "node --test tests/unit/milestone8.test.js tests/unit/milestone9.test.js tests/unit/milestone10.test.js tests/unit/milestone11.test.js tests/unit/milestone12.test.js tests/unit/milestone13.test.js",
+        "test:ci": "node --test tests/unit/*.test.js 2>&1",
+        "lint": "node bin/lume.js lint src/",
+        "fmt": "node bin/lume.js fmt src/"
     },
     "keywords": [
         "language",
         "ai",
         "transpiler",
-        "programming-language"
+        "programming-language",
+        "natural-language",
+        "english-mode",
+        "compiler",
+        "lume",
+        "ai-native",
+        "code-generation",
+        "intent-resolver",
+        "voice-to-code"
     ],
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/lume-lang/lume"
+    },
+    "homepage": "https://lume-lang.org",
+    "bugs": {
+        "url": "https://github.com/lume-lang/lume/issues"
+    },
+    "author": "Lume Contributors",
     "license": "MIT"
 }

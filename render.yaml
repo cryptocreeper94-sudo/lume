@@ -1,0 +1,49 @@
+# Render Blueprint — Lume Backend
+# Deploy: https://render.com/deploy?repo=https://github.com/cryptocreeper94-sudo/lume
+
+services:
+  - type: web
+    name: lume-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        value: https://lume-lang.org
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lume-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: TRUSTLAYER_BASE_URL
+        value: https://dwtl.io
+      - key: TRUSTLAYER_API_KEY
+        sync: false
+      - key: TRUSTLAYER_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        value: "+18885702194"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+databases:
+  - name: lume-db
+    plan: free
+    databaseName: lume
+    region: oregon

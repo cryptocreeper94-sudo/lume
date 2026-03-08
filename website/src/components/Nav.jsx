@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../stores/authStore'
 
 export default function Nav() {
     const [scrolled, setScrolled] = useState(false)
     const location = useLocation()
+    const { isAuthenticated, user, logout } = useAuth()
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 20)
@@ -19,7 +21,7 @@ export default function Nav() {
                 <Link to="/" className="nav-brand">
                     <span className="nav-logo">✦</span>
                     <span className="nav-title gradient-wave-text">Lume</span>
-                    <span className="nav-version">v0.6</span>
+                    <span className="nav-version">v0.8</span>
                 </Link>
                 <div className="nav-links">
                     <a href="/#features" className="nav-link">Features</a>
@@ -29,11 +31,24 @@ export default function Nav() {
                     <Link to="/pricing" className={`nav-link ${isActive('/pricing')}`}>Pricing</Link>
                     <Link to="/blog" className={`nav-link ${isActive('/blog')}`}>Blog</Link>
                     <Link to="/affiliate" className={`nav-link ${isActive('/affiliate')}`}>Affiliate</Link>
+                    <Link to="/playground" className={`nav-link ${isActive('/playground')}`}>Playground</Link>
                 </div>
                 <div className="nav-right">
-                    <Link to="/login" className="nav-cta">Sign In</Link>
+                    {isAuthenticated ? (
+                        <>
+                            <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginRight: 8 }}>
+                                {user?.display_name || user?.email}
+                            </span>
+                            <button onClick={logout} className="nav-cta" style={{ background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                                Sign Out
+                            </button>
+                        </>
+                    ) : (
+                        <Link to="/login" className="nav-cta">Sign In</Link>
+                    )}
                 </div>
             </div>
         </nav>
     )
 }
+

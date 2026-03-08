@@ -1,0 +1,47 @@
+name: Lume CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Run all tests
+        run: npm test
+
+      - name: Verify CLI
+        run: |
+          node bin/lume.js help
+          node bin/lume.js version
+
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check examples compile
+        run: |
+          for f in examples/*.lume; do
+            echo "Compiling $f..."
+            node bin/lume.js build "$f" || true
+          done

@@ -1,11 +1,14 @@
 import { useState } from 'react'
 
+const API = import.meta.env.VITE_API_URL || ''
+
 export default function SmsOptIn() {
     const [phone, setPhone] = useState('')
     const [consent, setConsent] = useState(false)
     const [marketing, setMarketing] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
 
     const formatPhone = (v) => {
         const digits = v.replace(/\D/g, '').slice(0, 10)
@@ -14,15 +17,35 @@ export default function SmsOptIn() {
         return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         const digits = phone.replace(/\D/g, '')
         if (digits.length !== 10) { setError('Please enter a valid 10-digit phone number.'); return }
         if (!consent) { setError('You must agree to receive SMS messages.'); return }
         setError('')
-        // Will POST to backend: /api/sms/optin
-        console.log('SMS Opt-In:', { phone: `+1${digits}`, consent: true, marketing })
-        setSubmitted(true)
+        setLoading(true)
+
+        try {
+            const res = await fetch(`${API}/api/sms/optin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: `+1${digits}`,
+                    consent: true,
+                    marketing,
+                    ip_address: 'client',
+                    user_agent: navigator.userAgent
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Opt-in failed')
+            setSubmitted(true)
+        } catch (err) {
+            setError(err.message || 'Failed to submit. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     if (submitted) {
@@ -100,10 +123,11 @@ export default function SmsOptIn() {
                         </label>
                     </div>
 
-                    {error && <p style={{ color: 'var(--danger)', fontSize: 12, marginBottom: 12, textAlign: 'center' }}>{error}</p>}
+                    {error && <p style={{ color: 'var(--danger)', fontSize: 12, marginBottom: 12, textAlign: 'center', background: 'rgba(239,68,68,0.08)', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)' }}>{error}</p>}
 
-                    <button type="submit" className="btn-primary-lg" style={{ width: '100%', justifyContent: 'center' }}>
-                        Opt In to SMS
+                    <button type="submit" className="btn-primary-lg" disabled={loading}
+                        style={{ width: '100%', justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
+                        {loading ? 'Submitting...' : 'Opt In to SMS'}
                     </button>
                 </form>
 

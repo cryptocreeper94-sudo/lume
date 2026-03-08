@@ -1,11 +1,16 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { posts } from './BlogPage'
+import { fetchPost } from '../api/blogApi'
 
-/* Full blog post content — seed articles. Backend will serve dynamic content. */
-const postContent = {
+/* Fallback content for seed articles when backend is unreachable */
+const SEED_CONTENT = {
     'introducing-lume': {
-        content: `
-## What is Lume?
+        title: 'Introducing Lume: The AI-Native Programming Language',
+        category: 'Launch',
+        date: 'Mar 7, 2026',
+        thumbnail: '/features/ai-syntax.png',
+        excerpt: 'Today we launch Lume — the first language where AI is a syntax primitive.',
+        body: `## What is Lume?
 
 Lume is the first programming language where AI isn't a library you import — it's a **syntax primitive**. Just like you use \`if\` for conditions and \`for\` for loops, you use \`ask\`, \`think\`, and \`generate\` for AI.
 
@@ -30,10 +35,6 @@ But Lume goes further. A Lume program doesn't just run — it **takes care of it
 - **Layer 3: Self-Optimizing** — Detects bottlenecks, suggests fixes
 - **Layer 4: Self-Evolving** — Learns patterns, adapts behavior
 
-## 219 Tests, Zero Failures
-
-Lume has been built across 6 milestones with comprehensive test coverage. Every feature is verified, every edge case is handled.
-
 ## Get Started
 
 \`\`\`
@@ -41,54 +42,90 @@ npm install -g lume-lang
 lume run hello.lume
 \`\`\`
 
-Welcome to the future of programming. Welcome to Lume.
-    `
+Welcome to the future of programming. Welcome to Lume.`
     },
     'self-sustaining-runtime': {
-        content: `
-## The Vision: Software That Cares for Itself
+        title: 'Building Software That Takes Care of Itself',
+        category: 'Deep Dive',
+        date: 'Mar 7, 2026',
+        thumbnail: '/features/self-healing.png',
+        excerpt: 'Lume\'s Milestone 6 introduces four self-sustaining layers.',
+        body: `## The Vision: Software That Cares for Itself
 
 What if your program could detect when it's running slowly and fix itself? What if it knew when an API was failing and automatically switched to a backup? Lume's Milestone 6 makes this real.
 
 ## Four Layers, One System
 
 ### Layer 1: Self-Monitoring
-Every function call is tracked: execution time, error rate, call count. AI calls are monitored for latency, cost, and token usage. Memory snapshots are taken periodically.
-
-\`\`\`
-monitor:
-    dashboard: true
-    interval: 5s
-    alert_on:
-        error_rate > 0.05
-\`\`\`
+Every function call is tracked: execution time, error rate, call count. AI calls are monitored for latency, cost, and token usage.
 
 ### Layer 2: Self-Healing
 The \`@healable\` decorator wraps any function with retry logic, circuit breakers, and AI model fallback chains.
 
-\`\`\`
-@healable
-to fetch_data(url: text):
-    return fetch url as json
-\`\`\`
-
 ### Layer 3: Self-Optimizing
-The optimizer analyzes monitoring data to find slow functions, high error rates, and expensive AI calls. It can suggest fixes or auto-apply them.
+The optimizer analyzes monitoring data to find slow functions, high error rates, and expensive AI calls.
 
 ### Layer 4: Self-Evolving
-The highest layer learns usage patterns, benchmarks AI models against each other, and makes autonomous decisions about optimization.
-
-## The Result: 219 Passing Tests
-
-Every layer has been thoroughly tested. The self-sustaining runtime is production-ready.
-    `
+The highest layer learns usage patterns, benchmarks AI models against each other, and makes autonomous decisions about optimization.`
     },
+}
+
+function renderMarkdown(md) {
+    if (!md) return ''
+    return md
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/### (.*)/g, '<h3>$1</h3>')
+        .replace(/## (.*)/g, '<h2>$1</h2>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n- /g, '</p><li>')
+        .replace(/<\/li>(?=<li>)/g, '</li>')
+        .replace(/^/, '<p>').replace(/$/, '</p>')
 }
 
 export default function BlogPostPage() {
     const { slug } = useParams()
-    const post = posts.find(p => p.slug === slug)
-    const content = postContent[slug]
+    const [post, setPost] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        let cancelled = false
+        setLoading(true)
+
+        fetchPost(slug)
+            .then(data => {
+                if (!cancelled && data) {
+                    setPost({
+                        title: data.title,
+                        category: (data.tags && data.tags[0]) || 'Article',
+                        date: new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        thumbnail: data.thumbnail || '/features/ai-syntax.png',
+                        excerpt: data.excerpt,
+                        body: data.body,
+                        author: data.author,
+                    })
+                }
+            })
+            .catch(() => { /* fallback below */ })
+            .finally(() => {
+                if (!cancelled) {
+                    // Use seed content if API didn't return data
+                    setPost(prev => prev || SEED_CONTENT[slug] || null)
+                    setLoading(false)
+                }
+            })
+
+        return () => { cancelled = true }
+    }, [slug])
+
+    if (loading) {
+        return (
+            <div className="blog-post" style={{ textAlign: 'center', paddingTop: 160 }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading article...</div>
+            </div>
+        )
+    }
 
     if (!post) {
         return (
@@ -108,10 +145,12 @@ export default function BlogPostPage() {
             <div className="blog-post-meta">
                 <span>{post.date}</span>
                 <span>·</span>
-                <span>Lume Team</span>
+                <span>{post.author || 'Lume Team'}</span>
             </div>
             <img src={post.thumbnail} alt={post.title} style={{ width: '100%', height: 300, objectFit: 'cover', borderRadius: 'var(--radius-md)', marginBottom: 32, opacity: 0.8 }} />
-            <div className="blog-post-content" dangerouslySetInnerHTML={{ __html: content?.content?.replace(/\n/g, '<br>').replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/## (.*?)(?=<br>)/g, '<h2>$1</h2>').replace(/### (.*?)(?=<br>)/g, '<h3>$1</h3>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || `<p>${post.excerpt}</p><p style="margin-top:24px;color:var(--text-muted)">Full article coming soon. This content will be served from the Lume backend API.</p>` }} />
+            <div className="blog-post-content" dangerouslySetInnerHTML={{
+                __html: renderMarkdown(post.body) || `<p>${post.excerpt}</p><p style="margin-top:24px;color:var(--text-muted)">Full article coming soon.</p>`
+            }} />
         </article>
     )
 }

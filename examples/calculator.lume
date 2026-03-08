@@ -1,0 +1,28 @@
+// ═══════════════════════════════════════════════════════════
+//  calculator.lume — Calculator with error handling
+//  Run: lume run examples/calculator.lume
+// ═══════════════════════════════════════════════════════════
+
+to add(a: number, b: number) -> number:
+    return a + b
+
+to subtract(a: number, b: number) -> number:
+    return a - b
+
+to multiply(a: number, b: number) -> number:
+    return a * b
+
+to divide(a: number, b: number) -> number:
+    if b == 0:
+        show "Error: Cannot divide by zero"
+        return 0
+    return a / b
+
+// Run calculations
+show "--- Lume Calculator ---"
+show "15 + 27 = " + add(15, 27)
+show "100 - 37 = " + subtract(100, 37)
+show "12 * 8 = " + multiply(12, 8)
+show "144 / 12 = " + divide(144, 12)
+divide(10, 0)
+show "Done!"
