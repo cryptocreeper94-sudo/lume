@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { executeSandbox, saveProgram, loadPrograms, deleteProgram, exportAsLume } from '../utils/sandboxEngine'
 import { compileCode, runCode, explainCode } from '../api/compileApi'
+import { scanCode, formatCertificate } from '../utils/securityScanner'
 
 /* ── Pattern Library (in-browser subset) ── */
 const PATTERNS = [
@@ -105,7 +106,7 @@ export default function PlaygroundPage() {
     const [sandboxMode, setSandboxMode] = useState(true) // true=sandbox, false=live
     const [status, setStatus] = useState('idle') // idle | compiling | running | success | error
     const [executionTime, setExecutionTime] = useState(null)
-    const [activeTab, setActiveTab] = useState('ast') // ast | js | explain
+    const [activeTab, setActiveTab] = useState('ast') // ast | js | explain | security
     const [jsOutput, setJsOutput] = useState('')
     const [explanation, setExplanation] = useState(null)
     const [savedPrograms, setSavedPrograms] = useState([])
@@ -115,6 +116,10 @@ export default function PlaygroundPage() {
     const [variables, setVariables] = useState({})
     const [isRecording, setIsRecording] = useState(false)
     const [voiceSupported, setVoiceSupported] = useState(false)
+    const [securityScan, setSecurityScan] = useState(null)
+    const [inputMethod, setInputMethod] = useState('text')  // 'text' | 'voice'
+    const [showApproval, setShowApproval] = useState(false)
+    const [approved, setApproved] = useState(false)
     const textareaRef = useRef(null)
     const recognitionRef = useRef(null)
 
@@ -155,6 +160,7 @@ export default function PlaygroundPage() {
                     if (cleaned) {
                         setCode(prev => prev + (prev.endsWith('\n') || !prev ? '' : '\n') + cleaned)
                         setConsoleOutput(prev => [...prev, { type: 'info', text: `🎤 ${cleaned}` }])
+                        setInputMethod('voice')
                     }
                 }
             }
@@ -207,6 +213,16 @@ export default function PlaygroundPage() {
 
     // ── Run (Sandbox or Live) ──
     const handleRun = useCallback(async () => {
+        // Run security scan first
+        const scan = scanCode(code, inputMethod)
+        setSecurityScan(scan)
+
+        // If threats found and not yet approved, show approval dialog
+        if (!scan.summary.clean && !approved) {
+            setShowApproval(true)
+            return
+        }
+
         setStatus('running')
         setConsoleOutput([])
         setVariables({})
@@ -238,11 +254,14 @@ export default function PlaygroundPage() {
                 setStatus('error')
             }
         }
-    }, [sandboxMode, code, output])
+    }, [sandboxMode, code, output, inputMethod, approved])
 
     // ── Build (compile only) ──
     const handleBuild = useCallback(async () => {
         setStatus('compiling')
+        // Run security scan
+        const scan = scanCode(code, inputMethod)
+        setSecurityScan(scan)
         try {
             if (sandboxMode) {
                 // Client-side — just show the AST
@@ -251,7 +270,7 @@ export default function PlaygroundPage() {
                 setExecutionTime(0)
             } else {
                 const result = await compileCode(code)
-                setJsOutput(result.js || '')
+                setJsOutput(formatCertificate(scan.certificate) + '\n\n' + (result.js || ''))
                 setActiveTab('js')
                 setStatus('success')
             }
@@ -399,6 +418,14 @@ export default function PlaygroundPage() {
                                 🎤 {isRecording ? 'Stop' : 'Voice'}
                             </button>
                         )}
+                        <div style={{ width: 1, height: 24, background: 'var(--glass-border)', margin: '0 4px' }} />
+                        <span style={{
+                            fontSize: 10, fontFamily: 'var(--font-mono)',
+                            color: inputMethod === 'voice' ? '#00b894' : 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center', gap: 4,
+                        }}>
+                            {inputMethod === 'voice' ? '🎤' : '⌨️'} {inputMethod}
+                        </span>
                     </div>
 
                     {/* Center: Status */}
@@ -494,7 +521,7 @@ export default function PlaygroundPage() {
                             borderBottom: '1px solid var(--glass-border)',
                             display: 'flex', alignItems: 'center', gap: 0,
                         }}>
-                            {['ast', 'js', 'explain'].map(tab => (
+                            {['ast', 'js', 'explain', 'security'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -507,7 +534,7 @@ export default function PlaygroundPage() {
                                         transition: 'all 0.15s ease',
                                     }}
                                 >
-                                    {tab === 'ast' ? '✦ AST' : tab === 'js' ? '{ } JavaScript' : '📖 Explain'}
+                                    {tab === 'ast' ? '✦ AST' : tab === 'js' ? '{ } JS' : tab === 'explain' ? '📖 Explain' : '🔒 Security'}
                                 </button>
                             ))}
                             <div style={{ flex: 1 }} />
@@ -519,8 +546,39 @@ export default function PlaygroundPage() {
                             {activeTab === 'ast' && <ASTPanel output={output} />}
                             {activeTab === 'js' && <JSPanel js={jsOutput} />}
                             {activeTab === 'explain' && <ExplainPanel data={explanation} />}
+                            {activeTab === 'security' && <SecurityPanel scan={securityScan} />}
                         </div>
                     </div>
+
+                    {/* Threat Warning Banner */}
+                    {securityScan && !securityScan.summary.clean && (
+                        <div className="bento-card" style={{
+                            padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10,
+                            background: securityScan.summary.flagged > 0
+                                ? 'rgba(214, 48, 49, 0.15)'
+                                : 'rgba(253, 203, 110, 0.15)',
+                            border: `1px solid ${securityScan.summary.flagged > 0 ? '#d6303155' : '#fdcb6e55'}`,
+                        }}>
+                            <span style={{ fontSize: 18 }}>
+                                {securityScan.summary.flagged > 0 ? '⚠️' : '⚡'}
+                            </span>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: securityScan.summary.flagged > 0 ? '#d63031' : '#fdcb6e' }}>
+                                    {securityScan.summary.flagged > 0
+                                        ? `${securityScan.summary.flagged} Critical Threat${securityScan.summary.flagged > 1 ? 's' : ''} Detected`
+                                        : `${securityScan.summary.warned} Warning${securityScan.summary.warned > 1 ? 's' : ''} Detected`
+                                    }
+                                </div>
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                                    {securityScan.summary.threats.map(t => t.label).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setActiveTab('security')}
+                                style={{ ...btnStyle('#fdcb6e', false), fontSize: 10 }}
+                            >View Details</button>
+                        </div>
+                    )}
 
                     {/* Bottom Right: Console */}
                     <div className="bento-card" style={{ padding: 0, overflow: 'hidden', minHeight: 200, display: 'flex', flexDirection: 'column' }}>
@@ -652,6 +710,38 @@ export default function PlaygroundPage() {
                     ))}
                 </Modal>
             )}
+
+            {/* ── Approval Dialog ── */}
+            {showApproval && (
+                <Modal onClose={() => setShowApproval(false)} title="⚠️ Security Approval Required">
+                    <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                        The Guardian Scanner detected potential security threats in your code.
+                        Review the findings below before executing.
+                    </div>
+                    {securityScan && securityScan.summary.threats.map((t, i) => (
+                        <div key={i} style={{
+                            padding: '6px 10px', marginBottom: 4, borderRadius: 4,
+                            background: t.severity === 'critical' ? 'rgba(214,48,49,0.1)' : t.severity === 'high' ? 'rgba(225,112,85,0.1)' : 'rgba(253,203,110,0.1)',
+                            border: `1px solid ${t.severity === 'critical' ? '#d6303133' : t.severity === 'high' ? '#e1705533' : '#fdcb6e33'}`,
+                            fontSize: 11, fontFamily: 'var(--font-mono)',
+                            color: t.severity === 'critical' ? '#d63031' : t.severity === 'high' ? '#e17055' : '#fdcb6e',
+                        }}>
+                            {t.severity.toUpperCase()}: {t.label}
+                        </div>
+                    ))}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                        <button
+                            onClick={() => { setApproved(true); setShowApproval(false); setTimeout(() => handleRun(), 100) }}
+                            style={btnStyle('#e17055', false)}
+                        >
+                            ⚠️ Execute Anyway
+                        </button>
+                        <button onClick={() => setShowApproval(false)} style={btnStyle('#00b894', false)}>
+                            ✖ Cancel
+                        </button>
+                    </div>
+                </Modal>
+            )}
         </div>
     )
 }
@@ -746,6 +836,91 @@ function ExplainPanel({ data }) {
                     <div style={{ fontSize: 12, color: '#00b894', paddingLeft: 12 }}>
                         → {ann.explanation}
                     </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function SecurityPanel({ scan }) {
+    if (!scan) {
+        return (
+            <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12, padding: '8px 0' }}>
+                Run or Build to trigger a security scan...
+            </div>
+        )
+    }
+
+    const { results, certificate, summary } = scan
+    const severityColor = { critical: '#d63031', high: '#e17055', medium: '#fdcb6e', low: '#74b9ff' }
+
+    return (
+        <div>
+            {/* Certificate Banner */}
+            <div style={{
+                padding: '12px 16px', marginBottom: 12, borderRadius: 8,
+                background: certificate.status === 'CERTIFIED'
+                    ? 'rgba(0, 184, 148, 0.1)'
+                    : certificate.status === 'REJECTED'
+                        ? 'rgba(214, 48, 49, 0.1)'
+                        : 'rgba(253, 203, 110, 0.1)',
+                border: `1px solid ${certificate.status === 'CERTIFIED' ? '#00b89433' : certificate.status === 'REJECTED' ? '#d6303133' : '#fdcb6e33'}`,
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 18 }}>
+                        {certificate.status === 'CERTIFIED' ? '✅' : certificate.status === 'REJECTED' ? '❌' : '⚠️'}
+                    </span>
+                    <span style={{
+                        fontSize: 13, fontWeight: 800,
+                        color: certificate.status === 'CERTIFIED' ? '#00b894' : certificate.status === 'REJECTED' ? '#d63031' : '#fdcb6e',
+                        fontFamily: 'var(--font-mono)', letterSpacing: 1,
+                    }}>
+                        LUME SECURITY {certificate.status}
+                    </span>
+                </div>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                    <div>Source: <span style={{ color: 'var(--text-bright)' }}>{certificate.source}</span></div>
+                    <div>Mode: <span style={{ color: 'var(--text-bright)' }}>{certificate.mode}</span></div>
+                    <div>Scanned: <span style={{ color: '#00b894' }}>{certificate.scanned}</span></div>
+                    <div>Input: <span style={{ color: 'var(--text-bright)' }}>{certificate.inputMethod === 'voice' ? '🎤 voice' : '⌨️ text'}</span></div>
+                    <div>Hash: <span style={{ color: 'var(--accent)' }}>{certificate.hash}</span></div>
+                    <div>Time: <span style={{ color: 'var(--text-bright)' }}>{new Date(certificate.timestamp).toLocaleString()}</span></div>
+                </div>
+            </div>
+
+            {/* Summary Bar */}
+            <div style={{
+                display: 'flex', gap: 16, padding: '8px 0', marginBottom: 8,
+                fontSize: 11, fontFamily: 'var(--font-mono)',
+            }}>
+                <span style={{ color: '#00b894' }}>✓ {summary.passed} passed</span>
+                {summary.warned > 0 && <span style={{ color: '#fdcb6e' }}>⚡ {summary.warned} warned</span>}
+                {summary.flagged > 0 && <span style={{ color: '#d63031' }}>⚠ {summary.flagged} flagged</span>}
+            </div>
+
+            {/* Per-line Results */}
+            {results.map((r, i) => (
+                <div key={i} style={{
+                    fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: '1.8',
+                    display: 'flex', alignItems: 'flex-start', gap: 6,
+                }}>
+                    <span style={{
+                        display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginTop: 6, flexShrink: 0,
+                        background: r.status === 'pass' ? '#00b894' : r.status === 'flag' ? '#d63031' : '#fdcb6e',
+                    }} />
+                    <LineNum n={r.lineNum} />
+                    <span style={{ color: r.status === 'pass' ? 'var(--text-muted)' : 'var(--text-bright)', flex: 1 }}>
+                        {r.threats.length > 0
+                            ? r.threats.map((t, j) => (
+                                <span key={j} style={{
+                                    display: 'inline-block', fontSize: 9, padding: '1px 6px', borderRadius: 3, marginLeft: j > 0 ? 4 : 0,
+                                    background: `${severityColor[t.severity]}22`, color: severityColor[t.severity],
+                                    border: `1px solid ${severityColor[t.severity]}44`,
+                                }}>{t.label}</span>
+                            ))
+                            : <span style={{ opacity: 0.4 }}>passed</span>
+                        }
+                    </span>
                 </div>
             ))}
         </div>
