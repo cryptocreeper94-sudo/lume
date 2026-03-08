@@ -113,10 +113,79 @@ export default function PlaygroundPage() {
     const [showLoadModal, setShowLoadModal] = useState(false)
     const [saveName, setSaveName] = useState('')
     const [variables, setVariables] = useState({})
+    const [isRecording, setIsRecording] = useState(false)
+    const [voiceSupported, setVoiceSupported] = useState(false)
     const textareaRef = useRef(null)
+    const recognitionRef = useRef(null)
 
     // Load saved programs
     useEffect(() => { setSavedPrograms(loadPrograms()) }, [])
+
+    // Check Web Speech API support
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+        if (SpeechRecognition) {
+            setVoiceSupported(true)
+            const recognition = new SpeechRecognition()
+            recognition.continuous = true
+            recognition.interimResults = true
+            recognition.lang = 'en-US'
+
+            recognition.onresult = (event) => {
+                let finalTranscript = ''
+                let interimTranscript = ''
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript
+                    } else {
+                        interimTranscript += transcript
+                    }
+                }
+                if (finalTranscript) {
+                    // Process through voice cleanup (client-side subset)
+                    const cleaned = finalTranscript
+                        .replace(/\b(\w+)(\s+\1)+\b/gi, '$1')  // collapse repeats
+                        .replace(/\b(?:um|uh|like|you know|basically|actually)\b[,.]?\s*/gi, '') // strip fillers
+                        .replace(/\b(?:period|full stop)\b/gi, '.')
+                        .replace(/\bnew line\b/gi, '\n')
+                        .replace(/\bcomma\b/gi, ',')
+                        .replace(/\s+([.,;:!?])/g, '$1')
+                        .trim()
+                    if (cleaned) {
+                        setCode(prev => prev + (prev.endsWith('\n') || !prev ? '' : '\n') + cleaned)
+                        setConsoleOutput(prev => [...prev, { type: 'info', text: `🎤 ${cleaned}` }])
+                    }
+                }
+            }
+
+            recognition.onerror = (event) => {
+                if (event.error !== 'no-speech') {
+                    setConsoleOutput(prev => [...prev, { type: 'error', text: `🎤 Voice error: ${event.error}` }])
+                }
+                setIsRecording(false)
+            }
+
+            recognition.onend = () => {
+                setIsRecording(false)
+            }
+
+            recognitionRef.current = recognition
+        }
+    }, [])
+
+    const toggleRecording = useCallback(() => {
+        if (!recognitionRef.current) return
+        if (isRecording) {
+            recognitionRef.current.stop()
+            setIsRecording(false)
+            setConsoleOutput(prev => [...prev, { type: 'info', text: '🎤 Voice input stopped' }])
+        } else {
+            recognitionRef.current.start()
+            setIsRecording(true)
+            setConsoleOutput(prev => [...prev, { type: 'info', text: '🎤 Listening... speak your Lume code' }])
+        }
+    }, [isRecording])
 
     // Client-side compile on every keystroke
     const compileLocal = useCallback(() => {
@@ -317,6 +386,19 @@ export default function PlaygroundPage() {
                         <button onClick={() => setShowSaveModal(true)} style={btnStyle('#636e72', false)}>💾 Save</button>
                         <button onClick={() => setShowLoadModal(true)} style={btnStyle('#636e72', false)}>📂 Open</button>
                         <button onClick={() => exportAsLume(activeExample || 'program', code)} style={btnStyle('#636e72', false)}>⬇ Export</button>
+                        {voiceSupported && (
+                            <button
+                                id="btn-mic"
+                                onClick={toggleRecording}
+                                style={{
+                                    ...btnStyle(isRecording ? '#d63031' : '#00b894', isRecording),
+                                    animation: isRecording ? 'pulse 1.5s ease-in-out infinite' : 'none',
+                                    position: 'relative',
+                                }}
+                            >
+                                🎤 {isRecording ? 'Stop' : 'Voice'}
+                            </button>
+                        )}
                     </div>
 
                     {/* Center: Status */}

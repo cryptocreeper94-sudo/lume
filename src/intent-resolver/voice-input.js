@@ -22,6 +22,193 @@ const FILLER_WORDS = new Set([
     'i guess', 'sort of', 'kind of', 'honestly', 'literally',
 ])
 
+/* ── Homophone Resolver ─────────────────────────────── */
+
+const HOMOPHONE_RULES = [
+    // [pair, contextKeywords → chosen word]
+    {
+        words: ['write', 'right'], rules: [
+            { context: /\b(file|data|database|disk|storage|output|save|log|record|store)\b/i, pick: 'write' },
+            { context: /\b(correct|direction|side|left|turn|way|answer)\b/i, pick: 'right' },
+        ], default: 'write'
+    },
+    {
+        words: ['new', 'knew'], rules: [
+            { context: /\b(create|make|build|generate|add|variable|function|project|file|item|instance)\b/i, pick: 'new' },
+            { context: /\b(already|before|past|yesterday|remember)\b/i, pick: 'knew' },
+        ], default: 'new'
+    },
+    {
+        words: ['for', 'four'], rules: [
+            { context: /\b(each|every|loop|iterate|repeat|while|range|item|element)\b/i, pick: 'for' },
+            { context: /\b(number|count|times|buttons|items|elements|users|\d)\b/i, pick: 'four' },
+        ], default: 'for'
+    },
+    {
+        words: ['their', 'there', 'they\'re'], rules: [
+            { context: /\b(name|email|data|profile|account|password|setting|age)\b/i, pick: 'their' },
+            { context: /\b(is|are|exists?|goes|put|place|location)\b/i, pick: 'there' },
+        ], default: 'their'
+    },
+    {
+        words: ['two', 'to', 'too'], rules: [
+            { context: /\b(number|count|times|buttons|items|pair|both|\d)\b/i, pick: 'two' },
+            { context: /\b(much|many|large|big|small|also|excessive)\b/i, pick: 'too' },
+        ], default: 'to'
+    },
+    {
+        words: ['no', 'know'], rules: [
+            { context: /\b(not|don't|never|none|stop|cancel|deny|reject|false)\b/i, pick: 'no' },
+            { context: /\b(if|whether|check|about|understand|tell|find|determine)\b/i, pick: 'know' },
+        ], default: 'no'
+    },
+    {
+        words: ['by', 'buy'], rules: [
+            { context: /\b(multiply|divide|sort|filter|group|name|date|id)\b/i, pick: 'by' },
+            { context: /\b(purchase|shop|cart|order|price|pay|payment|store|product)\b/i, pick: 'buy' },
+        ], default: 'by'
+    },
+    {
+        words: ['sea', 'see'], rules: [
+            { context: /\b(ocean|water|beach|wave|fish|ship|marine)\b/i, pick: 'sea' },
+            { context: /\b(show|display|view|look|check|screen|visible|if|whether)\b/i, pick: 'see' },
+        ], default: 'see'
+    },
+    {
+        words: ['mail', 'male'], rules: [
+            { context: /\b(email|send|inbox|message|notification|letter|smtp)\b/i, pick: 'mail' },
+            { context: /\b(gender|sex|female|person|user|profile|demographic)\b/i, pick: 'male' },
+        ], default: 'mail'
+    },
+    {
+        words: ['wait', 'weight'], rules: [
+            { context: /\b(second|minute|pause|delay|timeout|sleep|hold|until)\b/i, pick: 'wait' },
+            { context: /\b(heavy|light|measure|kg|lb|mass|load|scale|body)\b/i, pick: 'weight' },
+        ], default: 'wait'
+    },
+]
+
+/**
+ * Resolve homophones using surrounding context.
+ * Runs BEFORE auto-correct.
+ */
+export function resolveHomophones(text) {
+    let result = text
+    for (const rule of HOMOPHONE_RULES) {
+        for (const word of rule.words) {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi')
+            if (!regex.test(result)) continue
+            // Determine which word fits context
+            let picked = rule.default
+            for (const r of rule.rules) {
+                if (r.context.test(result)) { picked = r.pick; break }
+            }
+            // Replace all instances of any variant with the picked word
+            for (const w of rule.words) {
+                if (w !== picked) {
+                    result = result.replace(new RegExp(`\\b${w}\\b`, 'gi'), picked)
+                }
+            }
+        }
+    }
+    return result
+}
+
+/* ── Stutter / Repeat Collapse ──────────────────────── */
+
+/**
+ * Collapse repeated/stuttered words: "get get the name" → "get the name"
+ */
+export function collapseRepeats(text) {
+    return text.replace(/\b(\w+)(\s+\1)+\b/gi, '$1')
+}
+
+/* ── Spoken Punctuation Handler ─────────────────────── */
+
+const SPOKEN_PUNCTUATION = [
+    { pattern: /\b(?:period|full stop|dot)\b/gi, replacement: '.' },
+    { pattern: /\bnew line\b/gi, replacement: '\n' },
+    { pattern: /\bcomma\b/gi, replacement: ',' },
+    { pattern: /\bquestion mark\b/gi, replacement: '?' },
+    { pattern: /\bexclamation (?:mark|point)\b/gi, replacement: '!' },
+    { pattern: /\bcolon\b/gi, replacement: ':' },
+    { pattern: /\bsemicolon\b/gi, replacement: ';' },
+    { pattern: /\bopen (?:paren|parenthesis|bracket)\b/gi, replacement: '(' },
+    { pattern: /\bclose (?:paren|parenthesis|bracket)\b/gi, replacement: ')' },
+    { pattern: /\bopen quote\b/gi, replacement: '"' },
+    { pattern: /\bclose quote\b/gi, replacement: '"' },
+    { pattern: /\bquote\b/gi, replacement: '"' },
+]
+
+/**
+ * Convert spoken punctuation to actual characters.
+ * "save the data period" → "save the data."
+ */
+export function convertSpokenPunctuation(text) {
+    let result = text
+    for (const { pattern, replacement } of SPOKEN_PUNCTUATION) {
+        result = result.replace(pattern, replacement)
+    }
+    // Clean up space before punctuation
+    result = result.replace(/\s+([.,;:!?)])/g, '$1')
+    return result.trim()
+}
+
+/* ── Run-on Sentence Splitter ───────────────────────── */
+
+const ACTION_VERBS = /\b(get|fetch|show|display|create|make|build|save|store|delete|remove|send|update|set|add|sort|filter|find|load|read|write|push|pull|check|validate|toggle|reset|swap|return|throw|navigate|redirect|log|print|render|insert|append|modify|patch|increment|decrement|repeat|monitor|track|alert|notify|try)\b/i
+
+const CONJUNCTION_SPLITTERS = [
+    /\band then\b/i,
+    /\band also\b/i,
+    /\bafter that\b/i,
+    /\bthen\b/i,
+    /\bnext\b/i,
+    /\balso\b/i,
+]
+
+/**
+ * Split run-on sentences into separate instructions.
+ * "get the users name and then show it on the screen" → ["get the users name", "show it on the screen"]
+ */
+export function splitRunOnSentences(text) {
+    let segments = [text]
+
+    // Split on conjunction phrases first
+    for (const conj of CONJUNCTION_SPLITTERS) {
+        const newSegments = []
+        for (const seg of segments) {
+            const parts = seg.split(conj).map(s => s.trim()).filter(Boolean)
+            newSegments.push(...parts)
+        }
+        segments = newSegments
+    }
+
+    // Within remaining segments, detect action verb boundaries
+    // "get the name show it on screen" → ["get the name", "show it on screen"]
+    const finalSegments = []
+    for (const seg of segments) {
+        const words = seg.split(/\s+/)
+        let current = []
+        let foundFirstVerb = false
+
+        for (let i = 0; i < words.length; i++) {
+            const isVerb = ACTION_VERBS.test(words[i])
+            if (isVerb && foundFirstVerb && current.length >= 2) {
+                // New action verb after we already have content → split
+                finalSegments.push(current.join(' '))
+                current = [words[i]]
+            } else {
+                if (isVerb) foundFirstVerb = true
+                current.push(words[i])
+            }
+        }
+        if (current.length > 0) finalSegments.push(current.join(' '))
+    }
+
+    return finalSegments.length > 0 ? finalSegments : [text]
+}
+
 /**
  * Strip filler words from transcribed text.
  */
@@ -289,23 +476,44 @@ export function isPauseBlockBreak(pauseDurationMs, threshold = 2000) {
 export function processTranscription(rawLine) {
     const corrections = []
 
-    // Step 1: Strip filler words
-    let processed = stripFillers(rawLine)
+    // Step 1: Collapse repeated/stuttered words
+    let processed = collapseRepeats(rawLine.trim())
     if (processed !== rawLine.trim()) {
-        corrections.push(`Stripped fillers: "${rawLine.trim()}" → "${processed}"`)
+        corrections.push(`Stutter collapse: "${rawLine.trim()}" → "${processed}"`)
     }
 
-    // Step 2: Convert number words to digits
+    // Step 2: Convert spoken punctuation
+    const withPunct = convertSpokenPunctuation(processed)
+    if (withPunct !== processed) {
+        corrections.push(`Spoken punctuation: "${processed}" → "${withPunct}"`)
+        processed = withPunct
+    }
+
+    // Step 3: Strip filler words
+    const withoutFillers = stripFillers(processed)
+    if (withoutFillers !== processed) {
+        corrections.push(`Stripped fillers: "${processed}" → "${withoutFillers}"`)
+        processed = withoutFillers
+    }
+
+    // Step 4: Resolve homophones
+    const withHomophones = resolveHomophones(processed)
+    if (withHomophones !== processed) {
+        corrections.push(`Homophone fix: "${processed}" → "${withHomophones}"`)
+        processed = withHomophones
+    }
+
+    // Step 5: Convert number words to digits
     const withNumbers = convertNumberWords(processed)
     if (withNumbers !== processed) {
         corrections.push(`Number conversion: "${processed}" → "${withNumbers}"`)
         processed = withNumbers
     }
 
-    // Step 3: Check for variable naming
+    // Step 6: Check for variable naming
     const varName = extractVariableName(processed)
 
-    // Step 4: Parse structural cues
+    // Step 7: Parse structural cues
     const structuralCue = parseStructuralCue(processed)
 
     return {
@@ -327,11 +535,23 @@ export function transcriptionToLume(rawLines, options = {}) {
     const mode = options.mode || 'natural'
     const corrections = []
 
+    // ── Pass 0: Split run-on sentences into separate lines ──
+    const expandedLines = []
+    for (const raw of rawLines) {
+        const trimmed = raw.trim()
+        if (!trimmed) continue
+        const split = splitRunOnSentences(trimmed)
+        if (split.length > 1) {
+            corrections.push({ line: expandedLines.length + 1, message: `[voice-split] Run-on split into ${split.length} instructions` })
+        }
+        expandedLines.push(...split)
+    }
+
     // ── Pass 1: Accumulate lines with corrections applied ──
     let accumulatedLines = []
 
-    for (let i = 0; i < rawLines.length; i++) {
-        const rawLine = rawLines[i].trim()
+    for (let i = 0; i < expandedLines.length; i++) {
+        const rawLine = expandedLines[i].trim()
         if (!rawLine) continue
 
         // Check for corrections FIRST

@@ -34,6 +34,8 @@ import { explainNode, explainAST as explainASTFull, summarizeAST, explainFile as
 import { parseAppDescription, generateProjectStructure } from '../src/intent-resolver/app-generator.js'
 import { createBundle, getCompileCommand } from '../src/intent-resolver/bundler.js'
 import { diffAST, formatDiff, nodeIdentity } from '../src/intent-resolver/ast-differ.js'
+import { loadVoiceConfig, matchesVoiceCommand } from '../src/intent-resolver/voice-config.js'
+import { processTranscription, processCorrection, splitRunOnSentences } from '../src/intent-resolver/voice-input.js'
 
 const VERSION = '0.8.0'
 
@@ -99,6 +101,8 @@ function main() {
             return compileCmd(args[1], flags)
         case 'diff':
             return diffCmd(args[1], args[2])
+        case 'voice':
+            return voiceCmd(args.slice(1), flags)
         case 'verify':
             return verifyHash(args)
         case 'init':
@@ -531,6 +535,196 @@ function listenCmd(flags) {
     }
 }
 
+// ─── M9: Voice (Interactive Voice-to-Code Session) ───
+function voiceCmd(args, flags) {
+    const config = loadVoiceConfig()
+    const voiceCfg = config.voice
+    const outputFlag = flags.find(f => f.startsWith('--output'))
+    const outputFile = outputFlag
+        ? (outputFlag.includes('=') ? outputFlag.split('=')[1] : args[args.indexOf(outputFlag) + 1])
+        : null
+    const liveMode = flags.includes('--live')
+    const reviewMode = flags.includes('--review')
+    const engineFlag = flags.find(f => f.startsWith('--engine'))
+    const engine = engineFlag
+        ? (engineFlag.includes('=') ? engineFlag.split('=')[1] : 'system')
+        : voiceCfg.engine
+
+    console.log(color('magenta', `\n  ✦ Lume Voice — Interactive Voice-to-Code`))
+    console.log(color('dim', `  Engine: ${engine} · Language: ${voiceCfg.language}`))
+    console.log(color('dim', `  Mode: ${liveMode ? 'Live (compile each line)' : 'Batch (compile at end)'}`))
+    if (outputFile) console.log(color('dim', `  Output: ${outputFile}`))
+    console.log(color('dim', `  Paste/type voice transcriptions. Voice commands: compile, undo, start over, read it back`))
+    console.log(color('dim', '  Enter each transcribed line, then press Enter. Type "compile" or "done" when finished.\n'))
+
+    // Read from stdin line-by-line
+    const readline = require('node:readline')
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+
+    let instructions = []
+    let paused = false
+    let lineCount = 0
+
+    const showPrompt = () => {
+        const marker = paused ? color('yellow', '  ⏸ ') : color('cyan', `  ${instructions.length + 1}> `)
+        process.stdout.write(marker)
+    }
+
+    showPrompt()
+
+    rl.on('line', (input) => {
+        const trimmed = input.trim()
+        if (!trimmed) { showPrompt(); return }
+
+        // Check voice commands
+        if (matchesVoiceCommand(trimmed, voiceCfg.compile_commands)) {
+            rl.close()
+            return
+        }
+
+        if (matchesVoiceCommand(trimmed, voiceCfg.cancel_commands)) {
+            instructions = []
+            console.log(color('yellow', '  ✓ Cleared all instructions. Starting over.'))
+            showPrompt()
+            return
+        }
+
+        if (matchesVoiceCommand(trimmed, voiceCfg.undo_commands)) {
+            if (instructions.length > 0) {
+                const removed = instructions.pop()
+                console.log(color('yellow', `  ✓ Removed: "${removed}"`))
+            } else {
+                console.log(color('yellow', '  Nothing to undo.'))
+            }
+            showPrompt()
+            return
+        }
+
+        if (matchesVoiceCommand(trimmed, voiceCfg.readback_commands)) {
+            if (instructions.length === 0) {
+                console.log(color('dim', '  (no instructions yet)'))
+            } else {
+                console.log(color('cyan', '\n  Current instructions:'))
+                instructions.forEach((inst, i) => {
+                    console.log(color('dim', `    ${i + 1}. ${inst}`))
+                })
+                console.log()
+            }
+            showPrompt()
+            return
+        }
+
+        if (matchesVoiceCommand(trimmed, voiceCfg.pause_commands)) {
+            paused = true
+            console.log(color('yellow', '  ⏸ Paused. Say "continue" to resume.'))
+            showPrompt()
+            return
+        }
+
+        if (matchesVoiceCommand(trimmed, voiceCfg.resume_commands)) {
+            paused = false
+            console.log(color('green', '  ▶ Resumed.'))
+            showPrompt()
+            return
+        }
+
+        // Handle "delete line N"
+        const deleteMatch = trimmed.match(/^delete\s+line\s+(\d+)$/i)
+        if (deleteMatch) {
+            const n = parseInt(deleteMatch[1]) - 1
+            if (n >= 0 && n < instructions.length) {
+                const removed = instructions.splice(n, 1)[0]
+                console.log(color('yellow', `  ✓ Deleted line ${n + 1}: "${removed}"`))
+            } else {
+                console.log(color('red', `  Line ${n + 1} doesn't exist.`))
+            }
+            showPrompt()
+            return
+        }
+
+        if (paused) {
+            console.log(color('yellow', '  ⏸ Paused — ignored. Say "continue" to resume.'))
+            showPrompt()
+            return
+        }
+
+        // Process through voice pipeline
+        const splitLines = splitRunOnSentences(trimmed)
+        for (const line of splitLines) {
+            const processed = processTranscription(line)
+            instructions.push(processed.text)
+            lineCount++
+
+            // Show transcription feedback
+            if (processed.corrections.length > 0) {
+                console.log(color('dim', `    ${processed.corrections.map(c => c).join(', ')}`))
+            }
+            console.log(color('green', `  [transcribed] ${processed.text} ✓`))
+
+            // Live mode: compile immediately
+            if (liveMode) {
+                try {
+                    const result = compile(processed.text, 'voice-live.lume', { quiet: true })
+                    const compiled = result instanceof Promise ? '(async — pending)' : (result.js || '').trim().split('\n')[0]
+                    console.log(color('cyan', `  [compiled] ${compiled} ✓`))
+                } catch (e) {
+                    console.log(color('red', `  [compile error] ${e.message}`))
+                }
+            }
+        }
+
+        showPrompt()
+    })
+
+    rl.on('close', () => {
+        if (instructions.length === 0) {
+            console.log(color('yellow', '\n  No instructions captured. Session ended.\n'))
+            return
+        }
+
+        console.log(color('magenta', `\n  ✦ ${instructions.length} instructions captured. ${reviewMode ? 'Review:' : 'Compiling...'}`))
+
+        if (reviewMode) {
+            console.log(color('cyan', '\n  Review your instructions:'))
+            instructions.forEach((inst, i) => {
+                console.log(color('dim', `    ${i + 1}. ${inst}`))
+            })
+            console.log(color('dim', '\n  (In a full terminal environment, you could edit these before compiling)'))
+        }
+
+        // Convert to .lume source via transcriptionToLume
+        const result = transcriptionToLume(instructions, { mode: 'english' })
+        const filename = outputFile || `voice-session-${Date.now()}.lume`
+
+        // Save .lume file
+        writeFileSync(filename, result.source, 'utf-8')
+        console.log(color('green', `  ✓ Saved ${filename}`))
+
+        if (result.corrections.length > 0) {
+            console.log(color('dim', `  ${result.corrections.length} auto-corrections applied`))
+        }
+
+        // Compile
+        try {
+            const outFile = filename.replace(/\.lume$/, '.js')
+            const compiled = compile(result.source, filename, { quiet: true })
+            const finish = (c) => {
+                writeFileSync(outFile, c.js, 'utf-8')
+                console.log(color('green', `  ✓ Compiled → ${outFile}`))
+                if (c.certificate) console.log(color('dim', '  ✓ Security certificate attached'))
+                console.log()
+            }
+            if (compiled instanceof Promise) {
+                compiled.then(finish).catch(e => console.error(color('red', `  Compile error: ${e.message}`)))
+            } else {
+                finish(compiled)
+            }
+        } catch (e) {
+            console.error(color('red', `  Compile error: ${e.message}\n`))
+        }
+    })
+}
+
 // ─── M10: Create (Full-Stack App Generator) ───
 function createCmd(args, flags) {
     const description = args.filter(a => !a.startsWith('--')).join(' ')
@@ -783,6 +977,14 @@ ${color('bold', '  COMMANDS')}
     ${color('cyan', 'tokens')} <file>               Print the token stream
     ${color('cyan', 'version')}                     Show version
     ${color('cyan', 'help')}                        Show this help
+
+${color('bold', '  VOICE INPUT')} ${color('dim', '(M9 — Voice-to-Code)')}
+    ${color('cyan', 'voice')}                       Start interactive voice coding session
+    ${color('cyan', 'voice')} --output app.lume      Save to specific file
+    ${color('cyan', 'voice')} --live                 Compile each instruction as spoken
+    ${color('cyan', 'voice')} --review               Review before compiling
+    ${color('cyan', 'voice')} --engine whisper        Use OpenAI Whisper engine
+    ${color('dim', 'Commands: compile, undo, delete line N, start over, read it back, pause')}
 
 ${color('bold', '  ENGLISH MODE')} ${color('dim', '(M7 — Natural Language)')}
     mode: english                 ${color('dim', 'First line of .lume file enables English Mode')}
