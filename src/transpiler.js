@@ -22,6 +22,11 @@
 
 import { NodeType } from './parser.js'
 import { compileConditionExpression } from './intent-resolver/logic-blocks.js'
+import { compileStructure } from './intent-resolver/structure-parser.js'
+import { compileTryCatch } from './intent-resolver/error-handling.js'
+import { compileTestSuite } from './intent-resolver/test-framework.js'
+import { compileEnvironmentBlock, compileEnvVariable, compileFeatureCheck } from './intent-resolver/environment.js'
+import { compileParallelBlock, compileSequentialChain, compileTimerStatement } from './intent-resolver/concurrency.js'
 
 export class Transpiler {
     constructor(ast, filename = '<stdin>') {
@@ -180,6 +185,32 @@ export class Transpiler {
 
             // ── Gap 2: Compound Logic Blocks ──
             case 'CompoundIfStatement': return this._emitCompoundIf(node)
+
+            // ── Gap 10: Structure Definitions ──
+            case 'StructureDefinition': return this._emitStructureDefinition(node)
+
+            // ── Gap 11: Try/Catch/Retry ──
+            case 'TryCatchStatement': return this._emitTryCatch(node)
+            case 'ThrowStatement': return this._indent(`throw new Error(${JSON.stringify(node.message)});`)
+
+            // ── Gap 12: Test Framework ──
+            case 'TestSuite': return this._emitTestSuite(node)
+            case 'TestCase': return this._emitTestSuite(node)
+
+            // ── Gap 13: Environment ──
+            case 'EnvironmentBlock': return this._emitEnvironmentBlock(node)
+            case 'EnvVariable': return this._emitEnvVariable(node)
+            case 'FeatureCheck': return this._emitFeatureCheck(node)
+
+            // ── Gap 14: Concurrency ──
+            case 'ParallelBlock': return this._emitConcurrencyBlock(node)
+            case 'RaceBlock': return this._emitConcurrencyBlock(node)
+            case 'AllSettledBlock': return this._emitConcurrencyBlock(node)
+            case 'SequentialChain': return this._emitSequentialChain(node)
+            case 'TimerStatement': return this._emitTimerStatement(node)
+
+            // ── Gap 15: Comments ──
+            case 'CommentNode': return this._indent(node.jsOutput || `// ${node.value}`)
 
             default:
                 // Expression statement
@@ -870,6 +901,74 @@ export class Transpiler {
             .replace(/\b(true)\b/gi, 'true')
             .replace(/\b(false)\b/gi, 'false')
             .trim()
+    }
+
+    // ── Gap 10: Structure Definitions ──
+    _emitStructureDefinition(node) {
+        const code = compileStructure(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    // ── Gap 11: Try/Catch/Retry ──
+    _emitTryCatch(node) {
+        const code = compileTryCatch(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    // ── Gap 12: Test Suite ──
+    _emitTestSuite(node) {
+        const code = compileTestSuite(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    // ── Gap 13: Environment ──
+    _emitEnvironmentBlock(node) {
+        const code = compileEnvironmentBlock(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    _emitEnvVariable(node) {
+        const code = compileEnvVariable(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    _emitFeatureCheck(node) {
+        const code = compileFeatureCheck(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    // ── Gap 14: Concurrency ──
+    _emitConcurrencyBlock(node) {
+        const code = compileParallelBlock(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    _emitSequentialChain(node) {
+        const code = compileSequentialChain(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
+    }
+
+    _emitTimerStatement(node) {
+        const code = compileTimerStatement(node)
+        for (const line of code.split('\n')) {
+            this.output.push(this._indent(line).trimEnd())
+        }
     }
 }
 

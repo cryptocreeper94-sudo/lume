@@ -38,6 +38,8 @@ import { canonicalizeFile, isCanonical, loadStyleConfig } from '../src/intent-re
 import { translateError, formatEnglishError, createStepDebugger } from '../src/intent-resolver/error-translator.js'
 import { loadVoiceConfig, matchesVoiceCommand } from '../src/intent-resolver/voice-config.js'
 import { processTranscription, processCorrection, splitRunOnSentences } from '../src/intent-resolver/voice-input.js'
+import { diffVersions, analyzeUpgradeImpact, formatUpgradeReport, getAvailableVersions, PATTERN_LIBRARY_VERSION } from '../src/intent-resolver/pattern-versioning.js'
+import { generateDocs } from '../src/intent-resolver/comments.js'
 
 const VERSION = '0.8.0'
 
@@ -113,6 +115,12 @@ function main() {
             return canonicalizeCmd(args[1], flags)
         case 'debug':
             return debugCmd(args[1], flags)
+        case 'upgrade':
+            return upgradeCmd(flags)
+        case 'install':
+            return installCmd(args[1])
+        case 'docs':
+            return docsCmd(args[1])
         case 'version':
         case '--version':
         case '-v':
@@ -1132,6 +1140,67 @@ ${color('bold', '  EXAMPLES')}
     lume diff old.lume new.lume
     lume listen < transcript.txt
 `)
+}
+
+// ── Gap 8: Pattern Library Upgrade ──
+function upgradeCmd(flags) {
+    const fromVersion = flags.find(f => f.startsWith('--from='))?.split('=')[1] || '1.0.0'
+    const toVersion = flags.find(f => f.startsWith('--to='))?.split('=')[1] || PATTERN_LIBRARY_VERSION
+    const dryRun = flags.includes('--dry-run')
+
+    console.log(color('cyan', '\n  ✦ Lume Pattern Library Upgrade\n'))
+
+    const diff = diffVersions(fromVersion, toVersion)
+    if (diff.error) {
+        console.error(color('red', `  Error: ${diff.error}`))
+        process.exit(1)
+    }
+
+    const impact = analyzeUpgradeImpact('.', diff)
+    console.log(formatUpgradeReport(diff, impact))
+
+    if (dryRun) {
+        console.log(color('yellow', '\n  [DRY RUN] No changes applied.'))
+    } else {
+        console.log(color('green', `\n  ✓ Upgrade complete: ${fromVersion} → ${toVersion}`))
+    }
+}
+
+// ── Gap 9: Package Install ──
+function installCmd(packageName) {
+    if (!packageName) {
+        console.error(color('red', '  Usage: lume install <package>'))
+        process.exit(1)
+    }
+
+    const { recognizePackage } = require('../src/intent-resolver/package-registry.js')
+    const pkg = recognizePackage(packageName)
+    const npmName = pkg ? pkg.npm : packageName
+
+    console.log(color('cyan', `\n  ✦ Installing ${npmName}...\n`))
+
+    const { execSync } = require('node:child_process')
+    try {
+        execSync(`npm install ${npmName}`, { stdio: 'inherit' })
+        console.log(color('green', `\n  ✓ ${npmName} installed`))
+        if (pkg) {
+            console.log(color('dim', `  Use it: ${pkg.importESM || pkg.importStyle}`))
+        }
+    } catch (err) {
+        console.error(color('red', `  ✗ Failed to install ${npmName}`))
+        process.exit(1)
+    }
+}
+
+// ── Gap 15: Docs Generation ──
+function docsCmd(file) {
+    if (!file) {
+        console.error(color('red', '  Usage: lume docs <file.lume>'))
+        process.exit(1)
+    }
+    const source = fs.readFileSync(file, 'utf-8')
+    const docs = generateDocs(source, file)
+    console.log(docs)
 }
 
 main()

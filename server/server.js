@@ -12,6 +12,7 @@ import smsRoutes from './routes/sms.js'
 import hallmarkRoutes from './routes/hallmark.js'
 import emailRoutes from './routes/email.js'
 import compileRoutes from './routes/compile.js'
+import lumeApiRoutes from './routes/lume-api.js'
 
 dotenv.config()
 
@@ -26,7 +27,11 @@ app.use(cors({
         'https://lume-lang.org',
         'https://www.lume-lang.org',
         'https://lume-lang.com',
+        'https://darkwavestudios.io',
+        'https://www.darkwavestudios.io',
+        'https://academy.tlid.io',
         'http://localhost:5173',
+        'http://localhost:3000',
     ],
     credentials: true,
 }))
@@ -97,6 +102,14 @@ const compileLimiter = rateLimit({
 })
 app.use('/api/compile', compileLimiter, compileRoutes)
 
+// Lume API — DarkWave Studios playground integration
+const lumeApiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { error: 'Too many API requests, slow down.' }
+})
+app.use('/api/lume', lumeApiLimiter, lumeApiRoutes)
+
 // ── 404 ──
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' })
@@ -145,6 +158,16 @@ app.listen(PORT, () => {
     POST /api/compile/compile
     POST /api/compile/run
     POST /api/compile/explain
+    GET  /api/lume/handshake
+    GET  /api/lume/health
+    POST /api/lume/execute
+    POST /api/lume/transpile
+    POST /api/lume/tokenize
+    POST /api/lume/ast
+    POST /api/lume/format
+    GET  /api/lume/examples
+    GET  /api/lume/docs
+    GET  /api/lume/intent-info
   ────────────────────────
     `)
 })

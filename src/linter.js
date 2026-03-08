@@ -364,6 +364,15 @@ export class Linter {
                     }
                 }
             }
+
+            // LUME-L011: Ambiguous comment marker (Gap 15)
+            if (rules['LUME-L011'] !== 'off') {
+                if (/^note\s+the\b/i.test(line) || /^note\s+\w+'s\s/i.test(line)) {
+                    this._addFinding('warning', lineNum, 1, 'LUME-L011',
+                        'This looks like it might be an instruction, not a comment.',
+                        'Use "note:" with a colon for comments, or "save" if this is an action')
+                }
+            }
         }
 
         return this.findings

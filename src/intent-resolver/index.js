@@ -36,6 +36,14 @@ import { ClarificationCache, enterClarificationMode, formatPlaygroundClarificati
 import { detectCompoundStart, parseCompoundConditional } from './logic-blocks.js'
 import { parseUsingDirective, buildModuleIndex, resolveReference, formatModuleError } from './module-resolver.js'
 import { extractHints, summarizeHints } from './hint-parser.js'
+import { parseVersionDeclaration, loadProjectConfig } from './pattern-versioning.js'
+import { detectPackageReference, recognizePackage, generateImport, formatMissingPackageError } from './package-registry.js'
+import { detectStructureStart, parseStructureBlock, compileStructure } from './structure-parser.js'
+import { detectTryBlock, parseTryCatchBlock, detectThrowStatement, parseThrowStatement } from './error-handling.js'
+import { detectTestBlock, detectDescribeBlock, parseTestBlockFull, parseDescribeBlockFull } from './test-framework.js'
+import { detectEnvironmentBlock, parseEnvironmentBlock, detectEnvReference, detectFeatureFlag } from './environment.js'
+import { detectConcurrencyBlock, parseConcurrencyBlock, detectSequentialChain, parseSequentialChain, detectTimerInstruction, parseTimerInstruction } from './concurrency.js'
+import { detectComment, parseExplainBlock, stripInlineComment, toCommentAST } from './comments.js'
 
 /**
  * Check if a file should use English Mode
@@ -66,7 +74,7 @@ export async function resolveEnglishFile(source, options = {}) {
 
     const ast = []
     const diagnostics = []
-    const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0, clarifications: 0, logicBlocks: 0, hints: 0 }
+    const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0, clarifications: 0, logicBlocks: 0, hints: 0, structures: 0, tryCatch: 0, tests: 0, envBlocks: 0, concurrency: 0, comments: 0, packages: 0 }
     const unresolvedLines = [] // Queue for batch AI resolution
     const detectedLanguages = new Map() // Track language per line
     const isMultilingual = mode === 'natural' // mode: natural enables multilingual
@@ -80,28 +88,155 @@ export async function resolveEnglishFile(source, options = {}) {
     const usingFiles = []
     const moduleIndex = options.projectRoot ? buildModuleIndex(options.projectRoot) : { definitions: {}, files: {} }
 
+    // Gap 8: Parse patterns: version declaration
+    const patternVersion = parseVersionDeclaration(source)
+    if (patternVersion) diagnostics.push({ type: 'info', code: 'LUME-I010', line: 1, message: `Pattern library version: ${patternVersion}` })
+
+    // Gap 9: Track active packages
+    const activePackages = new Map()
+
     for (let i = versionLine; i < lines.length; i++) {
         const rawLine = lines[i]
         const trimmed = rawLine.trim()
         const lineNum = i + 1
 
-        // Skip empty lines and comments
-        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) {
+        // Skip empty lines
+        if (!trimmed) {
             stats.skipped++
             continue
         }
 
-        // Gap 3: Parse using: directives
-        const usingDirective = parseUsingDirective(trimmed)
-        if (usingDirective) {
-            if (usingDirective.type === 'file') usingFiles.push(usingDirective.path)
-            else if (usingDirective.candidates) usingFiles.push(...usingDirective.candidates)
-            diagnostics.push({ type: 'info', code: 'LUME-I006', line: lineNum, message: `Module import: ${trimmed}` })
+        // Gap 15: Comment detection (BEFORE tolerance chain)
+        const comment = detectComment(trimmed)
+        if (comment) {
+            if (comment.type === 'explain') {
+                const explainBlock = parseExplainBlock(lines, i)
+                if (explainBlock) {
+                    ast.push(toCommentAST({ type: 'explain', text: explainBlock.text }))
+                    i = explainBlock.endIdx - 1
+                }
+            } else {
+                ast.push(toCommentAST(comment))
+            }
+            stats.comments++
+            stats.skipped++
             continue
         }
 
+        // Strip inline # comments
+        const { instruction: instrWithoutComment, comment: inlineComment } = stripInlineComment(trimmed)
+        if (inlineComment) {
+            ast.push(toCommentAST({ type: 'hash', text: inlineComment, jsPrefix: '//' }))
+        }
+        const effectiveTrimmed = instrWithoutComment || trimmed
+
+        // Gap 3: Parse using: directives
+        const usingDirective = parseUsingDirective(effectiveTrimmed)
+        if (usingDirective) {
+            if (usingDirective.type === 'file') usingFiles.push(usingDirective.path)
+            else if (usingDirective.candidates) usingFiles.push(...usingDirective.candidates)
+            diagnostics.push({ type: 'info', code: 'LUME-I006', line: lineNum, message: `Module import: ${effectiveTrimmed}` })
+            continue
+        }
+
+        // Gap 9: Package references ("use Express to create a web server")
+        const pkgRef = detectPackageReference(effectiveTrimmed)
+        if (pkgRef) {
+            const pkg = recognizePackage(pkgRef.packageName)
+            if (pkg) {
+                activePackages.set(pkg.key, pkg)
+                ast.push({ type: 'RawBlock', code: generateImport(pkg), line: lineNum })
+                stats.packages++
+                diagnostics.push({ type: 'info', code: 'LUME-I011', line: lineNum, message: `Package: ${pkg.key} (${pkg.npm})` })
+            } else {
+                diagnostics.push(formatMissingPackageError(pkgRef.packageName, pkgRef.packageName.toLowerCase(), lineNum))
+            }
+            // The rest of the instruction still gets processed below
+        }
+
+        // Gap 10: Structure definitions ("a user has:")
+        const structStart = detectStructureStart(effectiveTrimmed)
+        if (structStart) {
+            const structBlock = parseStructureBlock(lines, i)
+            if (structBlock) {
+                guardianScan(structBlock, lineNum, diagnostics, options)
+                ast.push(structBlock)
+                stats.structures++
+                i = structBlock.endIdx - 1
+                continue
+            }
+        }
+
+        // Gap 11: Try/catch blocks ("try to [action]")
+        if (detectTryBlock(effectiveTrimmed)) {
+            const tcBlock = parseTryCatchBlock(lines, i)
+            if (tcBlock) {
+                guardianScan(tcBlock, lineNum, diagnostics, options)
+                ast.push(tcBlock)
+                stats.tryCatch++
+                i = tcBlock.endIdx - 1
+                continue
+            }
+        }
+
+        // Gap 11: Throw statements ("stop with error")
+        if (detectThrowStatement(effectiveTrimmed)) {
+            const throwNode = parseThrowStatement(effectiveTrimmed)
+            if (throwNode) {
+                ast.push({ ...throwNode, line: lineNum })
+                continue
+            }
+        }
+
+        // Gap 12: Test blocks
+        const testBlock = detectTestBlock(effectiveTrimmed)
+        const descBlock = detectDescribeBlock(effectiveTrimmed)
+        if (descBlock) {
+            const suite = parseDescribeBlockFull(lines, i)
+            if (suite) { ast.push(suite); stats.tests++; i = suite.endIdx - 1; continue }
+        }
+        if (testBlock) {
+            const tc = parseTestBlockFull(lines, i)
+            if (tc) { ast.push(tc); stats.tests++; i = tc.endIdx - 1; continue }
+        }
+
+        // Gap 13: Environment blocks ("in production:")
+        const envBlock = detectEnvironmentBlock(effectiveTrimmed)
+        if (envBlock) {
+            const eb = parseEnvironmentBlock(lines, i)
+            if (eb) { ast.push(eb); stats.envBlocks++; i = eb.endIdx - 1; continue }
+        }
+
+        // Gap 13: Env variable references
+        const envRef = detectEnvReference(effectiveTrimmed)
+        if (envRef) { ast.push({ ...envRef, line: lineNum }); continue }
+
+        // Gap 13: Feature flags
+        const featureFlag = detectFeatureFlag(effectiveTrimmed)
+        if (featureFlag) { ast.push({ ...featureFlag, line: lineNum }); continue }
+
+        // Gap 14: Concurrency blocks
+        const concBlock = detectConcurrencyBlock(effectiveTrimmed)
+        if (concBlock) {
+            const cb = parseConcurrencyBlock(lines, i)
+            if (cb) { ast.push(cb); stats.concurrency++; i = cb.endIdx - 1; continue }
+        }
+
+        // Gap 14: Sequential chains
+        if (detectSequentialChain(effectiveTrimmed)) {
+            const chain = parseSequentialChain(lines, i)
+            if (chain) { ast.push(chain); stats.concurrency++; i = chain.endIdx - 1; continue }
+        }
+
+        // Gap 14: Timer instructions
+        const timerType = detectTimerInstruction(effectiveTrimmed)
+        if (timerType) {
+            const timer = parseTimerInstruction(effectiveTrimmed)
+            if (timer) { ast.push({ ...timer, line: lineNum }); continue }
+        }
+
         // Gap 2: Detect compound conditional blocks
-        const compoundStart = detectCompoundStart(trimmed)
+        const compoundStart = detectCompoundStart(effectiveTrimmed)
         if (compoundStart) {
             const result = parseCompoundConditional(lines, i, lineNum)
             if (result) {
