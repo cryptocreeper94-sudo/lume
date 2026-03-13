@@ -21,7 +21,7 @@ import vm from 'node:vm'
 import { tokenize } from '../../src/lexer.js'
 import { parse } from '../../src/parser.js'
 import { transpile } from '../../src/transpiler.js'
-import { detectMode, resolveEnglishFile, matchPattern, patterns } from '../../src/intent-resolver/index.js'
+import { detectMode, resolveEnglishFile, matchPattern } from '../../src/intent-resolver/index.js'
 
 const router = Router()
 
