@@ -71,6 +71,37 @@ const RESOURCE_PATTERNS = [
     /\bcreate\s+.*(?:million|billion|thousands?)\s+.*(?:connections?|threads?|files?)\b/i,
 ]
 
+/* ── Prompt Injection Detection (NL attacks) ────────── */
+const PROMPT_INJECTION_PATTERNS = [
+    /\b(?:ignore|disregard|forget)\s+(?:all\s+)?(?:previous|prior|above|earlier)\s+(?:instructions?|rules?|constraints?|guidelines?)\b/i,
+    /\b(?:you\s+are\s+now|pretend\s+(?:you\s+are|to\s+be)|act\s+as\s+(?:if|a)|roleplay\s+as)\b/i,
+    /\b(?:override|bypass|disable|turn\s+off|deactivate)\s+(?:safety|security|filter|guard|scan|protection|restriction)\b/i,
+    /\b(?:system\s+prompt|hidden\s+instructions?|developer\s+mode|debug\s+mode|god\s+mode|admin\s+mode)\b/i,
+    /\b(?:do\s+not|don'?t)\s+(?:scan|check|filter|block|flag|restrict|sanitize)\b/i,
+    /\b(?:inject|payload|exploit|xss|sqli|sql\s+injection|cross[\s-]site)\b/i,
+    /\b(?:jailbreak|escape\s+(?:the\s+)?sandbox|break\s+(?:out\s+of|free))\b/i,
+    /\b```(?:system|hidden|secret)\b/i,
+]
+
+/* ── AI Output Sanitization Patterns ─────────────────── */
+const DANGEROUS_OUTPUT_PATTERNS = [
+    { pattern: /\beval\s*\(/g, label: 'eval() call', level: 'BLOCK' },
+    { pattern: /\bnew\s+Function\s*\(/g, label: 'Function constructor', level: 'BLOCK' },
+    { pattern: /\bchild_process\b/g, label: 'child_process module', level: 'BLOCK' },
+    { pattern: /\brequire\s*\(\s*['"](?:fs|child_process|net|dgram|cluster|worker_threads|vm)['"]\s*\)/g, label: 'dangerous module import', level: 'BLOCK' },
+    { pattern: /\bimport\s.*from\s+['"](?:fs|child_process|net|dgram|cluster|worker_threads|vm)['"]/g, label: 'dangerous module import', level: 'BLOCK' },
+    { pattern: /\bprocess\.exit\b/g, label: 'process.exit call', level: 'WARNING' },
+    { pattern: /\bprocess\.env\b/g, label: 'environment variable access', level: 'WARNING' },
+    { pattern: /\b__proto__\b|\bconstructor\s*\[/g, label: 'prototype pollution', level: 'BLOCK' },
+    { pattern: /\bglobalThis\b|\bglobal\.\b/g, label: 'global scope access', level: 'WARNING' },
+    { pattern: /\bdocument\.write\b|\binnerHTML\s*=/g, label: 'unsafe DOM write', level: 'WARNING' },
+    { pattern: /\bFetch\s*\(|XMLHttpRequest/g, label: 'network request in output', level: 'WARNING' },
+]
+
+/* ── Rate Limiting Thresholds ────────────────────────── */
+const AI_CALL_LIMIT = 10
+const AI_CALL_PATTERN = /\b(?:ask|think|generate)\s+(?:gpt|claude|gemini|o1|o3|llm|ai)\b/gi
+
 /* ── Main Security Check ─────────────────────────────── */
 
 /**
@@ -122,11 +153,74 @@ export function checkSecurity(input, config = {}) {
         if (p.test(input)) threats.push({ category: 'RESOURCE_EXHAUSTION', ...THREAT_CATEGORIES.RESOURCE_EXHAUSTION, message: `Resource exhaustion risk: "${input}"` })
     }
 
+    // Prompt injection (NL attacks)
+    for (const p of PROMPT_INJECTION_PATTERNS) {
+        if (p.test(input)) threats.push({ category: 'NL_INJECTION', ...THREAT_CATEGORIES.NL_INJECTION, message: `Prompt injection attempt detected: "${input}"` })
+    }
+
     return {
         safe: threats.length === 0,
         threats,
         blocked: threats.some(t => t.level === 'BLOCK'),
         needsConfirmation: threats.some(t => t.level === 'CONFIRM'),
+    }
+}
+
+/**
+ * Scan generated JavaScript output for dangerous patterns.
+ * Called after transpilation to catch unsafe code that may have slipped through.
+ * Returns { safe, threats: Array<{line, pattern, level, message}> }
+ */
+export function scanGeneratedCode(js, config = {}) {
+    if (config.unsafeMode) return { safe: true, threats: [] }
+
+    const threats = []
+    const lines = js.split('\n')
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        for (const { pattern, label, level } of DANGEROUS_OUTPUT_PATTERNS) {
+            // Reset lastIndex for global regexes
+            pattern.lastIndex = 0
+            if (pattern.test(line)) {
+                threats.push({
+                    line: i + 1,
+                    pattern: label,
+                    level,
+                    message: `Dangerous pattern "${label}" found in compiled output at line ${i + 1}`,
+                    code: line.trim().substring(0, 80),
+                })
+            }
+        }
+    }
+
+    return {
+        safe: threats.length === 0,
+        threats,
+        blocked: threats.some(t => t.level === 'BLOCK'),
+        summary: {
+            blocked: threats.filter(t => t.level === 'BLOCK').length,
+            warnings: threats.filter(t => t.level === 'WARNING').length,
+        },
+    }
+}
+
+/**
+ * Check a source file for excessive AI call usage (rate limiting).
+ * Returns { withinLimit, count, limit, message }
+ */
+export function checkAIRateLimit(source, config = {}) {
+    const limit = config.aiCallLimit || AI_CALL_LIMIT
+    const matches = source.match(AI_CALL_PATTERN) || []
+    const count = matches.length
+
+    return {
+        withinLimit: count <= limit,
+        count,
+        limit,
+        message: count > limit
+            ? `${count} AI calls detected (limit: ${limit}). This may cause excessive API usage and costs. Consider refactoring.`
+            : null,
     }
 }
 
@@ -149,6 +243,44 @@ export function scanASTNode(node, config = {}) {
     }
 
     return { safe: threats.length === 0, threats }
+}
+
+/**
+ * Full security audit of a source file + compiled output.
+ * Runs all three layers: input scan, output scan, rate limit check.
+ */
+export function fullSecurityAudit(source, compiledJs, config = {}) {
+    const inputLines = source.split('\n').filter(l => l.trim())
+    const inputThreats = []
+
+    for (let i = 0; i < inputLines.length; i++) {
+        const result = checkSecurity(inputLines[i], config)
+        if (!result.safe) {
+            for (const t of result.threats) {
+                inputThreats.push({ ...t, line: i + 1, source: inputLines[i] })
+            }
+        }
+    }
+
+    const outputScan = compiledJs ? scanGeneratedCode(compiledJs, config) : { safe: true, threats: [] }
+    const rateLimit = checkAIRateLimit(source, config)
+
+    const allThreats = [...inputThreats, ...outputScan.threats]
+    const blocked = allThreats.some(t => t.level === 'BLOCK')
+
+    return {
+        safe: allThreats.length === 0 && rateLimit.withinLimit,
+        blocked,
+        inputThreats,
+        outputThreats: outputScan.threats,
+        rateLimit,
+        summary: {
+            totalThreats: allThreats.length,
+            blocked: allThreats.filter(t => t.level === 'BLOCK').length,
+            warnings: allThreats.filter(t => t.level === 'WARNING' || t.level === 'CONFIRM').length,
+            aiCalls: rateLimit.count,
+        },
+    }
 }
 
 /**

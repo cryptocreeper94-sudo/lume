@@ -1,0 +1,65 @@
+{
+    "name": "lume-language",
+    "displayName": "Lume — AI-Native Programming Language",
+    "description": "Syntax highlighting, snippets, and language support for the Lume programming language.",
+    "version": "0.8.0",
+    "publisher": "darkwave-studios",
+    "author": "DarkWave Studios",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets"
+    ],
+    "keywords": [
+        "lume",
+        "ai",
+        "programming language",
+        "english mode",
+        "natural language",
+        "transpiler"
+    ],
+    "icon": "icon.png",
+    "galleryBanner": {
+        "color": "#0a0a0f",
+        "theme": "dark"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/lume-lang/lume"
+    },
+    "main": "./extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "lume",
+                "aliases": [
+                    "Lume",
+                    "lume"
+                ],
+                "extensions": [
+                    ".lume"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "lume",
+                "scopeName": "source.lume",
+                "path": "./syntaxes/lume.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "lume",
+                "path": "./snippets/lume.json"
+            }
+        ]
+    },
+    "scripts": {
+        "package": "npx -y @vscode/vsce package"
+    }
+}

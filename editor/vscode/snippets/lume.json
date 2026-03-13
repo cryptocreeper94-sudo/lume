@@ -1,0 +1,147 @@
+{
+    "Function Definition": {
+        "prefix": "to",
+        "body": [
+            "to ${1:functionName}(${2:params}):",
+            "    ${3:// body}",
+            "end"
+        ],
+        "description": "Define a Lume function"
+    },
+    "Function with Return Type": {
+        "prefix": "totype",
+        "body": [
+            "to ${1:functionName}(${2:param}: ${3:text}) -> ${4:text}:",
+            "    return ${5:result}",
+            "end"
+        ],
+        "description": "Define a Lume function with typed parameters and return type"
+    },
+    "If Statement": {
+        "prefix": "if",
+        "body": [
+            "if ${1:condition}:",
+            "    ${2:// body}",
+            "end"
+        ],
+        "description": "If conditional block"
+    },
+    "If-Else": {
+        "prefix": "ifelse",
+        "body": [
+            "if ${1:condition}:",
+            "    ${2:// true branch}",
+            "else:",
+            "    ${3:// false branch}",
+            "end"
+        ],
+        "description": "If-else conditional block"
+    },
+    "For Loop": {
+        "prefix": "for",
+        "body": [
+            "for ${1:item} in ${2:collection}:",
+            "    ${3:// body}",
+            "end"
+        ],
+        "description": "For-each loop"
+    },
+    "For Range": {
+        "prefix": "forrange",
+        "body": [
+            "for ${1:i} in ${2:1} to ${3:10}:",
+            "    ${4:// body}",
+            "end"
+        ],
+        "description": "For loop with numeric range"
+    },
+    "While Loop": {
+        "prefix": "while",
+        "body": [
+            "while ${1:condition}:",
+            "    ${2:// body}",
+            "end"
+        ],
+        "description": "While loop"
+    },
+    "Show Output": {
+        "prefix": "show",
+        "body": "show \"${1:message}\"",
+        "description": "Print output"
+    },
+    "Variable": {
+        "prefix": "let",
+        "body": "let ${1:name} = ${2:value}",
+        "description": "Declare a variable"
+    },
+    "Ask AI": {
+        "prefix": "ask",
+        "body": "let ${1:result} = ask ${2|gpt4,claude,gemini|} \"${3:prompt}\"",
+        "description": "Query an AI model"
+    },
+    "Think AI": {
+        "prefix": "think",
+        "body": "let ${1:result} = think ${2|claude,gpt4,gemini|} \"${3:prompt}\"",
+        "description": "Deep reasoning with AI model"
+    },
+    "English Mode Header": {
+        "prefix": "mode",
+        "body": [
+            "mode: english",
+            "",
+            "# ${1:Description}",
+            "${2:get the data from the database}",
+            "${3:show the result}"
+        ],
+        "description": "Start an English Mode file"
+    },
+    "Type Definition": {
+        "prefix": "type",
+        "body": [
+            "type ${1:TypeName}:",
+            "    ${2:field}: ${3:text}",
+            "end"
+        ],
+        "description": "Define a custom type"
+    },
+    "Test Block": {
+        "prefix": "test",
+        "body": [
+            "test \"${1:description}\":",
+            "    expect ${2:actual} equal ${3:expected}",
+            "end"
+        ],
+        "description": "Test assertion block"
+    },
+    "Pattern Match": {
+        "prefix": "when",
+        "body": [
+            "when ${1:value}:",
+            "    is ${2:pattern}:",
+            "        ${3:// action}",
+            "    default:",
+            "        ${4:// fallback}",
+            "end"
+        ],
+        "description": "Pattern matching block"
+    },
+    "Pipe": {
+        "prefix": "pipe",
+        "body": "${1:input} |> ${2:transform} |> ${3:output}",
+        "description": "Pipe operator chain"
+    },
+    "Fetch": {
+        "prefix": "fetch",
+        "body": "let ${1:data} = fetch \"${2:url}\"",
+        "description": "HTTP fetch operation"
+    },
+    "Repeat": {
+        "prefix": "repeat",
+        "body": [
+            "repeat ${1:5} times:",
+            "    ${2:// body}",
+            "end"
+        ],
+        "description": "Repeat block N times"
+    }
+}

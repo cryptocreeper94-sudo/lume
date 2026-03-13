@@ -1,0 +1,219 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Lume",
+    "scopeName": "source.lume",
+    "fileTypes": [
+        "lume"
+    ],
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#ai-keywords"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#operators"
+        },
+        {
+            "include": "#constants"
+        },
+        {
+            "include": "#variables"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.triple-slash.lume",
+                    "match": "///.*$"
+                },
+                {
+                    "name": "comment.line.double-slash.lume",
+                    "match": "//.*$"
+                },
+                {
+                    "name": "comment.block.lume",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.triple.lume",
+                    "begin": "\"\"\"",
+                    "end": "\"\"\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.lume",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.double.lume",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.lume",
+                            "match": "\\\\."
+                        },
+                        {
+                            "name": "variable.other.interpolation.lume",
+                            "begin": "\\{",
+                            "end": "\\}",
+                            "patterns": [
+                                {
+                                    "include": "$self"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.float.lume",
+                    "match": "\\b\\d+\\.\\d+\\b"
+                },
+                {
+                    "name": "constant.numeric.integer.lume",
+                    "match": "\\b\\d+\\b"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.lume",
+                    "match": "\\b(if|else|when|is|for|each|in|while|break|continue|return|then|by)\\b"
+                },
+                {
+                    "name": "keyword.declaration.lume",
+                    "match": "\\b(let|define|set|to|type|export|use|from)\\b"
+                },
+                {
+                    "name": "keyword.other.lume",
+                    "match": "\\b(show|log|as|test|expect|equal|with|all|default)\\b"
+                },
+                {
+                    "name": "keyword.interop.lume",
+                    "match": "\\b(fetch|read|write|await|pipe)\\b"
+                },
+                {
+                    "name": "keyword.error.lume",
+                    "match": "\\b(ok|error|fail|try)\\b"
+                }
+            ]
+        },
+        "ai-keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.ai.lume",
+                    "match": "\\b(ask|think|generate)\\b"
+                },
+                {
+                    "name": "variable.ai.model.lume",
+                    "match": "\\b(claude|gpt|gemini|o1|o3)\\.(\\w+)\\b"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "name": "support.type.lume",
+                    "match": "\\b(text|number|boolean|list|map|any|nothing|maybe|of)\\b"
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.lume",
+                    "match": "(?<=\\bto\\s)(\\w+)"
+                },
+                {
+                    "name": "entity.name.function.call.lume",
+                    "match": "\\b(\\w+)(?=\\()"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.pipe.lume",
+                    "match": "\\|>"
+                },
+                {
+                    "name": "keyword.operator.arrow.lume",
+                    "match": "->"
+                },
+                {
+                    "name": "keyword.operator.comparison.lume",
+                    "match": "\\b(is not|is greater than|is less than|is at least|is at most)\\b"
+                },
+                {
+                    "name": "keyword.operator.logical.lume",
+                    "match": "\\b(and|or|not)\\b"
+                },
+                {
+                    "name": "keyword.operator.assignment.lume",
+                    "match": "(\\+=|-=|\\*=|/=|=)"
+                },
+                {
+                    "name": "keyword.operator.arithmetic.lume",
+                    "match": "(\\+|-|\\*|/|%)"
+                },
+                {
+                    "name": "keyword.operator.comparison.symbol.lume",
+                    "match": "(==|!=|>=|<=|>|<)"
+                }
+            ]
+        },
+        "constants": {
+            "patterns": [
+                {
+                    "name": "constant.language.boolean.lume",
+                    "match": "\\b(true|false)\\b"
+                },
+                {
+                    "name": "constant.language.null.lume",
+                    "match": "\\b(null)\\b"
+                }
+            ]
+        },
+        "variables": {
+            "patterns": [
+                {
+                    "name": "variable.decorator.lume",
+                    "match": "@\\w+"
+                },
+                {
+                    "name": "variable.other.lume",
+                    "match": "\\b[a-zA-Z_]\\w*\\b"
+                }
+            ]
+        }
+    }
+}

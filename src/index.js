@@ -29,7 +29,7 @@ export { stdlib } from './stdlib.js'
 export { resolveEnglishFile } from './intent-resolver/index.js'
 export { matchPattern, patterns } from './intent-resolver/pattern-library.js'
 export { autoCorrect } from './intent-resolver/auto-correct.js'
-export { checkSecurity, scanASTNode } from './intent-resolver/security-layer.js'
+export { checkSecurity, scanASTNode, scanGeneratedCode, checkAIRateLimit, fullSecurityAudit } from './intent-resolver/security-layer.js'
 export { detectLanguage } from './intent-resolver/lang-detect.js'
 
 // ── M9-M13 Modules ──

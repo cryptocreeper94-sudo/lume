@@ -78,9 +78,9 @@ app.get('/api/meta', (req, res) => {
         stack: 'Node/Express + PostgreSQL',
         website: 'https://lume-lang.org',
         repo: 'github.com/cryptocreeper94-sudo/lume',
-        tests: 366,
+        tests: 552,
         milestones: 13,
-        loc: 10800,
+        loc: 11200,
         ecosystem: 'Trust Layer'
     })
 })

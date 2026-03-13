@@ -7,7 +7,7 @@ let answer = ask gpt4 "Summarize this article"
 show answer
 ```
 
-[![Tests](https://img.shields.io/badge/tests-366%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Tests](https://img.shields.io/badge/tests-552%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
@@ -112,17 +112,20 @@ lume run examples/discount.lume     # Pattern matching
 
 ## Project Stats
 
-- **366 tests** (333 unit + 33 integration) — 0 failures
+- **552 tests** — 0 failures
 - **102 patterns** in the English Mode resolver
-- **10.8K lines** of source code
-- **17 CLI commands**
+- **11K+ lines** of source code
+- **18+ CLI commands**
 - **13 milestones** complete
 - **MIT licensed**
 
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) — Your first Lume program in 5 minutes
-- [English Mode](docs/english-mode.md) — Writing code in plain English
+- [English Mode](docs/patterns.md) — Writing code in plain English (102 patterns)
+- [CLI Reference](docs/cli.md) — All commands and flags
+- [API Reference](docs/api.md) — Programmatic usage of `@lume/compiler`
+- [Voice-to-Code](docs/voice.md) — Speak your code
 - [Self-Sustaining Runtime](docs/runtime.md) — How programs heal themselves
 - [Security](docs/security.md) — The Guardian security layer
 
