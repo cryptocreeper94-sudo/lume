@@ -1,0 +1,84 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Voice-to-Code Demo
+///  Shows how spoken instructions become Lume code
+///  through the voice processing pipeline.
+/// ═══════════════════════════════════════════════════════════
+
+mode: english
+
+/// This file demonstrates what happens when you speak
+/// code into Lume's voice-to-code pipeline (Milestone 8).
+///
+/// Spoken: "Um, create a variable, call it user count,
+///          set it to zero"
+/// Pipeline: filler strip → number convert → variable extract
+/// Output:
+
+let user_count = 0
+
+/// Spoken: "Get the list of users from the database"
+/// Pipeline: direct intent mapping → fetch pattern
+
+let users = fetch "/api/users"
+
+/// Spoken: "For each user in the list, if they are active,
+///          add one to user count"
+/// Pipeline: structural cues → loop + condition
+
+for each user in users:
+    if user.status is "active":
+        set user_count = user_count + 1
+
+/// Spoken: "Show the total active users"
+/// Pipeline: direct → show statement
+
+show "Active users: {user_count}"
+
+/// Spoken: "Now, um, create a function, call it get user stats,
+///          it takes a user list"
+/// Pipeline: filler strip → variable name extract → function scaffolding
+
+define get_user_stats(user_list):
+    let active = list.filter(user_list, u -> u.status is "active")
+    let inactive = list.filter(user_list, u -> u.status is not "active")
+    
+    return {
+        total: list.count(user_list),
+        active: list.count(active),
+        inactive: list.count(inactive),
+        active_rate: list.count(active) / list.count(user_list) * 100
+    }
+
+/// Spoken: "Show the stats for our users"
+let stats = get_user_stats(users)
+show "Total: {stats.total} | Active: {stats.active} | Rate: {stats.active_rate}%"
+
+/// ── Homophone Resolution Examples ──
+/// Spoken: "Right the results to a file" → "write the results to a file"
+write "results.txt" with stats
+
+/// Spoken: "Weight five seconds" → "wait five seconds"  
+await time.sleep(5000)
+
+/// Spoken: "Create a knew variable for the sum" → "create a new variable for the sum"
+let total_value = math.sum(list.map(users, u -> u.value))
+
+/// ── Correction Examples ──
+/// Spoken: "Set the threshold to fifty"
+/// Spoken: "No I mean set the threshold to seventy five"
+/// Pipeline: correction detected → replace previous line
+let threshold = 75
+
+/// Spoken: "Show the threshold... scratch that"
+/// Pipeline: "scratch that" → undo last line (the show was removed)
+
+/// ── Structural Cue Examples ──
+/// Spoken: "When the user count is greater than a hundred"
+/// Pipeline: "when" → when_block
+when user_count is greater than 100:
+    show "🎉 Over 100 active users!"
+    
+/// Spoken: "Done"
+/// Pipeline: "done" → block_end (dedent)
+
+show "✅ Voice-to-code demo complete!"

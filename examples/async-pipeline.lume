@@ -1,0 +1,212 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Async Pipeline
+//  Composable async data processing pipeline with
+//  stages, error handling, backpressure, and metrics.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+use time from stdlib
+use math from stdlib
+
+// ── Pipeline Types ──
+type Stage:
+    name: text
+    handler: any
+    timeout: number = 30000
+    retries: number = 1
+    on_error: text = "stop"
+
+type PipelineResult:
+    data: any
+    metrics: map
+    errors: list
+    stages_run: list
+
+// ── Pipeline Builder ──
+define pipeline_stages = []
+define pipeline_name = "default"
+
+to create_pipeline(name):
+    set pipeline_name to name
+    set pipeline_stages to []
+    show "  🔗 Pipeline: {name}"
+    return name
+
+to add_stage(name, handler, options):
+    let stage = Stage:
+        name: name
+        handler: handler
+        timeout: options.timeout
+        retries: options.retries
+        on_error: options.on_error
+    list.push(pipeline_stages, stage)
+    show "  📍 Stage: {name}"
+    return stage
+
+// ── Pipeline Execution ──
+to run_pipeline(input):
+    let data = input
+    let metrics = {
+        start_time: time.now(),
+        stage_times: {},
+        total_retries: 0
+    }
+    let errors = []
+    let stages_run = []
+
+    show "\n  ▶️ Running pipeline: {pipeline_name}"
+    show "  ═══════════════════════════════════"
+
+    for each stage in pipeline_stages:
+        let stage_start = time.now()
+        show "  ⏳ {stage.name}..."
+
+        let success = false
+        let attempts = 0
+
+        while not success and attempts is less than stage.retries:
+            set attempts to attempts + 1
+
+            // Simulate async execution
+            let result = stage.handler(data)
+
+            if result.error:
+                set metrics.total_retries to metrics.total_retries + 1
+                list.push(errors, {
+                    stage: stage.name,
+                    error: result.error,
+                    attempt: attempts
+                })
+                show "    ⚠️ Error (attempt {attempts}): {result.error}"
+
+                if attempts is at least stage.retries:
+                    if stage.on_error is "stop":
+                        show "    ❌ Pipeline halted at {stage.name}"
+                        return PipelineResult:
+                            data: data
+                            metrics: metrics
+                            errors: errors
+                            stages_run: stages_run
+
+                    if stage.on_error is "skip":
+                        show "    ⏭️ Skipping {stage.name}"
+                        break
+            else:
+                set data to result.data
+                set success to true
+
+        let stage_time = time.now() - stage_start
+        set metrics.stage_times[stage.name] to stage_time
+        list.push(stages_run, stage.name)
+        show "    ✅ {stage.name} ({stage_time}ms)"
+
+    set metrics.total_time to time.now() - metrics.start_time
+
+    show "  ═══════════════════════════════════"
+    show "  ✅ Pipeline complete ({metrics.total_time}ms)"
+
+    return PipelineResult:
+        data: data
+        metrics: metrics
+        errors: errors
+        stages_run: stages_run
+
+// ── Utility Stages ──
+to transform_stage(name, transform_fn):
+    return add_stage(name, (data) ->
+        let result = transform_fn(data)
+        return { data: result, error: null }
+    , { timeout: 5000, retries: 1, on_error: "stop" })
+
+to filter_stage(name, predicate):
+    return add_stage(name, (data) ->
+        let filtered = list.filter(data, predicate)
+        return { data: filtered, error: null }
+    , { timeout: 5000, retries: 1, on_error: "stop" })
+
+to validate_stage(name, validator):
+    return add_stage(name, (data) ->
+        let valid = validator(data)
+        if not valid:
+            return { data: data, error: "Validation failed" }
+        return { data: data, error: null }
+    , { timeout: 5000, retries: 1, on_error: "stop" })
+
+// ── Metrics Dashboard ──
+to show_metrics(result):
+    show "\n╔═══════════════════════════════════════╗"
+    show "║     Pipeline Metrics                  ║"
+    show "╠═══════════════════════════════════════╣"
+    show "║  Total Time:    {result.metrics.total_time}ms"
+    show "║  Stages Run:    {list.length(result.stages_run)}"
+    show "║  Retries:       {result.metrics.total_retries}"
+    show "║  Errors:        {list.length(result.errors)}"
+    show "║"
+    show "║  Stage Breakdown:"
+    for each stage_name in result.stages_run:
+        let t = result.metrics.stage_times[stage_name]
+        show "║    {stage_name}: {t}ms"
+    show "╚═══════════════════════════════════════╝"
+
+// ═══════════════════════════════════════
+//  Demo: Data Processing Pipeline
+// ═══════════════════════════════════════
+
+show "🔄 Async Pipeline Demo"
+show "═══════════════════════════════════"
+
+create_pipeline("User Data ETL")
+
+// Stage 1: Extract — load raw data
+add_stage("extract", (data) ->
+    let users = [
+        { name: "Alice", age: 28, email: "alice@test.com", score: 92 },
+        { name: "Bob", age: 17, email: "bob@test.com", score: 45 },
+        { name: "Charlie", age: 35, email: "", score: 78 },
+        { name: "Dana", age: 22, email: "dana@test.com", score: 88 },
+        { name: "Eve", age: 15, email: "eve@test.com", score: 95 }
+    ]
+    return { data: users, error: null }
+, { timeout: 5000, retries: 1, on_error: "stop" })
+
+// Stage 2: Validate — check data integrity
+add_stage("validate", (data) ->
+    let valid_users = list.filter(data, u -> text.length(u.email) is greater than 0)
+    show "    📊 {list.length(valid_users)}/{list.length(data)} have valid emails"
+    return { data: valid_users, error: null }
+, { timeout: 5000, retries: 1, on_error: "stop" })
+
+// Stage 3: Transform — enrich data
+add_stage("transform", (data) ->
+    let enriched = list.map(data, u ->
+        return {
+            name: u.name,
+            age: u.age,
+            email: u.email,
+            score: u.score,
+            grade: u.score is at least 90 ? "A" : u.score is at least 80 ? "B" : "C",
+            is_adult: u.age is at least 18
+        }
+    )
+    return { data: enriched, error: null }
+, { timeout: 10000, retries: 2, on_error: "skip" })
+
+// Stage 4: Filter — only adults
+add_stage("filter_adults", (data) ->
+    let adults = list.filter(data, u -> u.is_adult)
+    show "    👥 {list.length(adults)} adults found"
+    return { data: adults, error: null }
+, { timeout: 5000, retries: 1, on_error: "stop" })
+
+// Stage 5: Load — output results
+add_stage("load", (data) ->
+    show "    📦 Loading {list.length(data)} records"
+    for each user in data:
+        show "      → {user.name} (age: {user.age}, grade: {user.grade})"
+    return { data: data, error: null }
+, { timeout: 15000, retries: 3, on_error: "stop" })
+
+// Run the pipeline
+let result = run_pipeline(null)
+show_metrics(result)

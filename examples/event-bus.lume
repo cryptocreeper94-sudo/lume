@@ -1,0 +1,167 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Event Bus
+//  Pub/sub event system with channels, wildcards,
+//  middleware, and event replay.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+use time from stdlib
+
+// ── Event Type ──
+type Event:
+    channel: text
+    payload: any
+    timestamp: number
+    id: text
+
+// ── Subscriber ──
+type Subscriber:
+    id: text
+    channel: text
+    handler: any
+    once: boolean = false
+
+// ── Event Bus ──
+define subscribers = []
+define event_log = []
+define middleware = []
+define sub_counter = 0
+
+// ── Subscribe ──
+to on(channel, handler):
+    set sub_counter to sub_counter + 1
+    let sub = Subscriber:
+        id: "sub_{sub_counter}"
+        channel: channel
+        handler: handler
+        once: false
+    list.push(subscribers, sub)
+    show "  📡 Subscribed to '{channel}' (id: {sub.id})"
+    return sub.id
+
+to once(channel, handler):
+    set sub_counter to sub_counter + 1
+    let sub = Subscriber:
+        id: "sub_{sub_counter}"
+        channel: channel
+        handler: handler
+        once: true
+    list.push(subscribers, sub)
+    show "  📡 Once-subscribed to '{channel}'"
+    return sub.id
+
+// ── Unsubscribe ──
+to off(sub_id):
+    let idx = list.find_index(subscribers, s -> s.id is sub_id)
+    if idx is not -1:
+        list.remove_at(subscribers, idx)
+        show "  🔇 Unsubscribed: {sub_id}"
+
+// ── Publish ──
+to emit(channel, payload):
+    let event = Event:
+        channel: channel
+        payload: payload
+        timestamp: time.now()
+        id: "evt_{list.length(event_log) + 1}"
+
+    // Run middleware
+    let processed = payload
+    for each mw in middleware:
+        set processed to mw(channel, processed)
+
+    // Log the event
+    list.push(event_log, event)
+
+    // Find matching subscribers
+    let matched = list.filter(subscribers, s ->
+        s.channel is channel or matches_wildcard(s.channel, channel)
+    )
+
+    show "  📨 EMIT '{channel}' → {list.length(matched)} subscriber(s)"
+
+    // Notify subscribers
+    let to_remove = []
+    for each sub in matched:
+        sub.handler(processed)
+        if sub.once:
+            list.push(to_remove, sub.id)
+
+    // Remove one-time subscribers
+    for each id in to_remove:
+        off(id)
+
+// ── Wildcard Matching ──
+to matches_wildcard(pattern, channel):
+    if pattern is "*":
+        return true
+    if text.ends_with(pattern, ".*"):
+        let prefix = text.slice(pattern, 0, text.length(pattern) - 2)
+        return text.starts_with(channel, prefix)
+    return false
+
+// ── Middleware ──
+to use_middleware(fn):
+    list.push(middleware, fn)
+    show "  🔧 Middleware added"
+
+// ── Event Replay ──
+to replay(channel, count):
+    let matching = list.filter(event_log, e -> e.channel is channel)
+    let recent = list.slice(matching, -count)
+    show "  🔄 Replaying {list.length(recent)} events from '{channel}'"
+    for each event in recent:
+        emit(event.channel, event.payload)
+
+// ── Stats ──
+to show_bus_stats():
+    show "\n╔════════════════════════════════════╗"
+    show "║       Event Bus Dashboard          ║"
+    show "╠════════════════════════════════════╣"
+    show "║  Subscribers: {list.length(subscribers)}"
+    show "║  Events:      {list.length(event_log)}"
+    show "║  Middleware:  {list.length(middleware)}"
+    show "╚════════════════════════════════════╝"
+
+// ═══════════════════════════════════════
+//  Demo
+// ═══════════════════════════════════════
+
+show "🚌 Event Bus Demo"
+show "═══════════════════════════════════"
+
+// Add logging middleware
+use_middleware((channel, payload) ->
+    show "    [log] {channel}: {payload}"
+    return payload
+)
+
+// Subscribe to events
+on("user.login", (data) ->
+    show "    👤 User logged in: {data.name}"
+)
+
+on("user.logout", (data) ->
+    show "    👋 User logged out: {data.name}"
+)
+
+on("user.*", (data) ->
+    show "    📊 User activity detected"
+)
+
+once("system.ready", (data) ->
+    show "    🟢 System is ready!"
+)
+
+// Emit events
+show "\n📨 Emitting events:"
+emit("system.ready", { status: "online" })
+emit("user.login", { name: "Alice", time: time.now() })
+emit("user.login", { name: "Bob", time: time.now() })
+emit("user.logout", { name: "Alice", time: time.now() })
+
+// system.ready won't fire again (once subscriber)
+emit("system.ready", { status: "still online" })
+
+show_bus_stats()

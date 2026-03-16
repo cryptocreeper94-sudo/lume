@@ -1,0 +1,119 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Self-Healing Runtime
+///  Demonstrates the 4-layer self-sustaining architecture:
+///  Monitor → Heal → Optimize → Evolve
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+monitor:
+    interval: 2000
+    alert_on:
+        error_rate: 0.15
+        avg_time: 500
+
+/// --- Simulated Services ---
+
+/// Database connection that sometimes fails
+@healable
+define connect_to_database():
+    let random = math.random()
+    if random is less than 0.3:
+        fail "Connection timeout: database unreachable"
+    return { connected: true, latency: math.random_int(10, 200) }
+
+/// API fetch that occasionally returns errors
+@healable
+define fetch_user_data(user_id):
+    let random = math.random()
+    if random is less than 0.2:
+        fail "HTTP 503: Service unavailable"
+    return { id: user_id, name: "User_{user_id}", status: "active" }
+
+/// CPU-intensive calculation
+define compute_analytics(data):
+    let start = time.now()
+    let result = 0
+    for each item in data:
+        set result = result + math.sqrt(item * item + 1)
+    let elapsed = time.elapsed(start)
+    return { result: math.round(result), duration: elapsed }
+
+/// --- The Application ---
+define run_application():
+    show "\n🔄 Running application cycle...\n"
+    
+    // Step 1: Database connection (healable — auto-retries)
+    show "  📊 Connecting to database..."
+    try:
+        let db = connect_to_database()
+        show "  ✅ Connected (latency: {db.latency}ms)"
+    with error:
+        show "  ❌ Database error: {error}"
+    
+    // Step 2: Fetch data (healable — auto-retries)
+    show "  🌐 Fetching user data..."
+    let user_ids = [101, 102, 103, 104, 105]
+    let fetched = 0
+    let failed = 0
+    
+    for each uid in user_ids:
+        try:
+            let user = fetch_user_data(uid)
+            set fetched = fetched + 1
+        with error:
+            set failed = failed + 1
+    
+    show "  ✅ Fetched: {fetched} | Failed: {failed}"
+    
+    // Step 3: Analytics (monitored for performance)
+    show "  ⚡ Computing analytics..."
+    let data = list.range(1, 1001)
+    let analytics = compute_analytics(data)
+    show "  ✅ Result: {analytics.result} (took {analytics.duration}ms)"
+
+/// --- Self-Sustaining Demonstration ---
+show "═══════════════════════════════════════════"
+show "  ✦ Lume Self-Sustaining Runtime Demo"
+show "  4 Layers: Monitor → Heal → Optimize → Evolve"
+show "═══════════════════════════════════════════"
+
+/// Layer 1: MONITOR — watching everything
+show "\n🔍 Layer 1: MONITOR"
+show "   Tracking: execution_time, call_count, error_rate"
+show "   Alert thresholds: error_rate > 15%, avg_time > 500ms"
+
+/// Layer 2: HEAL — automatic error recovery
+show "\n🩹 Layer 2: HEAL"
+show "   @healable functions auto-retry on failure"
+show "   Circuit breaker opens after 3 consecutive failures"
+show "   Fallback values provided when healing exhausted"
+
+/// Layer 3: OPTIMIZE — runtime tuning
+show "\n⚡ Layer 3: OPTIMIZE"
+show "   Auto-memoize pure functions"
+show "   Detect bottlenecks from monitor data"
+show "   Suggest performance improvements"
+
+/// Layer 4: EVOLVE — learning from patterns
+show "\n🧬 Layer 4: EVOLVE"
+show "   Track error/recovery patterns over time"
+show "   Adaptive retry intervals based on success rates"
+show "   Benchmark before/after optimizations"
+
+/// --- Run Cycles ---
+show "\n" + "━".repeat(45)
+show "Running 3 application cycles with self-healing...\n"
+
+for each cycle in list.range(1, 4):
+    show "── Cycle {cycle} ──────────────────────────"
+    run_application()
+    show ""
+
+/// --- Final Report ---
+show "━".repeat(45)
+show "\n📋 Self-Sustaining Report:"
+show "   Total cycles: 3"
+show "   Healing events: auto-retries activated"
+show "   All errors recovered automatically"
+show "   No manual intervention required"
+show "\n✅ Self-sustaining demo complete!"

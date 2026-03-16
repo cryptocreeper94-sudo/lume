@@ -1,0 +1,83 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Web Scraper
+///  Demonstrates HTTP fetching, data extraction,
+///  and structured output with error handling.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define base_url = "https://api.github.com"
+define headers = { "Accept": "application/json", "User-Agent": "Lume-Scraper/1.0" }
+
+/// --- Data Types ---
+type Repository:
+    name: text
+    stars: number
+    language: text
+    description: text
+    url: text
+
+type ScrapedResult:
+    repos: list of Repository
+    total: number
+    scraped_at: text
+
+/// --- Fetch with Retry ---
+@healable
+define fetch_json(url):
+    let response = fetch url with headers
+    if response.status is not 200:
+        fail "HTTP {response.status}: {url}"
+    return response.json
+
+/// --- Search GitHub ---
+define search_repos(query, limit):
+    let url = base_url + "/search/repositories?q=" + query + "&sort=stars&per_page=" + convert.to_text(limit)
+    let data = fetch_json(url)
+    
+    let repos = []
+    for each item in data.items:
+        let repo = Repository:
+            name: item.full_name
+            stars: item.stargazers_count
+            language: item.language or "Unknown"
+            description: text.slice(item.description or "No description", 0, 80)
+            url: item.html_url
+        set repos = repos + [repo]
+    
+    return ScrapedResult:
+        repos: repos
+        total: data.total_count
+        scraped_at: time.timestamp()
+
+/// --- Display Results ---
+define display_results(result):
+    show "\n📊 Found {result.total} repositories"
+    show "Scraped at: {result.scraped_at}\n"
+    show "─".repeat(60)
+    
+    let rank = 1
+    for each repo in result.repos:
+        show "{rank}. ⭐ {repo.stars} — {repo.name}"
+        show "   Language: {repo.language}"
+        show "   {repo.description}"
+        show "   🔗 {repo.url}"
+        show ""
+        set rank = rank + 1
+
+/// --- Main ---
+show "🔍 Lume Web Scraper\n"
+
+let queries = ["programming language", "machine learning", "web framework"]
+
+for each query in queries:
+    show "Searching: \"{query}\"..."
+    
+    try:
+        let result = search_repos(query, 5)
+        display_results(result)
+    with error:
+        show "❌ Error scraping \"{query}\": {error}"
+    
+    show "═".repeat(60) + "\n"
+
+show "✅ Scraping complete!"

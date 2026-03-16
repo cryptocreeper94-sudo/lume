@@ -1,0 +1,157 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Cache System
+//  LRU cache with TTL expiration, hit/miss tracking,
+//  size limits, and eviction policies.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use time from stdlib
+use list from stdlib
+use math from stdlib
+
+// ── Cache Entry ──
+type CacheEntry:
+    key: text
+    value: any
+    created_at: number
+    accessed_at: number
+    ttl: number
+    hit_count: number = 0
+
+// ── Cache Stats ──
+type CacheStats:
+    hits: number = 0
+    misses: number = 0
+    evictions: number = 0
+    size: number = 0
+
+// ── LRU Cache ──
+define cache = {}
+define cache_order = []
+define stats = CacheStats:
+
+define MAX_SIZE = 100
+define DEFAULT_TTL = 60000
+
+// ── Core Operations ──
+to cache_set(key, value, ttl):
+    let now = time.now()
+
+    // Evict if at capacity
+    if list.length(cache_order) is at least MAX_SIZE:
+        evict_lru()
+
+    let entry = CacheEntry:
+        key: key
+        value: value
+        created_at: now
+        accessed_at: now
+        ttl: ttl
+        hit_count: 0
+
+    set cache[key] to entry
+    list.push(cache_order, key)
+    set stats.size to stats.size + 1
+    show "  💾 SET {key} (TTL: {ttl}ms)"
+
+to cache_get(key):
+    let entry = cache[key]
+    let now = time.now()
+
+    // Miss
+    if entry is null:
+        set stats.misses to stats.misses + 1
+        show "  ❌ MISS {key}"
+        return null
+
+    // Expired
+    if now - entry.created_at is greater than entry.ttl:
+        cache_delete(key)
+        set stats.misses to stats.misses + 1
+        show "  ⏰ EXPIRED {key}"
+        return null
+
+    // Hit
+    set entry.accessed_at to now
+    set entry.hit_count to entry.hit_count + 1
+    set stats.hits to stats.hits + 1
+    show "  ✅ HIT {key} (count: {entry.hit_count})"
+    return entry.value
+
+to cache_delete(key):
+    set cache[key] to null
+    let idx = list.index_of(cache_order, key)
+    if idx is not -1:
+        list.remove_at(cache_order, idx)
+    set stats.size to stats.size - 1
+
+// ── Eviction ──
+to evict_lru():
+    if list.length(cache_order) is 0:
+        return
+    let oldest_key = list.shift(cache_order)
+    set cache[oldest_key] to null
+    set stats.evictions to stats.evictions + 1
+    set stats.size to stats.size - 1
+    show "  🗑️ EVICTED {oldest_key}"
+
+to clear_expired():
+    let now = time.now()
+    let expired = []
+    for each key in cache_order:
+        let entry = cache[key]
+        if entry is not null:
+            if now - entry.created_at is greater than entry.ttl:
+                list.push(expired, key)
+    for each key in expired:
+        cache_delete(key)
+    show "  🧹 Cleared {list.length(expired)} expired entries"
+
+// ── Stats Dashboard ──
+to show_stats():
+    let total = stats.hits + stats.misses
+    let hit_rate = 0
+    if total is greater than 0:
+        set hit_rate to math.round(stats.hits / total * 100)
+
+    show "\n╔══════════════════════════════════╗"
+    show "║        Cache Dashboard v1.0      ║"
+    show "╠══════════════════════════════════╣"
+    show "║  Size:      {stats.size}/{MAX_SIZE}"
+    show "║  Hits:      {stats.hits}"
+    show "║  Misses:    {stats.misses}"
+    show "║  Hit Rate:  {hit_rate}%"
+    show "║  Evictions: {stats.evictions}"
+    show "╚══════════════════════════════════╝"
+
+// ── Cache Decorator ──
+to memoize(fn, ttl):
+    define memo_cache = {}
+    return (args) ->
+        let key = text.join(args, ":")
+        let cached = cache_get(key)
+        if cached is not null:
+            return cached
+        let result = fn(args)
+        cache_set(key, result, ttl)
+        return result
+
+// ── Demo ──
+show "🔮 LRU Cache Demo"
+show "═══════════════════════════════"
+
+cache_set("user:1001", { name: "Alice", role: "admin" }, 30000)
+cache_set("user:1002", { name: "Bob", role: "editor" }, 30000)
+cache_set("config:theme", "dark", 60000)
+cache_set("session:abc", { token: "xyz" }, 15000)
+cache_set("api:rates", { usd: 1.0, eur: 0.85 }, 5000)
+
+show "\n📖 Reading cache:"
+cache_get("user:1001")
+cache_get("user:1001")
+cache_get("user:1002")
+cache_get("config:theme")
+cache_get("nonexistent")
+cache_get("also_missing")
+
+show_stats()

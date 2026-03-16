@@ -1,0 +1,183 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Validation Library
+//  Composable validators for forms, APIs, and data pipelines.
+//  Supports chaining, custom rules, i18n messages.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+use math from stdlib
+
+// ── Validation Result ──
+type ValidationResult:
+    valid: boolean
+    errors: list
+    field: text
+
+// ── Built-in Rules ──
+to required(value, field):
+    if value is null or value is "":
+        return { valid: false, error: "{field} is required" }
+    return { valid: true }
+
+to min_length(value, field, min):
+    if text.length(value) is less than min:
+        return { valid: false, error: "{field} must be at least {min} characters" }
+    return { valid: true }
+
+to max_length(value, field, max):
+    if text.length(value) is greater than max:
+        return { valid: false, error: "{field} must be at most {max} characters" }
+    return { valid: true }
+
+to is_email(value, field):
+    if not text.contains(value, "@"):
+        return { valid: false, error: "{field} must be a valid email" }
+    if not text.contains(value, "."):
+        return { valid: false, error: "{field} must be a valid email" }
+    return { valid: true }
+
+to is_number(value, field):
+    let parsed = convert.to_number(value)
+    if parsed is null:
+        return { valid: false, error: "{field} must be a number" }
+    return { valid: true }
+
+to in_range(value, field, min, max):
+    if value is less than min or value is greater than max:
+        return { valid: false, error: "{field} must be between {min} and {max}" }
+    return { valid: true }
+
+to matches_pattern(value, field, pattern, message):
+    if not text.matches(value, pattern):
+        return { valid: false, error: message }
+    return { valid: true }
+
+to one_of(value, field, options):
+    if not list.contains(options, value):
+        let opts = text.join(options, ", ")
+        return { valid: false, error: "{field} must be one of: {opts}" }
+    return { valid: true }
+
+// ── Schema Validator ──
+to validate(data, schema):
+    let errors = []
+    let all_valid = true
+
+    for each field_name, rules in schema:
+        let value = data[field_name]
+        for each rule in rules:
+            let result = rule(value, field_name)
+            if not result.valid:
+                list.push(errors, {
+                    field: field_name,
+                    message: result.error,
+                    value: value
+                })
+                set all_valid to false
+
+    return ValidationResult:
+        valid: all_valid
+        errors: errors
+        field: "root"
+
+// ── Chaining Builder ──
+to field(name):
+    let rules = []
+    let builder = {
+        name: name,
+        rules: rules,
+        required: () ->
+            list.push(rules, (v, f) -> required(v, f))
+            return builder,
+        min: (n) ->
+            list.push(rules, (v, f) -> min_length(v, f, n))
+            return builder,
+        max: (n) ->
+            list.push(rules, (v, f) -> max_length(v, f, n))
+            return builder,
+        email: () ->
+            list.push(rules, (v, f) -> is_email(v, f))
+            return builder,
+        one_of: (opts) ->
+            list.push(rules, (v, f) -> one_of(v, f, opts))
+            return builder,
+        range: (lo, hi) ->
+            list.push(rules, (v, f) -> in_range(v, f, lo, hi))
+            return builder
+    }
+    return builder
+
+// ── Pretty Error Report ──
+to format_errors(result):
+    if result.valid:
+        show "  ✅ Validation passed!"
+        return
+
+    show "  ❌ Validation failed ({list.length(result.errors)} errors):"
+    for each err in result.errors:
+        show "    • {err.field}: {err.message}"
+
+// ═══════════════════════════════════════
+//  Demo: User Registration
+// ═══════════════════════════════════════
+
+show "╔═══════════════════════════════════════╗"
+show "║    Validation Library Demo            ║"
+show "╠═══════════════════════════════════════╣"
+
+// Define schema
+let user_schema = {
+    name: [
+        (v, f) -> required(v, f),
+        (v, f) -> min_length(v, f, 2),
+        (v, f) -> max_length(v, f, 50)
+    ],
+    email: [
+        (v, f) -> required(v, f),
+        (v, f) -> is_email(v, f)
+    ],
+    age: [
+        (v, f) -> required(v, f),
+        (v, f) -> in_range(v, f, 13, 120)
+    ],
+    role: [
+        (v, f) -> required(v, f),
+        (v, f) -> one_of(v, f, ["admin", "editor", "viewer"])
+    ]
+}
+
+// Valid user
+show "\n── Test 1: Valid User ──"
+let valid_user = {
+    name: "Alice",
+    email: "alice@lume.dev",
+    age: 28,
+    role: "admin"
+}
+let result1 = validate(valid_user, user_schema)
+format_errors(result1)
+
+// Invalid user
+show "\n── Test 2: Invalid User ──"
+let invalid_user = {
+    name: "A",
+    email: "not-an-email",
+    age: 10,
+    role: "superuser"
+}
+let result2 = validate(invalid_user, user_schema)
+format_errors(result2)
+
+// Missing fields
+show "\n── Test 3: Missing Fields ──"
+let empty_user = {
+    name: "",
+    email: null,
+    age: null,
+    role: ""
+}
+let result3 = validate(empty_user, user_schema)
+format_errors(result3)
+
+show "\n╚═══════════════════════════════════════╝"

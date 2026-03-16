@@ -1,0 +1,195 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Color System
+//  HSL/RGB/Hex color manipulation library with palettes,
+//  contrast checking, gradients, and theme generation.
+// ═══════════════════════════════════════════════════════════
+
+use math from stdlib
+use text from stdlib
+use list from stdlib
+
+// ── Color Types ──
+type RGB:
+    r: number
+    g: number
+    b: number
+
+type HSL:
+    h: number
+    s: number
+    l: number
+
+type ColorPalette:
+    name: text
+    primary: text
+    secondary: text
+    accent: text
+    background: text
+    foreground: text
+    success: text
+    warning: text
+    error: text
+
+// ── Conversions ──
+to hex_to_rgb(hex):
+    let clean = text.replace(hex, "#", "")
+    let r = convert.hex_to_int(text.slice(clean, 0, 2))
+    let g = convert.hex_to_int(text.slice(clean, 2, 4))
+    let b = convert.hex_to_int(text.slice(clean, 4, 6))
+    return RGB: r: r, g: g, b: b
+
+to rgb_to_hex(color):
+    let r = convert.int_to_hex(color.r)
+    let g = convert.int_to_hex(color.g)
+    let b = convert.int_to_hex(color.b)
+    return "#{text.pad_start(r, 2, "0")}{text.pad_start(g, 2, "0")}{text.pad_start(b, 2, "0")}"
+
+to rgb_to_hsl(color):
+    let r = color.r / 255
+    let g = color.g / 255
+    let b = color.b / 255
+    let max = math.max(r, math.max(g, b))
+    let min = math.min(r, math.min(g, b))
+    let l = (max + min) / 2
+    let h = 0
+    let s = 0
+    if max is not min:
+        let d = max - min
+        set s to d / (1 - math.abs(2 * l - 1))
+        if max is r:
+            set h to ((g - b) / d) * 60
+        else if max is g:
+            set h to ((b - r) / d + 2) * 60
+        else:
+            set h to ((r - g) / d + 4) * 60
+        if h is less than 0:
+            set h to h + 360
+    return HSL: h: math.round(h), s: math.round(s * 100), l: math.round(l * 100)
+
+// ── Color Manipulation ──
+to lighten(hex, amount):
+    let rgb = hex_to_rgb(hex)
+    let hsl = rgb_to_hsl(rgb)
+    set hsl.l to math.min(100, hsl.l + amount)
+    show "  🔆 Lightened {hex} by {amount}% → L:{hsl.l}%"
+    return hsl
+
+to darken(hex, amount):
+    let rgb = hex_to_rgb(hex)
+    let hsl = rgb_to_hsl(rgb)
+    set hsl.l to math.max(0, hsl.l - amount)
+    show "  🌑 Darkened {hex} by {amount}% → L:{hsl.l}%"
+    return hsl
+
+to saturate(hex, amount):
+    let rgb = hex_to_rgb(hex)
+    let hsl = rgb_to_hsl(rgb)
+    set hsl.s to math.min(100, hsl.s + amount)
+    return hsl
+
+to complement(hex):
+    let rgb = hex_to_rgb(hex)
+    let hsl = rgb_to_hsl(rgb)
+    set hsl.h to (hsl.h + 180) % 360
+    show "  🎨 Complement of {hex}: H:{hsl.h}°"
+    return hsl
+
+// ── Contrast ──
+to relative_luminance(hex):
+    let rgb = hex_to_rgb(hex)
+    let r = rgb.r / 255
+    let g = rgb.g / 255
+    let b = rgb.b / 255
+    // sRGB linearization
+    set r to math.pow(r, 2.2)
+    set g to math.pow(g, 2.2)
+    set b to math.pow(b, 2.2)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+to contrast_ratio(hex1, hex2):
+    let l1 = relative_luminance(hex1)
+    let l2 = relative_luminance(hex2)
+    let lighter = math.max(l1, l2)
+    let darker = math.min(l1, l2)
+    return (lighter + 0.05) / (darker + 0.05)
+
+to check_wcag(fg, bg):
+    let ratio = contrast_ratio(fg, bg)
+    let aa_normal = ratio is at least 4.5
+    let aa_large = ratio is at least 3.0
+    let aaa_normal = ratio is at least 7.0
+    return {
+        ratio: math.round(ratio * 100) / 100,
+        aa_normal: aa_normal,
+        aa_large: aa_large,
+        aaa_normal: aaa_normal
+    }
+
+// ── Palette Generator ──
+to generate_palette(base_hex, name):
+    let hsl = rgb_to_hsl(hex_to_rgb(base_hex))
+
+    return ColorPalette:
+        name: name
+        primary: base_hex
+        secondary: "hsl({(hsl.h + 30) % 360}, {hsl.s}%, {hsl.l}%)"
+        accent: "hsl({(hsl.h + 180) % 360}, {hsl.s}%, {hsl.l}%)"
+        background: "hsl({hsl.h}, {math.round(hsl.s * 0.1)}%, 98%)"
+        foreground: "hsl({hsl.h}, {math.round(hsl.s * 0.3)}%, 12%)"
+        success: "#22c55e"
+        warning: "#f59e0b"
+        error: "#ef4444"
+
+// ── Gradient Generation ──
+to generate_gradient(color1, color2, steps):
+    let rgb1 = hex_to_rgb(color1)
+    let rgb2 = hex_to_rgb(color2)
+    let gradient = []
+    for i in 0 to steps:
+        let t = i / (steps - 1)
+        let r = math.round(rgb1.r + (rgb2.r - rgb1.r) * t)
+        let g = math.round(rgb1.g + (rgb2.g - rgb1.g) * t)
+        let b = math.round(rgb1.b + (rgb2.b - rgb1.b) * t)
+        list.push(gradient, rgb_to_hex(RGB: r: r, g: g, b: b))
+    return gradient
+
+// ═══════════════════════════════════════
+//  Demo
+// ═══════════════════════════════════════
+
+show "╔═══════════════════════════════════════╗"
+show "║       Color System Demo               ║"
+show "╠═══════════════════════════════════════╣"
+
+let brand = "#6366f1"
+
+show "\n── Color Manipulation ──"
+lighten(brand, 20)
+darken(brand, 20)
+complement(brand)
+
+show "\n── WCAG Contrast Check ──"
+let white = "#ffffff"
+let dark = "#1a1a2e"
+let wcag1 = check_wcag(brand, white)
+show "  {brand} on {white}: {wcag1.ratio}:1"
+show "    AA Normal: {wcag1.aa_normal} | AA Large: {wcag1.aa_large} | AAA: {wcag1.aaa_normal}"
+
+let wcag2 = check_wcag(white, dark)
+show "  {white} on {dark}: {wcag2.ratio}:1"
+show "    AA Normal: {wcag2.aa_normal} | AA Large: {wcag2.aa_large} | AAA: {wcag2.aaa_normal}"
+
+show "\n── Generated Palette ──"
+let palette = generate_palette(brand, "Indigo Dream")
+show "  Name:       {palette.name}"
+show "  Primary:    {palette.primary}"
+show "  Secondary:  {palette.secondary}"
+show "  Accent:     {palette.accent}"
+show "  Background: {palette.background}"
+show "  Foreground: {palette.foreground}"
+
+show "\n── Gradient ──"
+let grad = generate_gradient("#6366f1", "#ec4899", 5)
+show "  {text.join(grad, " → ")}"
+
+show "\n╚═══════════════════════════════════════╝"

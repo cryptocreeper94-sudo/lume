@@ -1,0 +1,185 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Observable Store
+//  A reactive state management system inspired by Redux/MobX
+//  with actions, computed values, and subscriptions.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+use time from stdlib
+
+// ── Store Type ──
+type Store:
+    name: text
+    state: map
+    subscribers: list
+    history: list
+    computed: map
+    actions: map
+
+// ── Create Store ──
+to create_store(name, initial_state):
+    return Store:
+        name: name
+        state: initial_state
+        subscribers: []
+        history: [{ state: initial_state, timestamp: time.now(), action: "INIT" }]
+        computed: {}
+        actions: {}
+
+// ── Subscribe ──
+to subscribe(store, handler):
+    list.push(store.subscribers, handler)
+    show "  👁️ Subscriber added to '{store.name}'"
+    return list.length(store.subscribers) - 1
+
+to unsubscribe(store, index):
+    list.remove_at(store.subscribers, index)
+
+// ── Dispatch ──
+to dispatch(store, action_name, payload):
+    let action = store.actions[action_name]
+    if action is null:
+        show "  ❌ Unknown action: {action_name}"
+        return
+
+    let old_state = store.state
+    let new_state = action(store.state, payload)
+    set store.state to new_state
+
+    // Record history
+    list.push(store.history, {
+        action: action_name,
+        payload: payload,
+        state: new_state,
+        timestamp: time.now()
+    })
+
+    show "  ⚡ DISPATCH '{action_name}'"
+
+    // Notify subscribers
+    for each subscriber in store.subscribers:
+        subscriber(new_state, old_state, action_name)
+
+// ── Register Action ──
+to register_action(store, name, reducer):
+    set store.actions[name] to reducer
+    show "  📦 Action registered: {name}"
+
+// ── Computed Values ──
+to add_computed(store, name, compute_fn):
+    set store.computed[name] to compute_fn
+    show "  🧮 Computed value: {name}"
+
+to get_computed(store, name):
+    let compute_fn = store.computed[name]
+    if compute_fn is null:
+        return null
+    return compute_fn(store.state)
+
+// ── Selectors ──
+to select(store, path):
+    return store.state[path]
+
+// ── Time Travel ──
+to undo(store):
+    if list.length(store.history) is less than 2:
+        show "  ⚠️ Nothing to undo"
+        return
+    list.pop(store.history)
+    let prev = list.last(store.history)
+    set store.state to prev.state
+    show "  ⏪ Undo → reverted to {prev.action}"
+
+to get_history(store):
+    return store.history
+
+// ── Store Dashboard ──
+to show_store(store):
+    show "\n╔═══════════════════════════════════════╗"
+    show "║  Store: {store.name}"
+    show "╠═══════════════════════════════════════╣"
+    show "║  Subscribers: {list.length(store.subscribers)}"
+    show "║  Actions:     {list.length(store.actions)} registered"
+    show "║  History:     {list.length(store.history)} entries"
+    show "║"
+    show "║  Current State:"
+    for each key, value in store.state:
+        show "║    {key}: {value}"
+    show "║"
+    show "║  Computed:"
+    for each name, fn in store.computed:
+        let val = fn(store.state)
+        show "║    {name}: {val}"
+    show "╚═══════════════════════════════════════╝"
+
+// ═══════════════════════════════════════
+//  Demo: Shopping Cart Store
+// ═══════════════════════════════════════
+
+show "🏪 Observable Store Demo"
+show "═══════════════════════════════════"
+
+let cart = create_store("ShoppingCart", {
+    items: [],
+    discount: 0,
+    currency: "USD"
+})
+
+// Register actions
+register_action(cart, "ADD_ITEM", (state, item) ->
+    let new_items = list.concat(state.items, [item])
+    return { items: new_items, discount: state.discount, currency: state.currency }
+)
+
+register_action(cart, "REMOVE_ITEM", (state, index) ->
+    let new_items = list.remove_at(state.items, index)
+    return { items: new_items, discount: state.discount, currency: state.currency }
+)
+
+register_action(cart, "APPLY_DISCOUNT", (state, percent) ->
+    return { items: state.items, discount: percent, currency: state.currency }
+)
+
+register_action(cart, "CLEAR_CART", (state, _) ->
+    return { items: [], discount: 0, currency: state.currency }
+)
+
+// Add computed values
+add_computed(cart, "total", (state) ->
+    let sum = 0
+    for each item in state.items:
+        set sum to sum + item.price
+    return sum
+)
+
+add_computed(cart, "total_with_discount", (state) ->
+    let sum = 0
+    for each item in state.items:
+        set sum to sum + item.price
+    return sum * (1 - state.discount / 100)
+)
+
+add_computed(cart, "item_count", (state) ->
+    return list.length(state.items)
+)
+
+// Subscribe to changes
+subscribe(cart, (state, old_state, action) ->
+    show "    [observer] State changed via {action}"
+    show "    [observer] Items: {list.length(state.items)}"
+)
+
+// Dispatch actions
+show "\n── Shop Operations ──"
+dispatch(cart, "ADD_ITEM", { name: "Laptop", price: 999 })
+dispatch(cart, "ADD_ITEM", { name: "Mouse", price: 29 })
+dispatch(cart, "ADD_ITEM", { name: "Keyboard", price: 79 })
+dispatch(cart, "APPLY_DISCOUNT", 10)
+
+show_store(cart)
+
+// Time travel
+show "\n── Time Travel ──"
+undo(cart)  // Undo discount
+show_store(cart)

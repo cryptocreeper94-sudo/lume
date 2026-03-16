@@ -7,7 +7,7 @@ let answer = ask gpt4 "Summarize this article"
 show answer
 ```
 
-[![Tests](https://img.shields.io/badge/tests-552%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Tests](https://img.shields.io/badge/tests-2%2C093%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
@@ -112,9 +112,10 @@ lume run examples/discount.lume     # Pattern matching
 
 ## Project Stats
 
-- **552 tests** — 0 failures
-- **102 patterns** in the English Mode resolver
-- **11K+ lines** of source code
+- **2,093 tests** — 0 failures across 505 suites
+- **102+ patterns** in the English Mode resolver
+- **14K+ lines** of source code
+- **38 example programs**
 - **18+ CLI commands**
 - **13 milestones** complete
 - **MIT licensed**

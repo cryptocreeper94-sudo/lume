@@ -1,0 +1,124 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: State Machine
+//  A finite state machine for modeling complex workflows
+//  like order processing, game states, or UI flows.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+
+// ── State Machine Type ──
+type StateMachine:
+    name: text
+    current_state: text
+    states: map
+    transitions: list
+    history: list
+
+// ── Create Machine ──
+to create_machine(name, initial_state, states):
+    return StateMachine:
+        name: name
+        current_state: initial_state
+        states: states
+        transitions: []
+        history: [initial_state]
+
+// ── Define Transitions ──
+to add_transition(machine, from_state, event, to_state, guard):
+    let transition = {
+        from: from_state,
+        event: event,
+        to: to_state,
+        guard: guard
+    }
+    list.push(machine.transitions, transition)
+    show "  ↗️ {from_state} --[{event}]--> {to_state}"
+
+// ── Trigger Events ──
+to trigger(machine, event, context):
+    let valid = list.filter(machine.transitions, t ->
+        t.from is machine.current_state and t.event is event
+    )
+    if list.length(valid) is 0:
+        show "  ❌ No transition for '{event}' from '{machine.current_state}'"
+        return false
+
+    let transition = list.first(valid)
+
+    // Check guard condition
+    if transition.guard is not null:
+        let allowed = transition.guard(context)
+        if not allowed:
+            show "  🛑 Guard rejected transition"
+            return false
+
+    let old_state = machine.current_state
+    set machine.current_state to transition.to
+    list.push(machine.history, transition.to)
+
+    show "  ✅ {old_state} → {machine.current_state} (via {event})"
+    return true
+
+// ── Query State ──
+to is_in_state(machine, state):
+    return machine.current_state is state
+
+to get_history(machine):
+    return machine.history
+
+to get_available_events(machine):
+    return list.filter(machine.transitions, t ->
+        t.from is machine.current_state
+    )
+
+// ═══════════════════════════════════════
+//  Order Processing Example
+// ═══════════════════════════════════════
+
+show "╔═══════════════════════════════════════╗"
+show "║   Order State Machine Demo            ║"
+show "╠═══════════════════════════════════════╣"
+
+// Define states
+let states = {
+    draft: { label: "Draft", color: "gray" },
+    submitted: { label: "Submitted", color: "blue" },
+    approved: { label: "Approved", color: "green" },
+    rejected: { label: "Rejected", color: "red" },
+    shipped: { label: "Shipped", color: "purple" },
+    delivered: { label: "Delivered", color: "teal" },
+    cancelled: { label: "Cancelled", color: "orange" }
+}
+
+let order = create_machine("Order #1042", "draft", states)
+
+// Define valid transitions
+show "\n📐 Defining Transitions:"
+add_transition(order, "draft", "submit", "submitted", null)
+add_transition(order, "submitted", "approve", "approved", null)
+add_transition(order, "submitted", "reject", "rejected", null)
+add_transition(order, "approved", "ship", "shipped", null)
+add_transition(order, "shipped", "deliver", "delivered", null)
+add_transition(order, "draft", "cancel", "cancelled", null)
+add_transition(order, "submitted", "cancel", "cancelled", null)
+
+// Process the order
+show "\n🔄 Processing Order:"
+trigger(order, "submit", {})
+trigger(order, "approve", {})
+trigger(order, "ship", {})
+trigger(order, "deliver", {})
+
+// Try invalid transition
+show "\n⚠️ Attempting invalid transition:"
+trigger(order, "submit", {})
+
+// Show history
+show "\n📜 State History:"
+let history = get_history(order)
+for each state, idx in history:
+    show "  {idx + 1}. {state}"
+
+show "\n║  Final State: {order.current_state}"
+show "╚═══════════════════════════════════════╝"

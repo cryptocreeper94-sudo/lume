@@ -1,0 +1,158 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Router
+//  A URL router with path parameters, middleware,
+//  wildcard routes, and HTTP method matching.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+
+// ── Route Type ──
+type Route:
+    method: text
+    path: text
+    handler: any
+    middleware: list
+    params: map
+
+// ── Router ──
+define routes = []
+define global_middleware = []
+
+to use(handler):
+    list.push(global_middleware, handler)
+    show "  🔧 Global middleware added"
+
+to get(path, handler):
+    register("GET", path, handler)
+
+to post(path, handler):
+    register("POST", path, handler)
+
+to put(path, handler):
+    register("PUT", path, handler)
+
+to del(path, handler):
+    register("DELETE", path, handler)
+
+to register(method, path, handler):
+    let route = Route:
+        method: method
+        path: path
+        handler: handler
+        middleware: []
+        params: {}
+    list.push(routes, route)
+    show "  📍 {method} {path}"
+
+// ── Path Matching ──
+to match_path(pattern, url):
+    let pattern_parts = text.split(pattern, "/")
+    let url_parts = text.split(url, "/")
+
+    if list.length(pattern_parts) is not list.length(url_parts):
+        // Check for wildcard
+        if text.ends_with(pattern, "*"):
+            return text.starts_with(url, text.replace(pattern, "*", ""))
+        return false
+
+    let params = {}
+    for each part, idx in pattern_parts:
+        let url_part = url_parts[idx]
+        if text.starts_with(part, ":"):
+            let param_name = text.slice(part, 1)
+            set params[param_name] to url_part
+        else if part is not url_part:
+            return false
+
+    return { matched: true, params: params }
+
+// ── Request Handling ──
+to handle_request(method, url, body):
+    show "\n  📨 {method} {url}"
+
+    // Find matching route
+    let matched_route = null
+    let route_params = {}
+
+    for each route in routes:
+        if route.method is method:
+            let result = match_path(route.path, url)
+            if result is not false:
+                set matched_route to route
+                if result.params is not null:
+                    set route_params to result.params
+                break
+
+    if matched_route is null:
+        show "  ❌ 404 Not Found"
+        return { status: 404, body: "Not Found" }
+
+    // Build request context
+    let ctx = {
+        method: method,
+        url: url,
+        params: route_params,
+        body: body,
+        headers: {},
+        status: 200,
+        response: null
+    }
+
+    // Run global middleware
+    for each mw in global_middleware:
+        set ctx to mw(ctx)
+        if ctx.status is not 200:
+            show "  ⛔ Middleware halted: {ctx.status}"
+            return ctx
+
+    // Run route handler
+    let response = matched_route.handler(ctx)
+    show "  ✅ {ctx.status} → {response}"
+    return { status: ctx.status, body: response }
+
+// ── Route Dashboard ──
+to show_routes():
+    show "\n╔═══════════════════════════════════════╗"
+    show "║        Router Dashboard               ║"
+    show "╠═══════════════════════════════════════╣"
+    show "║  Routes: {list.length(routes)}"
+    show "║  Middleware: {list.length(global_middleware)}"
+    show "║"
+    for each route in routes:
+        show "║  {route.method}  {route.path}"
+    show "╚═══════════════════════════════════════╝"
+
+// ═══════════════════════════════════════
+//  Demo
+// ═══════════════════════════════════════
+
+show "🛤️ Router Demo"
+show "═══════════════════════════════"
+
+// Add logging middleware
+use((ctx) ->
+    show "  [log] {ctx.method} {ctx.url}"
+    return ctx
+)
+
+// Define routes
+show "\n📍 Registering routes:"
+get("/", (ctx) -> "Welcome to Lume!")
+get("/users", (ctx) -> "List of users")
+get("/users/:id", (ctx) -> "User #{ctx.params.id}")
+post("/users", (ctx) -> "Created user: {ctx.body.name}")
+put("/users/:id", (ctx) -> "Updated user #{ctx.params.id}")
+del("/users/:id", (ctx) -> "Deleted user #{ctx.params.id}")
+get("/api/*", (ctx) -> "API endpoint: {ctx.url}")
+
+show_routes()
+
+// Handle requests
+show "\n── Processing Requests ──"
+handle_request("GET", "/", null)
+handle_request("GET", "/users", null)
+handle_request("GET", "/users/42", null)
+handle_request("POST", "/users", { name: "Alice" })
+handle_request("DELETE", "/users/7", null)
+handle_request("GET", "/unknown", null)

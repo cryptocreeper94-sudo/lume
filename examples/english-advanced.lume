@@ -1,0 +1,145 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Advanced English Mode
+///  Demonstrates complex natural language patterns
+///  that compile to structured Lume code.
+/// ═══════════════════════════════════════════════════════════
+
+mode: english
+
+/// ── Pattern 1: Natural CRUD Operations ──
+
+create a user with name "Alice" and email "alice@lume.dev"
+get the user where id is 1
+update the user where id is 1 set name to "Alice Chen"
+delete the user where id is 1
+
+/// ── Pattern 2: Conditional Logic (Natural) ──
+
+if the temperature is greater than 100:
+    show "🔥 Critical temperature!"
+    send alert to operations team
+else if the temperature is at least 80:
+    show "⚠️ Warning: temperature rising"
+else:
+    show "✅ Temperature normal"
+
+/// ── Pattern 3: Data Processing (English) ──
+
+get all orders from the database
+filter orders where status is "pending"
+sort orders by created_date
+take the first 10 orders
+show "Top 10 pending orders: {orders}"
+
+/// ── Pattern 4: Pipe Chains ──
+
+let report = get all sales
+    |> filter where amount is greater than 100
+    |> sort by date
+    |> group by category
+    |> summarize total and average
+
+/// ── Pattern 5: Intent-Based Error Handling ──
+
+try:
+    fetch data from "https://api.example.com/users"
+    if the response is not ok:
+        show "Server returned an error"
+with error:
+    show "Failed to reach the server: {error}"
+    log "API failure at {time.timestamp()}"
+
+/// ── Pattern 6: Natural Loops ──
+
+for each product in the catalog:
+    if the product price is at most 50:
+        add product to the affordable list
+    
+    if the product has a discount:
+        let discounted_price = product.price * (1 - product.discount)
+        show "{product.name}: ${discounted_price} (was ${product.price})"
+
+/// ── Pattern 7: AI Integration (Natural) ──
+
+let user_question = read "Ask me anything: "
+let answer = ask "Given this question from a user: {user_question}, provide a concise helpful answer"
+show "Answer: {answer}"
+
+let code = think "Write a sorting algorithm for a list of numbers"
+show "Generated code:\n{code}"
+
+let summary = generate "A 2-paragraph summary of quantum computing for beginners"
+show summary
+
+/// ── Pattern 8: Type Declarations (Natural) ──
+
+type ShoppingCart:
+    items: list of CartItem
+    total: number
+    discount_code: maybe text
+    applied_discount: number
+
+type CartItem:
+    product_id: number
+    name: text
+    price: number
+    quantity: number
+
+/// ── Pattern 9: Event-Driven Patterns ──
+
+when the user clicks the submit button:
+    validate the form fields
+    if all fields are valid:
+        save the form data
+        show "✅ Form submitted successfully!"
+        navigate to the confirmation page
+    else:
+        show "❌ Please fix the highlighted errors"
+        highlight the invalid fields
+
+/// ── Pattern 10: Natural Language Assertions ──
+
+test "cart total calculation":
+    let cart = create empty cart
+    add item with price 10 and quantity 2
+    add item with price 25 and quantity 1
+    expect cart total to equal 45
+
+test "discount application":
+    let cart = create cart with items
+    apply discount code "SAVE20"
+    expect cart discount to equal 20
+    expect cart total to be less than original total
+
+/// ── Pattern 11: Complex Business Logic ──
+
+define process_order(order):
+    // Validate stock
+    for each item in order.items:
+        if item.quantity is greater than item.stock:
+            fail "Insufficient stock for {item.name}"
+    
+    // Calculate totals
+    let subtotal = math.sum(list.map(order.items, i -> i.price * i.quantity))
+    let tax = subtotal * 0.08
+    let shipping = 0
+    if subtotal is less than 50:
+        set shipping = 9.99
+    
+    let total = subtotal + tax + shipping
+    
+    // Apply loyalty discount
+    if order.customer.loyalty_tier is "gold":
+        set total = total * 0.9
+    else if order.customer.loyalty_tier is "platinum":
+        set total = total * 0.85
+    
+    return {
+        subtotal: subtotal,
+        tax: math.round(tax * 100) / 100,
+        shipping: shipping,
+        total: math.round(total * 100) / 100,
+        status: "confirmed"
+    }
+
+show "✅ English Mode advanced patterns demo complete!"

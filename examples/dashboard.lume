@@ -1,0 +1,117 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Real-Time Dashboard
+///  Demonstrates monitoring, data aggregation,
+///  and periodic updates with formatters.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define refresh_interval = 5000  // 5 seconds
+define alert_threshold = 90
+
+/// --- Data Types ---
+type MetricPoint:
+    value: number
+    timestamp: text
+
+type DashboardState:
+    cpu: list of MetricPoint
+    memory: list of MetricPoint
+    requests: list of MetricPoint
+    errors: number
+    uptime: number
+
+/// --- Simulated Data Source ---
+define generate_metric(min_val, max_val):
+    let value = math.random_int(min_val, max_val)
+    return MetricPoint:
+        value: value
+        timestamp: time.timestamp()
+
+/// --- Data Collection ---
+define collect_metrics(state):
+    let cpu_point = generate_metric(10, 95)
+    let mem_point = generate_metric(40, 85)
+    let req_point = generate_metric(100, 5000)
+    
+    return DashboardState:
+        cpu: list.take(state.cpu + [cpu_point], 60)
+        memory: list.take(state.memory + [mem_point], 60)
+        requests: list.take(state.requests + [req_point], 60)
+        errors: state.errors + math.random_int(0, 3)
+        uptime: state.uptime + refresh_interval
+
+/// --- Formatters ---
+define format_bar(value, max_val, width):
+    let filled = math.round(value / max_val * width)
+    let bar = "█".repeat(filled) + "░".repeat(width - filled)
+    return bar
+
+define format_number(n):
+    if n is at least 1000000:
+        return convert.to_text(math.round(n / 1000000)) + "M"
+    if n is at least 1000:
+        return convert.to_text(math.round(n / 1000)) + "K"
+    return convert.to_text(n)
+
+define format_uptime(ms):
+    let seconds = math.floor(ms / 1000)
+    let minutes = math.floor(seconds / 60)
+    let hours = math.floor(minutes / 60)
+    return "{hours}h {minutes % 60}m {seconds % 60}s"
+
+/// --- Alert System ---
+define check_alerts(state):
+    let latest_cpu = list.last(state.cpu)
+    if latest_cpu.value is at least alert_threshold:
+        show "  🚨 ALERT: CPU at {latest_cpu.value}% — exceeds {alert_threshold}% threshold!"
+    
+    let latest_mem = list.last(state.memory)
+    if latest_mem.value is at least alert_threshold:
+        show "  🚨 ALERT: Memory at {latest_mem.value}% — exceeds {alert_threshold}% threshold!"
+
+/// --- Rendering ---
+define render_dashboard(state):
+    let cpu = list.last(state.cpu)
+    let mem = list.last(state.memory)
+    let reqs = list.last(state.requests)
+    
+    let avg_cpu = math.average(list.map(state.cpu, p -> p.value))
+    let avg_mem = math.average(list.map(state.memory, p -> p.value))
+    let total_reqs = math.sum(list.map(state.requests, p -> p.value))
+    
+    show "\n╔══════════════════════════════════════════╗"
+    show "║       ✦ Lume Dashboard Monitor          ║"
+    show "╠══════════════════════════════════════════╣"
+    show "║  Uptime: {format_uptime(state.uptime)}"
+    show "╠══════════════════════════════════════════╣"
+    show "║  CPU     {format_bar(cpu.value, 100, 20)} {cpu.value}%"
+    show "║  Memory  {format_bar(mem.value, 100, 20)} {mem.value}%"
+    show "║  Req/s   {format_number(reqs.value)}"
+    show "╠══════════════════════════════════════════╣"
+    show "║  Avg CPU: {math.round(avg_cpu)}%  |  Avg Mem: {math.round(avg_mem)}%"
+    show "║  Total Requests: {format_number(total_reqs)}"
+    show "║  Errors: {state.errors}"
+    show "╚══════════════════════════════════════════╝"
+    
+    check_alerts(state)
+
+/// --- Main ---
+show "✦ Starting Dashboard Monitor..."
+
+let state = DashboardState:
+    cpu: []
+    memory: []
+    requests: []
+    errors: 0
+    uptime: 0
+
+// Run 5 cycles
+for each cycle in list.range(1, 6):
+    set state = collect_metrics(state)
+    render_dashboard(state)
+    
+    if cycle is less than 5:
+        show "\n  ⏳ Refreshing in {refresh_interval / 1000}s...\n"
+        await time.sleep(refresh_interval)
+
+show "\n✅ Dashboard demo complete!"

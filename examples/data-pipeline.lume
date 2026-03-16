@@ -1,0 +1,150 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: ETL Data Pipeline
+///  Demonstrates data extraction, transformation,
+///  loading with validation and error handling.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define pipeline_name = "user-analytics-etl"
+define batch_size = 100
+
+/// --- Types ---
+type RawRecord:
+    id: number
+    name: text
+    email: text
+    signup_date: text
+    purchases: number
+    total_spent: number
+
+type CleanRecord:
+    id: number
+    name: text
+    email: text
+    signup_year: number
+    customer_tier: text
+    lifetime_value: number
+    is_active: boolean
+
+type PipelineStats:
+    extracted: number
+    transformed: number
+    loaded: number
+    errors: number
+    duration_ms: number
+
+/// --- Extract Phase ---
+define extract_data():
+    show "📥 Extracting records..."
+    
+    // Simulated data source
+    let raw_data = [
+        { id: 1, name: "Alice Chen", email: "alice@mail.com", signup_date: "2023-01-15", purchases: 42, total_spent: 1250.00 },
+        { id: 2, name: "Bob Wright", email: "bob@mail.com", signup_date: "2024-06-20", purchases: 5, total_spent: 89.99 },
+        { id: 3, name: "", email: "invalid", signup_date: "2022-11-03", purchases: 120, total_spent: 4500.00 },
+        { id: 4, name: "Diana Reyes", email: "diana@mail.com", signup_date: "2023-08-12", purchases: 28, total_spent: 750.50 },
+        { id: 5, name: "Eve Parker", email: "eve@mail.com", signup_date: "2024-01-01", purchases: 0, total_spent: 0 },
+        { id: 6, name: "Frank Miller", email: "frank@mail.com", signup_date: "2021-03-22", purchases: 200, total_spent: 8900.00 },
+    ]
+    
+    show "  → Extracted {list.count(raw_data)} records"
+    return raw_data
+
+/// --- Transform Phase ---
+define classify_tier(total_spent):
+    if total_spent is at least 5000:
+        return "Platinum"
+    if total_spent is at least 1000:
+        return "Gold"
+    if total_spent is at least 100:
+        return "Silver"
+    return "Bronze"
+
+define validate_record(record):
+    if record.name is "":
+        return { valid: false, reason: "Missing name" }
+    if text.contains(record.email, "@") is false:
+        return { valid: false, reason: "Invalid email" }
+    return { valid: true, reason: "" }
+
+define transform_record(raw):
+    let year = convert.to_number(text.slice(raw.signup_date, 0, 4))
+    
+    return CleanRecord:
+        id: raw.id
+        name: text.trim(raw.name)
+        email: text.lower(raw.email)
+        signup_year: year
+        customer_tier: classify_tier(raw.total_spent)
+        lifetime_value: math.round(raw.total_spent * 100) / 100
+        is_active: raw.purchases is greater than 0
+
+define transform_batch(records):
+    show "🔄 Transforming records..."
+    let clean = []
+    let errors = 0
+    
+    for each record in records:
+        let validation = validate_record(record)
+        if validation.valid:
+            let transformed = transform_record(record)
+            set clean = clean + [transformed]
+        else:
+            set errors = errors + 1
+            show "  ⚠️  Skipped record #{record.id}: {validation.reason}"
+    
+    show "  → Transformed {list.count(clean)} records ({errors} skipped)"
+    return { records: clean, errors: errors }
+
+/// --- Load Phase ---
+define load_data(records):
+    show "📤 Loading to destination..."
+    
+    let loaded = 0
+    for each record in records:
+        // Simulate loading
+        set loaded = loaded + 1
+    
+    show "  → Loaded {loaded} records"
+    return loaded
+
+/// --- Aggregation ---
+define generate_summary(records):
+    show "\n📊 Pipeline Summary:"
+    show "─".repeat(40)
+    
+    let tiers = list.group_by(records, r -> r.customer_tier)
+    for each tier_name in ["Platinum", "Gold", "Silver", "Bronze"]:
+        let tier_records = tiers[tier_name] or []
+        let count = list.count(tier_records)
+        if count is greater than 0:
+            let total_ltv = math.sum(list.map(tier_records, r -> r.lifetime_value))
+            show "  {tier_name}: {count} customers, LTV: ${total_ltv}"
+    
+    let active = list.filter(records, r -> r.is_active)
+    let inactive = list.filter(records, r -> r.is_active is false)
+    show "\n  Active: {list.count(active)} | Inactive: {list.count(inactive)}"
+
+/// --- Main Pipeline ---
+show "═".repeat(50)
+show "  ✦ Lume ETL Pipeline: {pipeline_name}"
+show "═".repeat(50)
+
+let start = time.now()
+
+// Extract
+let raw = extract_data()
+
+// Transform
+let result = transform_batch(raw)
+
+// Load
+let loaded = load_data(result.records)
+
+let duration = time.elapsed(start)
+
+// Summary
+generate_summary(result.records)
+
+show "\n✅ Pipeline complete in {duration}ms"
+show "   Extracted: {list.count(raw)} | Transformed: {list.count(result.records)} | Loaded: {loaded} | Errors: {result.errors}"

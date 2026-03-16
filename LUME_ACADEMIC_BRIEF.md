@@ -477,7 +477,7 @@ The "certified at birth" paradigm — code that is provably security-verified fr
 | Voice Config Loader | 70 | `src/intent-resolver/voice-config.js` |
 | CLI Voice Command | 190 | `bin/lume.js` (within 1,020-line CLI) |
 | Playground Mic Integration | 65 | `website/src/pages/PlaygroundPage.jsx` |
-| Pattern Library | 34 patterns | `src/intent-resolver/pattern-library.js` |
+| Pattern Library | 102+ patterns | `src/intent-resolver/pattern-library.js` |
 | Intent Resolver (full) | ~1,200 | `src/intent-resolver/index.js` + sub-modules |
 | Auto-Correct Layer | ~300 | `src/intent-resolver/auto-correct.js` |
 | Fuzzy Matcher | ~200 | `src/intent-resolver/fuzzy-matcher.js` |
@@ -489,8 +489,8 @@ The "certified at birth" paradigm — code that is provably security-verified fr
 | Metric | Value |
 |--------|-------|
 | Compiler milestones | 15 |
-| Test suite | 552+ tests |
-| Pattern Library patterns | 34+ |
+| Test suite | 2,093+ tests (0 failures) |
+| Pattern Library patterns | 102+ |
 | Homophone pairs | 10 |
 | Filler words | 20 |
 | Spoken punctuation patterns | 12 |

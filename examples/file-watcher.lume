@@ -1,0 +1,117 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: File Watcher
+///  Demonstrates file system monitoring, event handling,
+///  debouncing, and pattern matching.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define watch_dir = "./src"
+define poll_interval = 1000
+define debounce_ms = 300
+
+/// --- Types ---
+type FileEvent:
+    path: text
+    event_type: text    // "created" | "modified" | "deleted"
+    size: number
+    timestamp: text
+
+type WatchRule:
+    pattern: text
+    action: text
+    description: text
+
+/// --- Watch Rules ---
+define rules = [
+    { pattern: ".lume", action: "compile", description: "Auto-compile Lume files" },
+    { pattern: ".css", action: "reload", description: "Hot-reload stylesheets" },
+    { pattern: ".test.", action: "test", description: "Auto-run related tests" },
+    { pattern: ".md", action: "docs", description: "Regenerate documentation" },
+]
+
+/// --- File Tracking ---
+define known_files = {}
+define event_log = []
+
+/// --- Pattern Matching ---
+define matches_rule(filename, rule):
+    return text.contains(filename, rule.pattern)
+
+define find_rules(filename):
+    return list.filter(rules, r -> matches_rule(filename, r))
+
+/// --- Event Processing ---
+define process_event(event):
+    let matching = find_rules(event.path)
+    
+    if list.empty(matching):
+        log "  [skip] {event.path} — no matching rules"
+        return ok
+    
+    for each rule in matching:
+        show "  [{rule.action}] {event.path} — {rule.description}"
+        
+        if rule.action is "compile":
+            show "    → Compiling {event.path}..."
+            show "    ✓ Compiled successfully"
+        else if rule.action is "reload":
+            show "    → Hot-reloading styles..."
+            show "    ✓ Browser refreshed"
+        else if rule.action is "test":
+            show "    → Running tests..."
+            show "    ✓ 12/12 tests passed"
+        else if rule.action is "docs":
+            show "    → Regenerating docs..."
+            show "    ✓ Documentation updated"
+
+/// --- Display ---
+define show_config():
+    show "╔═══════════════════════════════════════╗"
+    show "║      ✦ Lume File Watcher             ║"
+    show "╠═══════════════════════════════════════╣"
+    show "║  Directory: {watch_dir}"
+    show "║  Poll: {poll_interval}ms | Debounce: {debounce_ms}ms"
+    show "╠═══════════════════════════════════════╣"
+    show "║  Watch Rules:"
+    for each rule in rules:
+        show "║    *{rule.pattern} → {rule.action}"
+    show "╚═══════════════════════════════════════╝"
+
+define show_summary():
+    show "\n📊 Session Summary:"
+    show "  Events processed: {list.count(event_log)}"
+    let by_type = list.group_by(event_log, e -> e.event_type)
+    for each type_name in ["created", "modified", "deleted"]:
+        let events = by_type[type_name] or []
+        if list.count(events) is greater than 0:
+            show "  {type_name}: {list.count(events)}"
+
+/// --- Main ---
+show_config()
+show "\n👁️  Watching for changes...\n"
+
+// Simulate file events
+let simulated_events = [
+    { path: "src/app.lume", event_type: "modified", size: 1024, timestamp: time.timestamp() },
+    { path: "src/styles.css", event_type: "modified", size: 512, timestamp: time.timestamp() },
+    { path: "src/utils.test.lume", event_type: "modified", size: 256, timestamp: time.timestamp() },
+    { path: "src/README.md", event_type: "modified", size: 2048, timestamp: time.timestamp() },
+    { path: "src/new-feature.lume", event_type: "created", size: 128, timestamp: time.timestamp() },
+    { path: "src/old-file.lume", event_type: "deleted", size: 0, timestamp: time.timestamp() },
+    { path: "src/app.config", event_type: "modified", size: 64, timestamp: time.timestamp() },
+]
+
+for each event in simulated_events:
+    show "━".repeat(40)
+    let icon = "📝"
+    if event.event_type is "created":
+        set icon = "✨"
+    else if event.event_type is "deleted":
+        set icon = "🗑️"
+    
+    show "{icon} {event.event_type}: {event.path} ({event.size}B)"
+    process_event(event)
+    set event_log = event_log + [event]
+
+show_summary()
+show "\n✅ File watcher demo complete!"

@@ -15,6 +15,10 @@ import SmsOptIn from './pages/SmsOptIn'
 import SecurityPage from './pages/SecurityPage'
 import PricingPage from './pages/PricingPage'
 import PlaygroundPage from './pages/PlaygroundPage'
+import DocsPage from './pages/DocsPage'
+import TutorialPage from './pages/TutorialPage'
+import ChangelogPage from './pages/ChangelogPage'
+import ShowcasePage from './pages/ShowcasePage'
 
 export default function App() {
     return (
@@ -34,6 +38,10 @@ export default function App() {
                 <Route path="/security" element={<SecurityPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/playground" element={<PlaygroundPage />} />
+                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/tutorials" element={<TutorialPage />} />
+                <Route path="/changelog" element={<ChangelogPage />} />
+                <Route path="/showcase" element={<ShowcasePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />

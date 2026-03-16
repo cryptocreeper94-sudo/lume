@@ -1,0 +1,179 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Logger System
+//  Structured logging with levels, formatters, transports,
+//  context propagation, and log rotation.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use time from stdlib
+use list from stdlib
+
+// ── Log Levels ──
+define LOG_LEVELS = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3,
+    fatal: 4
+}
+
+define LEVEL_ICONS = {
+    debug: "🔍",
+    info: "ℹ️",
+    warn: "⚠️",
+    error: "❌",
+    fatal: "💀"
+}
+
+define LEVEL_COLORS = {
+    debug: "gray",
+    info: "blue",
+    warn: "yellow",
+    error: "red",
+    fatal: "magenta"
+}
+
+// ── Logger Config ──
+type LoggerConfig:
+    name: text
+    level: text = "info"
+    format: text = "text"
+    transports: list
+    context: map
+
+// ── Log Entry ──
+type LogEntry:
+    timestamp: text
+    level: text
+    message: text
+    context: map
+    logger: text
+
+// ── Logger ──
+define log_buffer = []
+define log_count = 0
+
+to create_logger(name, level):
+    return LoggerConfig:
+        name: name
+        level: level
+        format: "text"
+        transports: ["console"]
+        context: {}
+
+to with_context(logger, ctx):
+    for each key, value in ctx:
+        set logger.context[key] to value
+    return logger
+
+// ── Core Log Function ──
+to write_log(logger, level, message, extra):
+    // Check log level
+    if LOG_LEVELS[level] is less than LOG_LEVELS[logger.level]:
+        return
+
+    let entry = LogEntry:
+        timestamp: time.format(time.now(), "ISO")
+        level: level
+        message: message
+        context: logger.context
+        logger: logger.name
+
+    set log_count to log_count + 1
+    list.push(log_buffer, entry)
+
+    // Format output
+    let icon = LEVEL_ICONS[level]
+    let formatted = "{icon} [{entry.timestamp}] [{text.upper(level)}] {logger.name}: {message}"
+
+    if extra is not null:
+        set formatted to formatted + " | {extra}"
+
+    show formatted
+
+// ── Convenience Methods ──
+to debug(logger, message):
+    write_log(logger, "debug", message, null)
+
+to info(logger, message):
+    write_log(logger, "info", message, null)
+
+to warn(logger, message):
+    write_log(logger, "warn", message, null)
+
+to error(logger, message):
+    write_log(logger, "error", message, null)
+
+to fatal(logger, message):
+    write_log(logger, "fatal", message, null)
+
+// ── JSON Formatter ──
+to format_json(entry):
+    return {
+        t: entry.timestamp,
+        l: entry.level,
+        m: entry.message,
+        n: entry.logger,
+        ctx: entry.context
+    }
+
+// ── Log Query ──
+to query_logs(level, limit):
+    let filtered = list.filter(log_buffer, e -> e.level is level)
+    return list.slice(filtered, 0, limit)
+
+to recent_errors(count):
+    return query_logs("error", count)
+
+// ── Stats ──
+to log_stats():
+    let by_level = {}
+    for each entry in log_buffer:
+        let count = by_level[entry.level]
+        if count is null:
+            set by_level[entry.level] to 1
+        else:
+            set by_level[entry.level] to count + 1
+
+    show "\n╔═══════════════════════════════════╗"
+    show "║       Logger Dashboard            ║"
+    show "╠═══════════════════════════════════╣"
+    show "║  Total Logs: {log_count}"
+    for each level, count in by_level:
+        let icon = LEVEL_ICONS[level]
+        show "║  {icon} {text.upper(level)}: {count}"
+    show "╚═══════════════════════════════════╝"
+
+// ═══════════════════════════════════════
+//  Demo
+// ═══════════════════════════════════════
+
+show "📝 Logger System Demo"
+show "═══════════════════════════════════"
+
+let app_log = create_logger("app", "debug")
+let db_log = create_logger("database", "info")
+let auth_log = create_logger("auth", "warn")
+
+// Add context
+with_context(app_log, { version: "2.0.1", env: "production" })
+with_context(db_log, { pool_size: 10 })
+
+// Log at various levels
+show "\n── Application Logs ──"
+debug(app_log, "Starting initialization sequence")
+info(app_log, "Server listening on port 3000")
+warn(app_log, "Memory usage at 85%")
+error(app_log, "Failed to load configuration file")
+fatal(app_log, "Unrecoverable error — shutting down")
+
+show "\n── Database Logs ──"
+info(db_log, "Connection pool initialized")
+warn(db_log, "Slow query detected: 2.5s")
+error(db_log, "Connection timeout after 30s")
+
+show "\n── Auth Logs ──"
+warn(auth_log, "Too many login attempts for user@test.com")
+error(auth_log, "Invalid JWT token detected")
+
+log_stats()

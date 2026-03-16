@@ -1,0 +1,170 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: CLI Tool
+///  Demonstrates argument parsing, command routing,
+///  and terminal-style output formatting.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define version = "1.0.0"
+define app_name = "lume-cli"
+
+/// --- Types ---
+type Command:
+    name: text
+    description: text
+    usage: text
+    handler: nothing
+
+/// --- Command Registry ---
+define commands = {
+    "help": { description: "Show available commands", usage: "help [command]" },
+    "version": { description: "Show version info", usage: "version" },
+    "greet": { description: "Greet a user", usage: "greet <name> [--formal]" },
+    "count": { description: "Count words in text", usage: "count <text>" },
+    "calc": { description: "Simple calculator", usage: "calc <num1> <op> <num2>" },
+    "encode": { description: "Encode/decode text", usage: "encode <text> [--decode]" },
+}
+
+/// --- Argument Parser ---
+define parse_args(args_string):
+    let parts = text.split(args_string, " ")
+    let command = list.first(parts) or "help"
+    let args = list.rest(parts)
+    let flags = list.filter(args, a -> text.starts_with(a, "--"))
+    let positional = list.filter(args, a -> text.starts_with(a, "--") is false)
+    
+    return {
+        command: command,
+        args: positional,
+        flags: flags,
+        has_flag: define(flag) -> list.contains(flags, flag)
+    }
+
+/// --- Command Handlers ---
+define cmd_help(parsed):
+    if list.count(parsed.args) is greater than 0:
+        let cmd_name = list.first(parsed.args)
+        let cmd = commands[cmd_name]
+        if cmd is not null:
+            show "\n  📖 {cmd_name}: {cmd.description}"
+            show "  Usage: {app_name} {cmd.usage}\n"
+        else:
+            show "  ❌ Unknown command: {cmd_name}"
+        return ok
+    
+    show "\n  ✦ {app_name} v{version}"
+    show "  ════════════════════════════"
+    for each name in ["help", "version", "greet", "count", "calc", "encode"]:
+        let cmd = commands[name]
+        show "  {text.pad_right(name, 10)} {cmd.description}"
+    show ""
+
+define cmd_version():
+    show "\n  {app_name} v{version}"
+    show "  Lume Language Runtime"
+    show "  Platform: Node.js\n"
+
+define cmd_greet(parsed):
+    if list.empty(parsed.args):
+        show "  ❌ Error: Name required. Usage: greet <name>"
+        return error
+
+    let name = text.join(parsed.args, " ")
+    
+    if parsed.has_flag("--formal"):
+        show "\n  Dear {name},"
+        show "  It is a pleasure to welcome you to the Lume ecosystem."
+        show "  We hope you find our tools both powerful and intuitive.\n"
+    else:
+        show "\n  👋 Hey {name}! Welcome to Lume!\n"
+
+define cmd_count(parsed):
+    if list.empty(parsed.args):
+        show "  ❌ Error: Text required."
+        return error
+    
+    let input_text = text.join(parsed.args, " ")
+    let words = text.split(input_text, " ")
+    let chars = text.length(input_text)
+    
+    show "\n  📏 Text Analysis:"
+    show "  Words:      {list.count(words)}"
+    show "  Characters: {chars}"
+    show "  Avg word:   {math.round(chars / list.count(words))} chars\n"
+
+define cmd_calc(parsed):
+    if list.count(parsed.args) is less than 3:
+        show "  ❌ Usage: calc <num1> <op> <num2>"
+        return error
+    
+    let a = convert.to_number(parsed.args[0])
+    let op = parsed.args[1]
+    let b = convert.to_number(parsed.args[2])
+    
+    let result = 0
+    if op is "+":
+        set result = a + b
+    else if op is "-":
+        set result = a - b
+    else if op is "*":
+        set result = a * b
+    else if op is "/":
+        if b is 0:
+            show "  ❌ Division by zero!"
+            return error
+        set result = a / b
+    else:
+        show "  ❌ Unknown operator: {op}"
+        return error
+    
+    show "\n  🔢 {a} {op} {b} = {result}\n"
+
+define cmd_encode(parsed):
+    if list.empty(parsed.args):
+        show "  ❌ Text required."
+        return error
+    
+    let input_text = text.join(parsed.args, " ")
+    
+    if parsed.has_flag("--decode"):
+        show "\n  🔓 Decoded: {text.reverse(input_text)}\n"
+    else:
+        show "\n  🔒 Encoded: {text.reverse(input_text)}\n"
+
+/// --- Router ---
+define route(parsed):
+    if parsed.command is "help":
+        cmd_help(parsed)
+    else if parsed.command is "version":
+        cmd_version()
+    else if parsed.command is "greet":
+        cmd_greet(parsed)
+    else if parsed.command is "count":
+        cmd_count(parsed)
+    else if parsed.command is "calc":
+        cmd_calc(parsed)
+    else if parsed.command is "encode":
+        cmd_encode(parsed)
+    else:
+        show "  ❌ Unknown command: {parsed.command}"
+        show "  Run '{app_name} help' for available commands."
+
+/// --- Main ---
+show "✦ {app_name} v{version}\n"
+
+// Demo executions
+let demo_commands = [
+    "help",
+    "version",
+    "greet Lume Developer --formal",
+    "count The quick brown fox jumps over the lazy dog",
+    "calc 42 * 7",
+    "encode hello world",
+    "encode dlrow olleh --decode",
+]
+
+for each cmd in demo_commands:
+    show "$ {app_name} {cmd}"
+    let parsed = parse_args(cmd)
+    route(parsed)
+    show "─".repeat(40)

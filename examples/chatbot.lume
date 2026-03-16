@@ -1,0 +1,80 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: AI Chatbot
+///  Demonstrates conversation history, context management,
+///  and multi-turn AI interactions.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define model = "gemini"
+define max_history = 20
+define system_prompt = """You are a helpful assistant named Luma. 
+You specialize in programming and technology topics.
+Keep responses concise and friendly."""
+
+/// --- Data Structures ---
+type Message:
+    role: text       // "user" | "assistant" | "system"
+    content: text
+    timestamp: text
+
+type Conversation:
+    id: text
+    messages: list of Message
+    created: text
+
+/// --- Conversation Manager ---
+define history = []
+define conversation_id = "conv_" + text.slice(time.timestamp(), 0, 10)
+
+define add_message(role, content):
+    let msg = Message:
+        role: role
+        content: content
+        timestamp: time.timestamp()
+    set history = list.take(history + [msg], max_history)
+    return msg
+
+define build_context():
+    let context = system_prompt + "\n\n"
+    for each msg in history:
+        set context = context + msg.role + ": " + msg.content + "\n"
+    return context
+
+/// --- Chat Functions ---
+define chat(user_input):
+    // Add user message to history
+    add_message("user", user_input)
+    
+    // Build context with conversation history
+    let context = build_context()
+    
+    // Get AI response
+    let response = ask model context + "\nAssistant:"
+    
+    // Store response
+    add_message("assistant", response)
+    
+    return response
+
+define summarize_conversation():
+    let context = build_context()
+    let summary = ask model "Summarize this conversation in 2 sentences:\n" + context
+    return summary
+
+/// --- Main Loop ---
+show "🤖 Welcome to Luma Chatbot!"
+show "Type 'quit' to exit, 'summary' for conversation summary.\n"
+
+let running = true
+while running:
+    let input = read "You: "
+    
+    if input is "quit":
+        show "\n👋 Goodbye!"
+        set running = false
+    else if input is "summary":
+        let summary = summarize_conversation()
+        show "\n📝 Summary: " + summary + "\n"
+    else:
+        let response = chat(input)
+        show "🤖 Luma: " + response + "\n"

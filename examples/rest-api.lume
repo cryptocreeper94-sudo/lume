@@ -1,0 +1,137 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: REST API Server
+///  Demonstrates route definitions, middleware,
+///  request handling, and JSON responses.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Data Store ---
+define users = []
+define next_id = 1
+
+type User:
+    id: number
+    name: text
+    email: text
+    created: text
+
+/// --- Middleware ---
+define log_request(method, path):
+    log "[{time.timestamp()}] {method} {path}"
+
+define require_auth(request):
+    let token = request.headers.authorization or ""
+    if token is "":
+        fail "Unauthorized: Missing auth token"
+    if text.starts_with(token, "Bearer ") is false:
+        fail "Unauthorized: Invalid token format"
+    return ok
+
+/// --- Route Handlers ---
+
+// GET /api/users — List all users
+define get_users():
+    return {
+        status: 200,
+        body: { users: users, count: list.count(users) }
+    }
+
+// GET /api/users/:id — Get user by ID
+define get_user(id):
+    let user = list.find(users, u -> u.id == id)
+    if user is null:
+        return { status: 404, body: { error: "User not found" } }
+    return { status: 200, body: user }
+
+// POST /api/users — Create new user
+define create_user(name, email):
+    // Validate input
+    if name is "" or email is "":
+        return { status: 400, body: { error: "Name and email required" } }
+    
+    if text.contains(email, "@") is false:
+        return { status: 400, body: { error: "Invalid email format" } }
+    
+    // Check for duplicate email
+    let existing = list.find(users, u -> u.email == email)
+    if existing is not null:
+        return { status: 409, body: { error: "Email already exists" } }
+    
+    // Create user
+    let user = User:
+        id: next_id
+        name: name
+        email: email
+        created: time.timestamp()
+    
+    set users = users + [user]
+    set next_id = next_id + 1
+    
+    return { status: 201, body: user }
+
+// PUT /api/users/:id — Update user
+define update_user(id, name, email):
+    let index = 0
+    let found = false
+    
+    for each user in users:
+        if user.id == id:
+            let updated = User:
+                id: user.id
+                name: name or user.name
+                email: email or user.email
+                created: user.created
+            set users[index] = updated
+            set found = true
+            return { status: 200, body: updated }
+        set index = index + 1
+    
+    if found is false:
+        return { status: 404, body: { error: "User not found" } }
+
+// DELETE /api/users/:id — Delete user
+define delete_user(id):
+    let original_count = list.count(users)
+    set users = list.filter(users, u -> u.id != id)
+    
+    if list.count(users) == original_count:
+        return { status: 404, body: { error: "User not found" } }
+    
+    return { status: 200, body: { message: "User deleted", id: id } }
+
+/// --- Demo Execution ---
+show "🚀 Lume REST API Demo\n"
+
+// Create users
+show "Creating users..."
+let r1 = create_user("Alice Johnson", "alice@example.com")
+show "  → {r1.status}: Created {r1.body.name} (ID: {r1.body.id})"
+
+let r2 = create_user("Bob Smith", "bob@example.com")
+show "  → {r2.status}: Created {r2.body.name} (ID: {r2.body.id})"
+
+let r3 = create_user("Charlie Davis", "charlie@example.com")
+show "  → {r3.status}: Created {r3.body.name} (ID: {r3.body.id})"
+
+// List all
+show "\nListing all users..."
+let all_response = get_users()
+show "  → {all_response.body.count} users found"
+
+// Get one
+show "\nGet user #2..."
+let one = get_user(2)
+show "  → {one.body.name} ({one.body.email})"
+
+// Update
+show "\nUpdating user #1..."
+let updated = update_user(1, "Alice Wonderland", null)
+show "  → {updated.body.name}"
+
+// Delete
+show "\nDeleting user #3..."
+let deleted = delete_user(3)
+show "  → {deleted.body.message}"
+
+// Final list
+show "\nFinal user count: {list.count(users)}"
+show "\n✅ REST API demo complete!"

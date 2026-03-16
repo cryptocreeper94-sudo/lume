@@ -1,0 +1,120 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Task Scheduler
+//  A cron-like task scheduling system with priority queues,
+//  retry logic, and deadline tracking.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use time from stdlib
+use list from stdlib
+use math from stdlib
+
+// ── Task Type ──
+type Task:
+    id: text
+    name: text
+    priority: number = 5
+    deadline: text
+    retries: number = 3
+    status: text = "pending"
+
+// ── Priority Queue ──
+define task_queue = []
+
+to add_task(name, priority, deadline):
+    let task = Task:
+        id: text.slice(time.now(), 0, 13)
+        name: name
+        priority: priority
+        deadline: deadline
+    list.push(task_queue, task)
+    list.sort(task_queue, "priority")
+    show "📋 Queued: {name} (priority {priority})"
+
+to get_next_task():
+    if list.length(task_queue) is 0:
+        return null
+    return list.shift(task_queue)
+
+// ── Scheduler ──
+define schedule = {}
+
+to schedule_recurring(name, interval_ms, handler):
+    let job = {
+        name: name,
+        interval: interval_ms,
+        handler: handler,
+        last_run: null,
+        run_count: 0
+    }
+    set schedule[name] to job
+    show "⏰ Scheduled: {name} every {interval_ms}ms"
+
+to check_due_tasks():
+    let now = time.now()
+    let due = []
+    for each name, job in schedule:
+        if job.last_run is null:
+            list.push(due, job)
+        else if now - job.last_run is at least job.interval:
+            list.push(due, job)
+    return due
+
+// ── Retry Logic ──
+to execute_with_retry(task, max_retries):
+    let attempts = 0
+    while attempts is less than max_retries:
+        show "  🔄 Attempt {attempts + 1}/{max_retries}: {task.name}"
+        // Simulate execution
+        let success = math.random() is greater than 0.3
+        if success:
+            show "  ✅ Success: {task.name}"
+            return { status: "completed", attempts: attempts + 1 }
+        set attempts to attempts + 1
+        show "  ⚠️ Failed, retrying..."
+    show "  ❌ Exhausted retries: {task.name}"
+    return { status: "failed", attempts: max_retries }
+
+// ── Deadline Monitor ──
+to check_deadlines():
+    let now = time.now()
+    let overdue = []
+    for each task in task_queue:
+        if task.deadline is less than now:
+            list.push(overdue, task)
+            show "🚨 OVERDUE: {task.name}"
+    return overdue
+
+// ── Dashboard ──
+to show_dashboard():
+    show "\n╔════════════════════════════════════╗"
+    show "║        Task Scheduler v1.0        ║"
+    show "╠════════════════════════════════════╣"
+    show "║  Queued:    {list.length(task_queue)} tasks"
+    show "║  Scheduled: {list.length(schedule)} jobs"
+
+    if list.length(task_queue) is greater than 0:
+        show "║"
+        show "║  Next Tasks:"
+        for each task in list.slice(task_queue, 0, 5):
+            show "║    [{task.priority}] {task.name} → {task.status}"
+
+    show "╚════════════════════════════════════╝"
+
+// ── Main ──
+add_task("Deploy v2.0", 1, "2025-01-01")
+add_task("Run backups", 3, "2025-01-02")
+add_task("Send reports", 5, "2025-01-01")
+add_task("Update docs", 7, "2025-01-03")
+add_task("Clean cache", 9, "2025-01-05")
+
+schedule_recurring("health_check", 60000, null)
+schedule_recurring("log_rotation", 3600000, null)
+schedule_recurring("metrics_sync", 30000, null)
+
+show_dashboard()
+
+let next = get_next_task()
+if next is not null:
+    let result = execute_with_retry(next, 3)
+    show "\nResult: {result.status} in {result.attempts} attempt(s)"

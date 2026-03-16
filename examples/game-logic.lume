@@ -1,0 +1,166 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Turn-Based Game Engine
+///  Demonstrates game logic, state machines,
+///  NPC AI, inventory, and combat systems.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Types ---
+type Character:
+    name: text
+    hp: number
+    max_hp: number
+    attack: number
+    defense: number
+    level: number
+    xp: number
+    inventory: list of text
+
+type Enemy:
+    name: text
+    hp: number
+    attack: number
+    defense: number
+    xp_reward: number
+    loot: text
+
+type BattleResult:
+    winner: text
+    rounds: number
+    xp_gained: number
+    loot: text
+
+/// --- Character Creation ---
+define create_hero(name):
+    return Character:
+        name: name
+        hp: 100
+        max_hp: 100
+        attack: 15
+        defense: 10
+        level: 1
+        xp: 0
+        inventory: ["Health Potion", "Rusty Sword"]
+
+define create_enemy(name, level):
+    let base_hp = 30 + level * 20
+    return Enemy:
+        name: name
+        hp: base_hp
+        attack: 8 + level * 3
+        defense: 5 + level * 2
+        xp_reward: 20 + level * 15
+        loot: list.first(["Gold Coin", "Magic Gem", "Steel Shield", "Elixir"])
+
+/// --- Combat System ---
+define calculate_damage(attacker_atk, defender_def):
+    let base = math.max(attacker_atk - defender_def, 1)
+    let variance = math.random_int(0, 5)
+    return base + variance
+
+define battle(hero, enemy):
+    show "\n⚔️  {hero.name} vs {enemy.name}!"
+    show "─".repeat(40)
+    
+    let hero_hp = hero.hp
+    let enemy_hp = enemy.hp
+    let rounds = 0
+    
+    while hero_hp is greater than 0 and enemy_hp is greater than 0:
+        set rounds = rounds + 1
+        
+        // Hero attacks
+        let hero_dmg = calculate_damage(hero.attack, enemy.defense)
+        set enemy_hp = enemy_hp - hero_dmg
+        show "  Round {rounds}: {hero.name} deals {hero_dmg} damage → {enemy.name} HP: {math.max(enemy_hp, 0)}"
+        
+        // Enemy attacks (if alive)
+        if enemy_hp is greater than 0:
+            let enemy_dmg = calculate_damage(enemy.attack, hero.defense)
+            set hero_hp = hero_hp - enemy_dmg
+            show "           {enemy.name} deals {enemy_dmg} damage → {hero.name} HP: {math.max(hero_hp, 0)}"
+    
+    show "─".repeat(40)
+    
+    if hero_hp is greater than 0:
+        show "🏆 {hero.name} wins!"
+        return BattleResult:
+            winner: hero.name
+            rounds: rounds
+            xp_gained: enemy.xp_reward
+            loot: enemy.loot
+    else:
+        show "💀 {hero.name} was defeated!"
+        return BattleResult:
+            winner: enemy.name
+            rounds: rounds
+            xp_gained: 0
+            loot: ""
+
+/// --- Level Up System ---
+define check_level_up(hero):
+    let xp_needed = hero.level * 100
+    if hero.xp is at least xp_needed:
+        set hero.level = hero.level + 1
+        set hero.max_hp = hero.max_hp + 20
+        set hero.hp = hero.max_hp
+        set hero.attack = hero.attack + 3
+        set hero.defense = hero.defense + 2
+        set hero.xp = hero.xp - xp_needed
+        show "\n🎉 LEVEL UP! {hero.name} is now Level {hero.level}!"
+        show "   HP: {hero.max_hp} | ATK: {hero.attack} | DEF: {hero.defense}"
+    return hero
+
+/// --- Use Item ---
+define use_potion(hero):
+    if list.contains(hero.inventory, "Health Potion"):
+        let heal_amount = 30
+        set hero.hp = math.min(hero.hp + heal_amount, hero.max_hp)
+        set hero.inventory = list.filter(hero.inventory, item -> item is not "Health Potion")
+        show "💊 Used Health Potion! HP: {hero.hp}/{hero.max_hp}"
+    else:
+        show "❌ No Health Potions remaining!"
+    return hero
+
+/// --- Status Display ---
+define show_status(hero):
+    show "\n╔═══ {hero.name} — Level {hero.level} ═══╗"
+    show "║  ❤️  HP: {hero.hp}/{hero.max_hp}"
+    show "║  ⚔️  ATK: {hero.attack}  |  🛡️ DEF: {hero.defense}"
+    show "║  ✨ XP: {hero.xp}/{hero.level * 100}"
+    show "║  🎒 Inventory: {text.join(hero.inventory, ', ')}"
+    show "╚═══════════════════════════════════╝"
+
+/// --- Main Game ---
+show "🗡️  Welcome to Lume Quest!\n"
+
+let hero = create_hero("Aether")
+show_status(hero)
+
+// Encounter sequence
+let enemies = [
+    create_enemy("Goblin Scout", 1),
+    create_enemy("Forest Wolf", 2),
+    create_enemy("Dark Knight", 3),
+]
+
+for each enemy in enemies:
+    let result = battle(hero, enemy)
+    
+    if result.winner is hero.name:
+        set hero.xp = hero.xp + result.xp_gained
+        show "  +{result.xp_gained} XP"
+        
+        if result.loot is not "":
+            set hero.inventory = hero.inventory + [result.loot]
+            show "  📦 Loot: {result.loot}"
+        
+        set hero = check_level_up(hero)
+    else:
+        show "\n💀 Game Over! You were defeated by {enemy.name}."
+        break
+    
+    // Heal between battles
+    set hero = use_potion(hero)
+    show_status(hero)
+
+show "\n✅ Adventure complete!"

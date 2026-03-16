@@ -1,0 +1,93 @@
+/* ═══════════════════════════════════════════════════════════
+   Lume Website — Mobile Responsive Overrides
+   Applied to DocsPage, TutorialPage, ChangelogPage, ShowcasePage
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Global Mobile ───────────────────────────────────── */
+@media (max-width: 768px) {
+    .lume-hero h1 {
+        font-size: 2rem !important;
+    }
+    .lume-hero p {
+        font-size: 1rem !important;
+    }
+    .lume-hero {
+        padding: 2.5rem 1rem 1.5rem !important;
+    }
+    .lume-container {
+        padding: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .lume-hero h1 {
+        font-size: 1.6rem !important;
+    }
+    .lume-hero p {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* ─── Tutorial Page: Sidebar → Stacked ────────────────── */
+@media (max-width: 768px) {
+    .tutorial-layout {
+        flex-direction: column !important;
+    }
+    .tutorial-sidebar {
+        width: 100% !important;
+        display: flex !important;
+        overflow-x: auto !important;
+        gap: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tutorial-sidebar > div {
+        flex-shrink: 0 !important;
+        min-width: 180px !important;
+    }
+    .tutorial-content {
+        min-width: 0 !important;
+    }
+}
+
+/* ─── Showcase Page: Filters ──────────────────────────── */
+@media (max-width: 768px) {
+    .showcase-filters {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+    .showcase-filter-buttons {
+        flex-wrap: wrap !important;
+    }
+    .showcase-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ─── Docs Page: Section Grid ─────────────────────────── */
+@media (max-width: 768px) {
+    .docs-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ─── Changelog: Timeline ─────────────────────────────── */
+@media (max-width: 768px) {
+    .changelog-release {
+        padding-left: 1rem !important;
+    }
+    .changelog-highlights {
+        flex-direction: column !important;
+    }
+    .changelog-highlights > span {
+        font-size: 0.8rem !important;
+    }
+}
+
+/* ─── Touch targets ───────────────────────────────────── */
+@media (max-width: 768px) {
+    .lume-touch-target {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+}

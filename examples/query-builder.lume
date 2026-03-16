@@ -1,0 +1,223 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Query Builder
+//  A type-safe SQL-like query builder demonstrating
+//  fluent API design, method chaining, and parameterized queries.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+
+// ── Query Type ──
+type Query:
+    table: text
+    operation: text = "SELECT"
+    columns: list
+    conditions: list
+    order_by: list
+    group_by: list
+    limit_val: number = 0
+    offset_val: number = 0
+    joins: list
+    params: list
+    insert_data: map
+    update_data: map
+
+// ── Builder ──
+to from(table_name):
+    return Query:
+        table: table_name
+        columns: ["*"]
+        conditions: []
+        order_by: []
+        group_by: []
+        joins: []
+        params: []
+        insert_data: {}
+        update_data: {}
+
+to select(query, columns):
+    set query.columns to columns
+    return query
+
+to where(query, condition, value):
+    list.push(query.conditions, { clause: condition, value: value })
+    list.push(query.params, value)
+    return query
+
+to and_where(query, condition, value):
+    return where(query, condition, value)
+
+to or_where(query, condition, value):
+    list.push(query.conditions, { clause: condition, value: value, join: "OR" })
+    list.push(query.params, value)
+    return query
+
+to order(query, column, direction):
+    list.push(query.order_by, { column: column, direction: direction })
+    return query
+
+to group(query, columns):
+    set query.group_by to columns
+    return query
+
+to limit(query, n):
+    set query.limit_val to n
+    return query
+
+to offset(query, n):
+    set query.offset_val to n
+    return query
+
+to join(query, table, on_clause, join_type):
+    list.push(query.joins, {
+        table: table,
+        on: on_clause,
+        type: join_type
+    })
+    return query
+
+to insert_into(table_name, data):
+    let q = from(table_name)
+    set q.operation to "INSERT"
+    set q.insert_data to data
+    return q
+
+to update_table(table_name, data):
+    let q = from(table_name)
+    set q.operation to "UPDATE"
+    set q.update_data to data
+    return q
+
+to delete_from(table_name):
+    let q = from(table_name)
+    set q.operation to "DELETE"
+    return q
+
+// ── Build SQL ──
+to build(query):
+    when query.operation is:
+        "SELECT" -> return build_select(query)
+        "INSERT" -> return build_insert(query)
+        "UPDATE" -> return build_update(query)
+        "DELETE" -> return build_delete(query)
+        default -> return "-- Unsupported operation"
+
+to build_select(q):
+    let sql = "SELECT {text.join(q.columns, ", ")} FROM {q.table}"
+
+    // Joins
+    for each j in q.joins:
+        set sql to sql + " {j.type} JOIN {j.table} ON {j.on}"
+
+    // Where
+    if list.length(q.conditions) is greater than 0:
+        let clauses = []
+        for each cond, idx in q.conditions:
+            let joiner = "AND"
+            if cond.join is "OR":
+                set joiner to "OR"
+            if idx is 0:
+                list.push(clauses, cond.clause)
+            else:
+                list.push(clauses, "{joiner} {cond.clause}")
+        set sql to sql + " WHERE {text.join(clauses, " ")}"
+
+    // Group By
+    if list.length(q.group_by) is greater than 0:
+        set sql to sql + " GROUP BY {text.join(q.group_by, ", ")}"
+
+    // Order By
+    if list.length(q.order_by) is greater than 0:
+        let orders = list.map(q.order_by, o -> "{o.column} {o.direction}")
+        set sql to sql + " ORDER BY {text.join(orders, ", ")}"
+
+    // Limit / Offset
+    if q.limit_val is greater than 0:
+        set sql to sql + " LIMIT {q.limit_val}"
+    if q.offset_val is greater than 0:
+        set sql to sql + " OFFSET {q.offset_val}"
+
+    return sql + ";"
+
+to build_insert(q):
+    let cols = []
+    let vals = []
+    for each key, value in q.insert_data:
+        list.push(cols, key)
+        list.push(vals, "'{value}'")
+    return "INSERT INTO {q.table} ({text.join(cols, ", ")}) VALUES ({text.join(vals, ", ")});"
+
+to build_update(q):
+    let sets = []
+    for each key, value in q.update_data:
+        list.push(sets, "{key} = '{value}'")
+    let sql = "UPDATE {q.table} SET {text.join(sets, ", ")}"
+    if list.length(q.conditions) is greater than 0:
+        let clauses = list.map(q.conditions, c -> c.clause)
+        set sql to sql + " WHERE {text.join(clauses, " AND ")}"
+    return sql + ";"
+
+to build_delete(q):
+    let sql = "DELETE FROM {q.table}"
+    if list.length(q.conditions) is greater than 0:
+        let clauses = list.map(q.conditions, c -> c.clause)
+        set sql to sql + " WHERE {text.join(clauses, " AND ")}"
+    return sql + ";"
+
+// ═══════════════════════════════════════
+//  Demo
+// ═══════════════════════════════════════
+
+show "╔═══════════════════════════════════════╗"
+show "║      Query Builder Demo               ║"
+show "╠═══════════════════════════════════════╣"
+
+// Simple SELECT
+show "\n── 1. Simple Select ──"
+let q1 = from("users")
+q1 = select(q1, ["id", "name", "email"])
+q1 = where(q1, "active = ?", true)
+q1 = order(q1, "name", "ASC")
+q1 = limit(q1, 10)
+show build(q1)
+
+// Complex JOIN
+show "\n── 2. Join Query ──"
+let q2 = from("orders")
+q2 = select(q2, ["orders.id", "users.name", "orders.total"])
+q2 = join(q2, "users", "users.id = orders.user_id", "INNER")
+q2 = where(q2, "orders.total > ?", 100)
+q2 = order(q2, "orders.total", "DESC")
+q2 = limit(q2, 25)
+show build(q2)
+
+// GROUP BY + aggregation
+show "\n── 3. Group By ──"
+let q3 = from("sales")
+q3 = select(q3, ["region", "SUM(amount) as total", "COUNT(*) as count"])
+q3 = group(q3, ["region"])
+q3 = order(q3, "total", "DESC")
+show build(q3)
+
+// INSERT
+show "\n── 4. Insert ──"
+let q4 = insert_into("users", {
+    name: "Alice",
+    email: "alice@lume.dev",
+    role: "admin"
+})
+show build(q4)
+
+// UPDATE
+show "\n── 5. Update ──"
+let q5 = update_table("users", { role: "editor", updated_at: "NOW()" })
+q5 = where(q5, "id = ?", 42)
+show build(q5)
+
+// DELETE
+show "\n── 6. Delete ──"
+let q6 = delete_from("sessions")
+q6 = where(q6, "expired_at < ?", "NOW()")
+show build(q6)
+
+show "\n╚═══════════════════════════════════════╝"

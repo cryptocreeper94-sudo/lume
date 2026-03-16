@@ -1,0 +1,209 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Plugin System
+//  A modular plugin architecture with lifecycle hooks,
+//  dependency resolution, and hot-reload support.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+use time from stdlib
+
+// ── Plugin Type ──
+type Plugin:
+    name: text
+    version: text
+    description: text
+    dependencies: list
+    hooks: map
+    enabled: boolean = true
+    load_time: number = 0
+
+// ── Plugin Registry ──
+define registry = {}
+define load_order = []
+define hook_registry = {}
+define plugin_count = 0
+
+// ── Register Plugin ──
+to register(plugin):
+    set registry[plugin.name] to plugin
+    set plugin_count to plugin_count + 1
+    show "  📦 Registered: {plugin.name} v{plugin.version}"
+
+    // Register hooks
+    for each hook_name, handler in plugin.hooks:
+        if hook_registry[hook_name] is null:
+            set hook_registry[hook_name] to []
+        list.push(hook_registry[hook_name], {
+            plugin: plugin.name,
+            handler: handler
+        })
+
+// ── Dependency Resolution ──
+to resolve_dependencies():
+    let resolved = []
+    let unresolved = []
+
+    for each name, plugin in registry:
+        list.push(unresolved, plugin)
+
+    show "\n🔗 Resolving dependencies..."
+    define iterations = 0
+    while list.length(unresolved) is greater than 0:
+        set iterations to iterations + 1
+        if iterations is greater than 100:
+            show "  ❌ Circular dependency detected!"
+            break
+
+        let made_progress = false
+        let still_unresolved = []
+
+        for each plugin in unresolved:
+            let deps_met = true
+            for each dep in plugin.dependencies:
+                if not list.contains(list.map(resolved, p -> p.name), dep):
+                    set deps_met to false
+                    break
+
+            if deps_met:
+                list.push(resolved, plugin)
+                set made_progress to true
+                show "  ✅ Resolved: {plugin.name}"
+            else:
+                list.push(still_unresolved, plugin)
+
+        set unresolved to still_unresolved
+
+        if not made_progress:
+            show "  ❌ Unresolvable dependencies!"
+            break
+
+    set load_order to resolved
+    return resolved
+
+// ── Initialize Plugins ──
+to initialize_all():
+    show "\n🚀 Initializing plugins..."
+    for each plugin in load_order:
+        let start = time.now()
+        // Run init hook if available
+        if plugin.hooks["init"] is not null:
+            plugin.hooks["init"]()
+        set plugin.load_time to time.now() - start
+        show "  ⚡ Initialized: {plugin.name} ({plugin.load_time}ms)"
+
+// ── Execute Hook ──
+to execute_hook(hook_name, data):
+    let handlers = hook_registry[hook_name]
+    if handlers is null:
+        return data
+
+    let result = data
+    for each entry in handlers:
+        let plugin = registry[entry.plugin]
+        if plugin.enabled:
+            set result to entry.handler(result)
+    return result
+
+// ── Plugin Management ──
+to enable(name):
+    let plugin = registry[name]
+    if plugin is not null:
+        set plugin.enabled to true
+        show "  ✅ Enabled: {name}"
+
+to disable(name):
+    let plugin = registry[name]
+    if plugin is not null:
+        set plugin.enabled to false
+        show "  ⛔ Disabled: {name}"
+
+// ── Dashboard ──
+to show_plugins():
+    show "\n╔═══════════════════════════════════════╗"
+    show "║       Plugin System Dashboard         ║"
+    show "╠═══════════════════════════════════════╣"
+    show "║  Total Plugins: {plugin_count}"
+    show "║  Hooks:         {list.length(hook_registry)} types"
+    show "║"
+    for each name, plugin in registry:
+        let status = "✅"
+        if not plugin.enabled:
+            set status to "⛔"
+        show "║  {status} {name} v{plugin.version}"
+        show "║     {plugin.description}"
+        if list.length(plugin.dependencies) is greater than 0:
+            show "║     deps: {text.join(plugin.dependencies, ", ")}"
+    show "╚═══════════════════════════════════════╝"
+
+// ═══════════════════════════════════════
+//  Demo
+// ═══════════════════════════════════════
+
+show "🔌 Plugin System Demo"
+show "═══════════════════════════════════"
+
+// Register plugins
+register(Plugin:
+    name: "core"
+    version: "1.0.0"
+    description: "Core framework functionality"
+    dependencies: []
+    hooks: {
+        init: () -> show "    [core] Framework ready",
+        request: (data) -> data
+    }
+)
+
+register(Plugin:
+    name: "auth"
+    version: "2.1.0"
+    description: "JWT authentication and authorization"
+    dependencies: ["core"]
+    hooks: {
+        init: () -> show "    [auth] Auth system ready",
+        request: (data) ->
+            show "    [auth] Validating token..."
+            return data
+    }
+)
+
+register(Plugin:
+    name: "cache"
+    version: "1.3.0"
+    description: "In-memory LRU cache layer"
+    dependencies: ["core"]
+    hooks: {
+        init: () -> show "    [cache] Cache warmed up",
+        request: (data) ->
+            show "    [cache] Checking cache..."
+            return data
+    }
+)
+
+register(Plugin:
+    name: "analytics"
+    version: "0.9.0"
+    description: "Tracking and metrics collection"
+    dependencies: ["core", "auth"]
+    hooks: {
+        init: () -> show "    [analytics] Trackers initialized",
+        request: (data) ->
+            show "    [analytics] Logging request..."
+            return data
+    }
+)
+
+// Resolve and initialize
+resolve_dependencies()
+initialize_all()
+
+// Process a request through hooks
+show "\n📨 Processing request through plugin hooks:"
+let request_data = { url: "/api/users", method: "GET" }
+let processed = execute_hook("request", request_data)
+
+// Disable a plugin
+disable("cache")
+
+show_plugins()

@@ -1,0 +1,195 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Auth System
+///  Demonstrates JWT-style authentication, hashing,
+///  role-based access control, and session management.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define jwt_secret = "lume_secret_key_2024"
+define token_expiry = 3600000   // 1 hour in ms
+define max_login_attempts = 5
+
+/// --- Types ---
+type User:
+    id: number
+    username: text
+    password_hash: text
+    email: text
+    role: text         // "admin" | "editor" | "viewer"
+    created: text
+    login_attempts: number
+    locked: boolean
+
+type Session:
+    user_id: number
+    token: text
+    role: text
+    created: number
+    expires: number
+
+type AuthResult:
+    success: boolean
+    token: text
+    message: text
+
+/// --- Password Hashing (simplified) ---
+define hash_password(password):
+    // Simple hash for demo — real implementation uses bcrypt
+    let hash = 0
+    for each ch in text.chars(password):
+        set hash = (hash * 31 + ch) % 999999937
+    return "h$" + convert.to_text(math.abs(hash))
+
+define verify_password(password, hash):
+    return hash_password(password) == hash
+
+/// --- Token Generation ---
+define generate_token(user_id, role):
+    let payload = convert.to_text(user_id) + ":" + role + ":" + convert.to_text(time.now())
+    let token = "lume_" + text.replace(payload, ":", "_")
+    return token
+
+define validate_token(token, sessions):
+    let session = list.find(sessions, s -> s.token == token)
+    if session is null:
+        return { valid: false, message: "Invalid token" }
+    if time.now() is greater than session.expires:
+        return { valid: false, message: "Token expired" }
+    return { valid: true, message: "OK", session: session }
+
+/// --- User Store ---
+define users = [
+    User:
+        id: 1
+        username: "admin"
+        password_hash: hash_password("admin123")
+        email: "admin@lume.dev"
+        role: "admin"
+        created: time.timestamp()
+        login_attempts: 0
+        locked: false,
+    User:
+        id: 2
+        username: "editor"
+        password_hash: hash_password("edit456")
+        email: "editor@lume.dev"
+        role: "editor"
+        created: time.timestamp()
+        login_attempts: 0
+        locked: false,
+    User:
+        id: 3
+        username: "viewer"
+        password_hash: hash_password("view789")
+        email: "viewer@lume.dev"
+        role: "viewer"
+        created: time.timestamp()
+        login_attempts: 0
+        locked: false,
+]
+
+define sessions = []
+
+/// --- Auth Functions ---
+define login(username, password):
+    let user = list.find(users, u -> u.username == username)
+    
+    if user is null:
+        return AuthResult: success: false, token: "", message: "User not found"
+    
+    if user.locked:
+        return AuthResult: success: false, token: "", message: "Account locked after {max_login_attempts} failed attempts"
+    
+    if verify_password(password, user.password_hash) is false:
+        set user.login_attempts = user.login_attempts + 1
+        if user.login_attempts is at least max_login_attempts:
+            set user.locked = true
+        return AuthResult: success: false, token: "", message: "Invalid password ({max_login_attempts - user.login_attempts} attempts remaining)"
+    
+    // Success — reset attempts and create session
+    set user.login_attempts = 0
+    let token = generate_token(user.id, user.role)
+    let session = Session:
+        user_id: user.id
+        token: token
+        role: user.role
+        created: time.now()
+        expires: time.now() + token_expiry
+    
+    set sessions = sessions + [session]
+    
+    return AuthResult: success: true, token: token, message: "Login successful"
+
+define logout(token):
+    set sessions = list.filter(sessions, s -> s.token != token)
+    return { success: true, message: "Logged out" }
+
+/// --- Role-Based Access Control ---
+define permissions = {
+    "admin": ["read", "write", "delete", "manage_users"],
+    "editor": ["read", "write"],
+    "viewer": ["read"],
+}
+
+define has_permission(role, action):
+    let role_perms = permissions[role] or []
+    return list.contains(role_perms, action)
+
+define authorize(token, required_action):
+    let validation = validate_token(token, sessions)
+    if validation.valid is false:
+        return { allowed: false, reason: validation.message }
+    
+    if has_permission(validation.session.role, required_action):
+        return { allowed: true, reason: "Authorized as {validation.session.role}" }
+    else:
+        return { allowed: false, reason: "Insufficient permissions: {validation.session.role} cannot {required_action}" }
+
+/// --- Demo ---
+show "🔐 Lume Auth System Demo\n"
+
+// Login attempts
+show "═══ Login Tests ═══"
+
+let result1 = login("admin", "admin123")
+show "  Admin login: {result1.message}"
+
+let result2 = login("editor", "wrong_password")
+show "  Editor bad password: {result2.message}"
+
+let result3 = login("editor", "edit456")
+show "  Editor correct: {result3.message}"
+
+let result4 = login("nobody", "pass")
+show "  Unknown user: {result4.message}"
+
+// RBAC tests
+show "\n═══ Permission Tests ═══"
+let admin_token = result1.token
+let editor_token = result3.token
+
+let tests = [
+    { token: admin_token, action: "read", label: "Admin read" },
+    { token: admin_token, action: "delete", label: "Admin delete" },
+    { token: admin_token, action: "manage_users", label: "Admin manage" },
+    { token: editor_token, action: "read", label: "Editor read" },
+    { token: editor_token, action: "write", label: "Editor write" },
+    { token: editor_token, action: "delete", label: "Editor delete" },
+]
+
+for each test_case in tests:
+    let auth = authorize(test_case.token, test_case.action)
+    let icon = "✅"
+    if auth.allowed is false:
+        set icon = "❌"
+    show "  {icon} {test_case.label}: {auth.reason}"
+
+// Logout
+show "\n═══ Logout ═══"
+let logout_result = logout(admin_token)
+show "  Admin logout: {logout_result.message}"
+
+let post_logout = authorize(admin_token, "read")
+show "  Post-logout access: {post_logout.reason}"
+
+show "\n✅ Auth system demo complete!"

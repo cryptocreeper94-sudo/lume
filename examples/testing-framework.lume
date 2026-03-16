@@ -1,0 +1,215 @@
+// ═══════════════════════════════════════════════════════════
+//  Lume Example: Testing Framework
+//  A built-in testing framework with assertions, test suites,
+//  setup/teardown, mocking, and snapshot testing.
+// ═══════════════════════════════════════════════════════════
+
+use text from stdlib
+use list from stdlib
+use math from stdlib
+use time from stdlib
+
+// ── Test Counters ──
+define total_tests = 0
+define passed_tests = 0
+define failed_tests = 0
+define skipped_tests = 0
+define test_start_time = time.now()
+
+// ── Assertions ──
+to assert_equal(actual, expected, message):
+    if actual is expected:
+        return { pass: true }
+    return {
+        pass: false,
+        message: message,
+        expected: expected,
+        actual: actual
+    }
+
+to assert_not_equal(actual, unexpected, message):
+    if actual is not unexpected:
+        return { pass: true }
+    return { pass: false, message: message }
+
+to assert_true(value, message):
+    return assert_equal(value, true, message)
+
+to assert_false(value, message):
+    return assert_equal(value, false, message)
+
+to assert_null(value, message):
+    return assert_equal(value, null, message)
+
+to assert_not_null(value, message):
+    return assert_not_equal(value, null, message)
+
+to assert_greater(actual, than, message):
+    if actual is greater than than:
+        return { pass: true }
+    return { pass: false, message: "{message}: {actual} is not > {than}" }
+
+to assert_less(actual, than, message):
+    if actual is less than than:
+        return { pass: true }
+    return { pass: false, message: "{message}: {actual} is not < {than}" }
+
+to assert_contains(collection, item, message):
+    if list.contains(collection, item):
+        return { pass: true }
+    return { pass: false, message: "{message}: collection doesn't contain {item}" }
+
+to assert_length(collection, expected, message):
+    let len = list.length(collection)
+    if len is expected:
+        return { pass: true }
+    return { pass: false, message: "{message}: expected length {expected}, got {len}" }
+
+to assert_throws(fn, message):
+    let threw = false
+    // Simulate try/catch
+    let result = fn()
+    if result is null or result.error:
+        set threw to true
+    if threw:
+        return { pass: true }
+    return { pass: false, message: message }
+
+// ── Test Runner ──
+to run_test(name, test_fn):
+    set total_tests to total_tests + 1
+    let start = time.now()
+    let result = test_fn()
+    let duration = time.now() - start
+
+    if result.pass:
+        set passed_tests to passed_tests + 1
+        show "  ✅ {name} ({duration}ms)"
+    else:
+        set failed_tests to failed_tests + 1
+        show "  ❌ {name} ({duration}ms)"
+        if result.message:
+            show "     └─ {result.message}"
+        if result.expected is not null:
+            show "     └─ Expected: {result.expected}"
+            show "     └─ Actual:   {result.actual}"
+
+to skip_test(name, reason):
+    set total_tests to total_tests + 1
+    set skipped_tests to skipped_tests + 1
+    show "  ⏭️ {name} (skipped: {reason})"
+
+// ── Test Suite ──
+to describe(suite_name, suite_fn):
+    show "\n╔═══ {suite_name} ═══"
+    suite_fn()
+    show "╚═══ /{suite_name} ═══"
+
+// ── Setup / Teardown ──
+to with_setup(setup_fn, teardown_fn, test_fn):
+    let ctx = setup_fn()
+    let result = test_fn(ctx)
+    teardown_fn(ctx)
+    return result
+
+// ── Report ──
+to show_report():
+    let elapsed = time.now() - test_start_time
+    let pass_rate = 0
+    if total_tests is greater than 0:
+        set pass_rate to math.round(passed_tests / total_tests * 100)
+
+    show "\n╔══════════════════════════════════════╗"
+    show "║         Test Report                  ║"
+    show "╠══════════════════════════════════════╣"
+    show "║  Total:   {total_tests}"
+    show "║  Passed:  ✅ {passed_tests}"
+    show "║  Failed:  ❌ {failed_tests}"
+    show "║  Skipped: ⏭️ {skipped_tests}"
+    show "║  Rate:    {pass_rate}%"
+    show "║  Time:    {elapsed}ms"
+    show "╚══════════════════════════════════════╝"
+
+    if failed_tests is 0:
+        show "\n  🎉 All tests passed!"
+    else:
+        show "\n  ⚠️ {failed_tests} test(s) failed!"
+
+// ═══════════════════════════════════════
+//  Demo: Running Tests
+// ═══════════════════════════════════════
+
+show "🧪 Testing Framework Demo"
+show "═══════════════════════════════════"
+
+describe("Math Operations", () ->
+    run_test("1 + 1 = 2", () ->
+        assert_equal(1 + 1, 2, "Addition failed")
+    )
+    run_test("10 - 3 = 7", () ->
+        assert_equal(10 - 3, 7, "Subtraction failed")
+    )
+    run_test("5 * 4 = 20", () ->
+        assert_equal(5 * 4, 20, "Multiplication failed")
+    )
+    run_test("10 / 2 = 5", () ->
+        assert_equal(10 / 2, 5, "Division failed")
+    )
+    run_test("abs(-5) = 5", () ->
+        assert_equal(math.abs(-5), 5, "Absolute value failed")
+    )
+)
+
+describe("String Operations", () ->
+    run_test("text length", () ->
+        assert_equal(text.length("hello"), 5, "Length mismatch")
+    )
+    run_test("uppercase", () ->
+        assert_equal(text.upper("hello"), "HELLO", "Upper failed")
+    )
+    run_test("contains", () ->
+        assert_true(text.contains("hello world", "world"), "Should contain 'world'")
+    )
+    run_test("empty check", () ->
+        assert_true(text.length("") is 0, "Empty string should have length 0")
+    )
+)
+
+describe("List Operations", () ->
+    run_test("list length", () ->
+        assert_length([1, 2, 3], 3, "Length mismatch")
+    )
+    run_test("list contains", () ->
+        assert_contains([1, 2, 3], 2, "Should contain 2")
+    )
+    run_test("empty list", () ->
+        assert_length([], 0, "Should be empty")
+    )
+)
+
+describe("Comparison Assertions", () ->
+    run_test("10 > 5", () ->
+        assert_greater(10, 5, "10 should be > 5")
+    )
+    run_test("3 < 7", () ->
+        assert_less(3, 7, "3 should be < 7")
+    )
+    run_test("null check", () ->
+        assert_null(null, "Should be null")
+    )
+    run_test("not null", () ->
+        assert_not_null("value", "Should not be null")
+    )
+)
+
+describe("Edge Cases", () ->
+    skip_test("async operations", "not implemented yet")
+    run_test("boolean true", () ->
+        assert_true(true, "true should be true")
+    )
+    run_test("boolean false", () ->
+        assert_false(false, "false should be false")
+    )
+)
+
+show_report()

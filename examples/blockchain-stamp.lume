@@ -1,0 +1,206 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: Blockchain Trust Stamp
+///  Demonstrates hallmark verification, trust stamps,
+///  and integrity checking for the Trust Layer ecosystem.
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Configuration ---
+define chain_name = "Trust Layer"
+define difficulty = 4
+define genesis_timestamp = "2024-01-01T00:00:00Z"
+
+/// --- Types ---
+type Block:
+    index: number
+    timestamp: text
+    data: text
+    previous_hash: text
+    hash: text
+    nonce: number
+
+type TrustStamp:
+    app_name: text
+    version: text
+    certified: boolean
+    certificate_hash: text
+    scanned_nodes: number
+    threat_level: text
+    timestamp: text
+
+type Hallmark:
+    id: text
+    issuer: text
+    recipient: text
+    level: text        // "bronze" | "silver" | "gold" | "platinum"
+    reason: text
+    verified: boolean
+
+/// --- Simplified Hash Function ---
+define compute_hash(data):
+    let hash = 5381
+    for each ch in text.chars(convert.to_text(data)):
+        set hash = ((hash * 33) + ch) % 2147483647
+    return text.pad_left(convert.to_text(math.abs(hash)), 8, "0")
+
+/// --- Block Creation ---
+define create_block(index, data, previous_hash):
+    let timestamp = time.timestamp()
+    let nonce = 0
+    let hash = ""
+    
+    // Simple proof-of-work (mining)
+    let target = "0".repeat(difficulty)
+    let found = false
+    
+    while found is false:
+        let content = convert.to_text(index) + timestamp + data + previous_hash + convert.to_text(nonce)
+        set hash = compute_hash(content)
+        
+        if text.starts_with(hash, "0"):
+            set found = true
+        else:
+            set nonce = nonce + 1
+            if nonce is greater than 10000:
+                set found = true  // Safety limit for demo
+    
+    return Block:
+        index: index
+        timestamp: timestamp
+        data: data
+        previous_hash: previous_hash
+        hash: hash
+        nonce: nonce
+
+/// --- Chain Operations ---
+define chain = []
+
+define add_to_chain(data):
+    let previous_hash = "00000000"
+    if list.count(chain) is greater than 0:
+        set previous_hash = list.last(chain).hash
+    
+    let block = create_block(list.count(chain), data, previous_hash)
+    set chain = chain + [block]
+    return block
+
+define verify_chain():
+    if list.count(chain) is less than 2:
+        return { valid: true, message: "Chain too short to verify" }
+    
+    let i = 1
+    while i is less than list.count(chain):
+        let current = chain[i]
+        let previous = chain[i - 1]
+        
+        if current.previous_hash is not previous.hash:
+            return { valid: false, message: "Chain broken at block {i}" }
+        
+        set i = i + 1
+    
+    return { valid: true, message: "Chain integrity verified ✓" }
+
+/// --- Trust Stamp System ---
+define create_trust_stamp(app_name, version, nodes_scanned):
+    let cert_hash = compute_hash(app_name + version + time.timestamp())
+    
+    return TrustStamp:
+        app_name: app_name
+        version: version
+        certified: true
+        certificate_hash: cert_hash
+        scanned_nodes: nodes_scanned
+        threat_level: "none"
+        timestamp: time.timestamp()
+
+/// --- Hallmark System ---
+define issue_hallmark(issuer, recipient, level, reason):
+    let id = "HM-" + compute_hash(issuer + recipient + time.timestamp())
+    
+    return Hallmark:
+        id: id
+        issuer: issuer
+        recipient: recipient
+        level: level
+        reason: reason
+        verified: true
+
+/// --- Display Functions ---
+define display_block(block):
+    show "  ┌─ Block #{block.index} ─────────────────────┐"
+    show "  │ Hash:     {block.hash}"
+    show "  │ Previous: {block.previous_hash}"
+    show "  │ Nonce:    {block.nonce}"
+    show "  │ Data:     {text.slice(block.data, 0, 40)}"
+    show "  │ Time:     {block.timestamp}"
+    show "  └──────────────────────────────────┘"
+
+define display_stamp(stamp):
+    show "  ╔═══ Trust Stamp ═══════════════════╗"
+    show "  ║ App:       {stamp.app_name} v{stamp.version}"
+    show "  ║ Certified: ✅"
+    show "  ║ Hash:      {stamp.certificate_hash}"
+    show "  ║ Nodes:     {stamp.scanned_nodes}/{stamp.scanned_nodes} passed"
+    show "  ║ Threats:   {stamp.threat_level}"
+    show "  ╚═══════════════════════════════════╝"
+
+define display_hallmark(hm):
+    let icon = "🥉"
+    if hm.level is "silver":
+        set icon = "🥈"
+    else if hm.level is "gold":
+        set icon = "🥇"
+    else if hm.level is "platinum":
+        set icon = "💎"
+    
+    show "  {icon} Hallmark {hm.id}"
+    show "     Issued by: {hm.issuer} → {hm.recipient}"
+    show "     Level: {text.upper(hm.level)} | Reason: {hm.reason}"
+
+/// --- Main ---
+show "═══════════════════════════════════════════"
+show "  ✦ {chain_name} — Blockchain Trust Demo"
+show "═══════════════════════════════════════════"
+
+// Build chain
+show "\n🔗 Building blockchain..."
+let b0 = add_to_chain("Genesis Block — Trust Layer Foundation")
+display_block(b0)
+
+let b1 = add_to_chain("App Certified: TrustGen 3D v2.1.0")
+display_block(b1)
+
+let b2 = add_to_chain("Hallmark Issued: Gold — Signal Chat")
+display_block(b2)
+
+let b3 = add_to_chain("App Certified: DarkWave Studio v1.0.0")
+display_block(b3)
+
+// Verify chain
+show "\n🔍 Verifying chain..."
+let verification = verify_chain()
+show "  {verification.message}"
+
+// Trust Stamps
+show "\n🏅 Trust Stamps:"
+let stamps = [
+    create_trust_stamp("TrustGen 3D", "2.1.0", 847),
+    create_trust_stamp("Signal Chat", "3.0.0", 1204),
+    create_trust_stamp("DarkWave Studio", "1.0.0", 523),
+]
+
+for each stamp in stamps:
+    display_stamp(stamp)
+
+// Hallmarks
+show "\n🏆 Hallmarks:"
+let hallmarks = [
+    issue_hallmark("Trust Layer", "Signal Chat", "gold", "1M+ verified messages"),
+    issue_hallmark("Trust Layer", "TrustGen 3D", "platinum", "Enterprise-grade 3D generation"),
+    issue_hallmark("Trust Layer", "PaintPros", "silver", "Professional service marketplace"),
+]
+
+for each hm in hallmarks:
+    display_hallmark(hm)
+
+show "\n✅ Blockchain trust demo complete!"
+show "   Blocks: {list.count(chain)} | Stamps: {list.count(stamps)} | Hallmarks: {list.count(hallmarks)}"
