@@ -120,6 +120,10 @@ export default function PlaygroundPage() {
     const [inputMethod, setInputMethod] = useState('text')  // 'text' | 'voice'
     const [showApproval, setShowApproval] = useState(false)
     const [approved, setApproved] = useState(false)
+    const [showBuildReview, setShowBuildReview] = useState(false)
+    const [buildReview, setBuildReview] = useState(null)
+    const [buildReviewApproved, setBuildReviewApproved] = useState(false)
+    const [autoApprove, setAutoApprove] = useState(false)
     const textareaRef = useRef(null)
     const recognitionRef = useRef(null)
 
@@ -211,8 +215,82 @@ export default function PlaygroundPage() {
         unresolved: output.filter(r => r.type === 'unresolved').length,
     }
 
+    // ── Build Review Gate (Natural Language mode) ──
+    const isNaturalLanguage = code.trim().startsWith('mode:')
+    const reviewConfidence = buildReview ? Math.max(0, Math.round((buildReview.matched / Math.max(buildReview.total, 1)) * 100 - (buildReview.unresolved * 10))) : 0
+
+    const triggerBuildReview = useCallback(async (onApprove) => {
+        // Compile to get AST + JS preview
+        setStatus('compiling')
+        try {
+            let reviewData
+            if (sandboxMode) {
+                // Client-side review
+                const lines = code.split('\n')
+                const results = lines.map((line, i) => {
+                    const result = compileLine(line)
+                    return { ...result, lineNum: i + 1 }
+                })
+                const matched = results.filter(r => r.type === 'match').length
+                const total = results.filter(r => r.type !== 'skip').length
+                const unresolved = results.filter(r => r.type === 'unresolved').length
+                reviewData = {
+                    source: code,
+                    ast: results,
+                    js: '// Sandbox mode — switch to Live for full JS output',
+                    matched,
+                    total,
+                    unresolved,
+                    diagnostics: [],
+                    onApprove,
+                }
+            } else {
+                // Server-side compile for full preview
+                const result = await compileCode(code)
+                const lines = code.split('\n')
+                const astResults = (result.ast || []).map((node, i) => ({
+                    type: 'match',
+                    nodeType: node.type || 'Unknown',
+                    node: JSON.stringify(node).slice(0, 120),
+                    text: lines[i] || '',
+                    lineNum: i + 1,
+                }))
+                const matched = astResults.length
+                const total = lines.filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('//') && !l.trim().startsWith('mode:')).length
+                const unresolved = Math.max(0, total - matched)
+                reviewData = {
+                    source: code,
+                    ast: astResults,
+                    js: result.js || '',
+                    matched,
+                    total,
+                    unresolved,
+                    diagnostics: result.diagnostics || [],
+                    onApprove,
+                }
+            }
+
+            const confidence = Math.max(0, Math.round((reviewData.matched / Math.max(reviewData.total, 1)) * 100 - (reviewData.unresolved * 10)))
+
+            // Auto-approve if enabled and confidence is high enough
+            if (autoApprove && confidence >= 90) {
+                setBuildReviewApproved(true)
+                setStatus('idle')
+                onApprove()
+                return
+            }
+
+            setBuildReview(reviewData)
+            setShowBuildReview(true)
+            setStatus('idle')
+        } catch (err) {
+            setConsoleOutput([{ type: 'error', text: `Review failed: ${err.message}` }])
+            setStatus('error')
+        }
+    }, [sandboxMode, code, autoApprove])
+
     // ── Run (Sandbox or Live) ──
-    const handleRun = useCallback(async () => {
+    const executeRun = useCallback(async () => {
         // Run security scan first
         const scan = scanCode(code, inputMethod)
         setSecurityScan(scan)
@@ -255,6 +333,17 @@ export default function PlaygroundPage() {
             }
         }
     }, [sandboxMode, code, output, inputMethod, approved])
+
+    const handleRun = useCallback(async () => {
+        // If Natural Language mode and not yet reviewed, show the gate
+        if (isNaturalLanguage && !buildReviewApproved) {
+            triggerBuildReview(executeRun)
+            return
+        }
+        // Reset for next run
+        setBuildReviewApproved(false)
+        executeRun()
+    }, [isNaturalLanguage, buildReviewApproved, triggerBuildReview, executeRun])
 
     // ── Build (compile only) ──
     const handleBuild = useCallback(async () => {
@@ -328,6 +417,12 @@ export default function PlaygroundPage() {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault()
             handleRun()
+        }
+        // Ctrl+Shift+Enter to skip review gate
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
+            e.preventDefault()
+            setBuildReviewApproved(true)
+            executeRun()
         }
         // Tab for indentation
         if (e.key === 'Tab') {
@@ -426,6 +521,28 @@ export default function PlaygroundPage() {
                         }}>
                             {inputMethod === 'voice' ? '🎤' : '⌨️'} {inputMethod}
                         </span>
+                        {isNaturalLanguage && (
+                            <>
+                                <div style={{ width: 1, height: 24, background: 'var(--glass-border)', margin: '0 4px' }} />
+                                <button
+                                    id="btn-auto-approve"
+                                    onClick={() => setAutoApprove(!autoApprove)}
+                                    title={autoApprove ? 'Auto-approve ON: Skip review when confidence ≥ 90%' : 'Auto-approve OFF: Always show build review'}
+                                    style={{
+                                        padding: '4px 10px', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                                        background: autoApprove
+                                            ? 'linear-gradient(135deg, rgba(0,184,148,0.2), rgba(0,184,148,0.05))'
+                                            : 'rgba(255,255,255,0.03)',
+                                        border: autoApprove ? '1px solid rgba(0,184,148,0.4)' : '1px solid var(--glass-border)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        color: autoApprove ? '#00b894' : 'var(--text-muted)',
+                                        cursor: 'pointer', transition: 'all 0.2s ease',
+                                    }}
+                                >
+                                    {autoApprove ? '⚡ Auto' : '🔒 Review'}
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     {/* Center: Status */}
@@ -742,6 +859,38 @@ export default function PlaygroundPage() {
                     </div>
                 </Modal>
             )}
+
+            {/* ── Build Review Gate ── */}
+            {showBuildReview && buildReview && (
+                <BuildReviewModal
+                    review={buildReview}
+                    onApprove={() => {
+                        setShowBuildReview(false)
+                        setBuildReviewApproved(true)
+                        setBuildReview(null)
+                        setTimeout(() => {
+                            if (buildReview.onApprove) buildReview.onApprove()
+                        }, 100)
+                    }}
+                    onEdit={() => {
+                        setShowBuildReview(false)
+                        setBuildReview(null)
+                        textareaRef.current?.focus()
+                    }}
+                    onExplain={async () => {
+                        try {
+                            const result = await explainCode(code)
+                            setExplanation(result)
+                            setActiveTab('explain')
+                            setShowBuildReview(false)
+                            setBuildReview(null)
+                        } catch (err) {
+                            setConsoleOutput(prev => [...prev, { type: 'error', text: `Explain: ${err.message}` }])
+                        }
+                    }}
+                    onClose={() => { setShowBuildReview(false); setBuildReview(null) }}
+                />
+            )}
         </div>
     )
 }
@@ -929,6 +1078,217 @@ function SecurityPanel({ scan }) {
 
 function LineNum({ n }) {
     return <span style={{ color: 'var(--text-muted)', opacity: 0.3, marginRight: 8, display: 'inline-block', width: 28, textAlign: 'right', fontSize: 11 }}>{n}</span>
+}
+
+function BuildReviewModal({ review, onApprove, onEdit, onExplain, onClose }) {
+    const confidence = Math.max(0, Math.round((review.matched / Math.max(review.total, 1)) * 100 - (review.unresolved * 10)))
+    const confColor = confidence >= 90 ? '#00b894' : confidence >= 70 ? '#fdcb6e' : '#d63031'
+    const confLabel = confidence >= 90 ? 'High Confidence' : confidence >= 70 ? 'Medium Confidence' : 'Low Confidence — Review Carefully'
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+        }} onClick={onClose}>
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width: '100%', maxWidth: 1100, maxHeight: '85vh', overflow: 'hidden',
+                    background: 'linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.98))',
+                    border: '1px solid rgba(0,255,255,0.15)', borderRadius: 16,
+                    display: 'flex', flexDirection: 'column',
+                    boxShadow: '0 0 60px rgba(0,255,255,0.08), 0 25px 50px rgba(0,0,0,0.5)',
+                }}
+            >
+                {/* Header */}
+                <div style={{
+                    padding: '16px 24px',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 20 }}>🔍</span>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>
+                                Build Review Gate
+                            </h3>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                Review what Lume understood before executing
+                            </span>
+                        </div>
+                    </div>
+                    {/* Confidence Badge */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                        <div style={{
+                            padding: '6px 16px', borderRadius: 20,
+                            background: `${confColor}15`,
+                            border: `1px solid ${confColor}40`,
+                            display: 'flex', alignItems: 'center', gap: 8,
+                        }}>
+                            <div style={{
+                                width: 32, height: 32, borderRadius: '50%',
+                                border: `3px solid ${confColor}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 12, fontWeight: 900, color: confColor,
+                                fontFamily: 'var(--font-mono)',
+                            }}>
+                                {confidence}
+                            </div>
+                            <div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: confColor }}>{confLabel}</div>
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                    {review.matched}/{review.total} resolved · {review.unresolved} unresolved
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background: 'none', border: 'none', color: 'var(--text-muted)',
+                            cursor: 'pointer', fontSize: 18, padding: 4,
+                        }}>✕</button>
+                    </div>
+                </div>
+
+                {/* Three-Panel Body */}
+                <div style={{
+                    flex: 1, display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr',
+                    gap: 0, overflow: 'hidden', minHeight: 0,
+                }}>
+                    {/* Left: Your Input */}
+                    <div style={{
+                        borderRight: '1px solid rgba(255,255,255,0.06)',
+                        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                    }}>
+                        <div style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5,
+                            color: 'var(--text-muted)',
+                        }}>✦ Your Input</div>
+                        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+                            {review.source.split('\n').map((line, i) => (
+                                <div key={i} style={{
+                                    fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: '1.7',
+                                    color: line.trim().startsWith('#') ? 'rgba(116,185,255,0.6)'
+                                        : line.trim().startsWith('mode:') ? 'var(--accent)'
+                                            : !line.trim() ? 'transparent'
+                                                : 'var(--text-bright)',
+                                }}>
+                                    <span style={{ color: 'var(--text-muted)', opacity: 0.3, marginRight: 8, display: 'inline-block', width: 24, textAlign: 'right', fontSize: 10 }}>{i + 1}</span>
+                                    {line || '\u00A0'}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Center: AI Interpretation */}
+                    <div style={{
+                        borderRight: '1px solid rgba(255,255,255,0.06)',
+                        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                    }}>
+                        <div style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5,
+                            color: '#00b894',
+                        }}>✦ AI Interpretation</div>
+                        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+                            {review.ast.map((r, i) => {
+                                if (r.type === 'skip') {
+                                    if (!r.text) return <div key={i} style={{ height: 14 }} />
+                                    return (
+                                        <div key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.7', color: 'var(--text-muted)', opacity: 0.5 }}>
+                                            {r.text}
+                                        </div>
+                                    )
+                                }
+                                if (r.type === 'match') {
+                                    const c = NODE_COLORS[r.nodeType] || '#00b894'
+                                    return (
+                                        <div key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.7', marginBottom: 2 }}>
+                                            <span style={{ color: '#00b894' }}>✓ </span>
+                                            <span style={{ color: c, fontWeight: 700 }}>{r.nodeType}</span>
+                                            <div style={{ paddingLeft: 16, fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+                                                {r.node}
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                                return (
+                                    <div key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.7', marginBottom: 2 }}>
+                                        <span style={{ color: '#fdcb6e' }}>⚠ </span>
+                                        <span style={{ color: '#fdcb6e' }}>Unresolved</span>
+                                        <span style={{ color: 'var(--text-muted)' }}> — "{r.text}"</span>
+                                    </div>
+                                )
+                            })}
+                            {review.diagnostics.length > 0 && (
+                                <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#fdcb6e', textTransform: 'uppercase', marginBottom: 6 }}>Diagnostics</div>
+                                    {review.diagnostics.map((d, i) => (
+                                        <div key={i} style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 0' }}>
+                                            ⚡ {typeof d === 'string' ? d : d.message || JSON.stringify(d)}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right: Generated JS */}
+                    <div style={{
+                        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                    }}>
+                        <div style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5,
+                            color: '#6c5ce7',
+                        }}>{ } Generated JS</div>
+                        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+                            <pre style={{
+                                fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.6,
+                                color: 'var(--text-bright)', whiteSpace: 'pre-wrap', margin: 0,
+                            }}>{review.js || '// No JS output available\n// Switch to Live mode for full compilation'}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer: Action Buttons */}
+                <div style={{
+                    padding: '14px 24px',
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        Ctrl+Shift+Enter to skip review · ESC to cancel
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={onExplain} style={{
+                            padding: '8px 16px', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                            background: 'rgba(9,132,227,0.1)', border: '1px solid rgba(9,132,227,0.3)',
+                            borderRadius: 8, color: '#0984e3', cursor: 'pointer',
+                        }}>📖 Explain More</button>
+                        <button onClick={onEdit} style={{
+                            padding: '8px 16px', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                            background: 'rgba(99,110,114,0.1)', border: '1px solid rgba(99,110,114,0.3)',
+                            borderRadius: 8, color: '#b2bec3', cursor: 'pointer',
+                        }}>✏️ Edit</button>
+                        <button onClick={onApprove} style={{
+                            padding: '8px 20px', fontSize: 12, fontWeight: 800, fontFamily: 'var(--font-mono)',
+                            background: 'linear-gradient(135deg, rgba(0,184,148,0.2), rgba(0,184,148,0.05))',
+                            border: '1px solid rgba(0,184,148,0.5)',
+                            borderRadius: 8, color: '#00b894', cursor: 'pointer',
+                            boxShadow: '0 0 20px rgba(0,184,148,0.15)',
+                        }}>✅ Approve & Run</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }
 
 function Modal({ onClose, title, children }) {
