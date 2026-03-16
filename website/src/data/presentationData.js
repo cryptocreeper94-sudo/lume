@@ -169,7 +169,7 @@ export const presentationScenes = [
     duration: 10, icon: 'Layers', visualType: 'workflow',
     content: {
       steps: [
-        { step: 1, title: 'Exact Pattern Match', description: '102+ patterns checked first. Instant resolution. Zero ambiguity.', icon: 'Target' },
+        { step: 1, title: 'Exact Pattern Match', description: '102+ patterns checked first. Instant resolution. Zero ambiguity.', icon: 'Target', image: '/demo/tolerance-chain.png' },
         { step: 2, title: 'Synonym Ring Lookup', description: '30 verb synonym rings: "grab" → "get", "remove" → "delete". Natural vocabulary mapped.', icon: 'RefreshCw' },
         { step: 3, title: 'Canonical Verb Resolution', description: 'All verbs normalized to canonical forms for consistent AST generation.', icon: 'Hash' },
         { step: 4, title: 'Fuzzy Matching', description: 'Levenshtein distance matching. "shw" → "show". Handles typos and abbreviations.', icon: 'Search' },
@@ -324,7 +324,7 @@ export const presentationScenes = [
     content: {
       features: [
         { icon: 'Key', title: 'Single Sign-On', description: 'Trust Layer SSO integration. One identity across the entire ecosystem of 30+ applications.', image: '/demo/trust-layer.png' },
-        { icon: 'Link', title: 'Blockchain Hallmarks', description: 'Solana-verified trust stamps. SHA-256 hashed records. Immutable proof of compilation and certification.' },
+        { icon: 'Link', title: 'Blockchain Hallmarks', description: 'Solana-verified trust stamps. SHA-256 hashed records. Immutable proof of compilation and certification.', image: '/demo/ecosystem-network.png' },
         { icon: 'MessageCircle', title: 'Signal Chat', description: 'Integrated with the Signal Chat real-time messaging platform. Bot framework for compiler notifications.' },
         { icon: 'Shield', title: 'DarkWave Verified', description: 'Meets DarkWave Studios quality standards: 2,093 tests, security scanning, and audit trails.' },
       ],
@@ -532,7 +532,7 @@ export const presentationScenes = [
     content: {
       features: [
         { icon: 'BookOpen', title: 'Cognitive Distance Theory', description: 'A formal metric for the translation overhead between human intent and code syntax. Lume minimizes it.', image: '/demo/cognitive-bridge.png' },
-        { icon: 'Award', title: 'Academic Brief Published', description: 'Full technical specification suitable for academic publication. Voice-to-Code, security, and cognitive theory.' },
+        { icon: 'Award', title: 'Academic Brief Published', description: 'Full technical specification suitable for academic publication. Voice-to-Code, security, and cognitive theory.', image: '/demo/academic-paper.png' },
         { icon: 'Lightbulb', title: 'Novel Contributions', description: 'Intent-resolving compilation, certified-at-birth security, and voice-native language design.' },
         { icon: 'Globe', title: 'Publication Tracks', description: 'ACM SIGPLAN (PL design), IEEE S&P (security), CogSci (cognitive distance theory).' },
       ],
@@ -546,7 +546,7 @@ export const presentationScenes = [
     duration: 8, icon: 'Map', visualType: 'workflow',
     content: {
       steps: [
-        { step: 1, title: 'Language Server Protocol', description: 'Full LSP implementation for VS Code, Neovim, and JetBrains IDEs. Autocomplete, diagnostics, hover.', icon: 'Server' },
+        { step: 1, title: 'Language Server Protocol', description: 'Full LSP implementation for VS Code, Neovim, and JetBrains IDEs. Autocomplete, diagnostics, hover.', icon: 'Server', image: '/demo/roadmap-stars.png' },
         { step: 2, title: 'VS Code Extension', description: 'Syntax highlighting, real-time compilation, English Mode toggle, and voice input from the editor.', icon: 'Code' },
         { step: 3, title: 'Native Compilation', description: 'Bun-based native binary compilation for Linux, macOS, Windows, and WASM targets.', icon: 'Cpu' },
         { step: 4, title: 'Package Manager', description: 'lume install — a native package manager for Lume modules with semantic versioning.', icon: 'Package' },
