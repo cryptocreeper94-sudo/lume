@@ -321,6 +321,7 @@ export default function PresentationPage() {
   const [isPlaying, setIsPlaying] = useState(true)
   const [showTOC, setShowTOC] = useState(false)
   const [imagesReady, setImagesReady] = useState(false)
+  const [imageLoadProgress, setImageLoadProgress] = useState({ loaded: 0, total: 0 })
   const navigate = useNavigate()
   const scenes = presentationScenes
   const scene = scenes[currentIndex]
@@ -346,15 +347,23 @@ export default function PresentationPage() {
   // Image preload gate — timer won't fire until images are loaded
   useEffect(() => {
     setImagesReady(false)
+    setImageLoadProgress({ loaded: 0, total: 0 })
     const images = []
     scene.content.features?.forEach(f => { if (f.image) images.push(f.image) })
     scene.content.steps?.forEach(s => { if (s.image) images.push(s.image) })
-    if (images.length === 0) { setImagesReady(true); return }
+    if (images.length === 0) { setImagesReady(true); setImageLoadProgress({ loaded: 0, total: 0 }); return }
     let loaded = 0, cancelled = false
     const total = images.length
-    const onDone = () => { loaded++; if (!cancelled && loaded >= total) setImagesReady(true) }
+    setImageLoadProgress({ loaded: 0, total })
+    const onDone = () => {
+      loaded++
+      if (!cancelled) {
+        setImageLoadProgress({ loaded, total })
+        if (loaded >= total) setImagesReady(true)
+      }
+    }
     images.forEach(src => { const img = new Image(); img.onload = onDone; img.onerror = onDone; img.src = src })
-    const fallback = setTimeout(() => { if (!cancelled) setImagesReady(true) }, 4000)
+    const fallback = setTimeout(() => { if (!cancelled) { setImagesReady(true); setImageLoadProgress({ loaded: total, total }) } }, 4000)
     return () => { cancelled = true; clearTimeout(fallback) }
   }, [currentIndex, scene])
 
@@ -425,6 +434,17 @@ export default function PresentationPage() {
           <button className="pres-btn-icon" onClick={() => navigate('/')} aria-label="Close"><Icon name="X" /></button>
         </div>
       </div>
+
+      {/* Image loading progress bar */}
+      {!imagesReady && imageLoadProgress.total > 0 && (
+        <div className="pres-loading-bar">
+          <span className="pres-loading-label">Loading images</span>
+          <div className="pres-loading-track">
+            <div className="pres-loading-fill" style={{ width: `${Math.round((imageLoadProgress.loaded / imageLoadProgress.total) * 100)}%` }} />
+          </div>
+          <span className="pres-loading-pct">{Math.round((imageLoadProgress.loaded / imageLoadProgress.total) * 100)}%</span>
+        </div>
+      )}
 
       {/* Content area */}
       <div className="pres-content-area">

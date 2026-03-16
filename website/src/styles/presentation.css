@@ -174,13 +174,13 @@
 .pres-fade-in-delay2 { animation: fadeIn 0.6s ease-out 1.2s backwards; }
 
 /* ── Intro Scene ── */
-.pres-scene-intro { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-height: 100%; padding: 24px 24px; max-width: 720px; margin: 0 auto; }
+.pres-scene-intro { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 24px 24px; max-width: 720px; margin: 0 auto; text-align: center; }
 @media(min-width: 640px) { .pres-scene-intro { padding: 24px 48px; } }
 .pres-intro-header { text-align: center; width: 100%; margin-bottom: 24px; }
 .pres-intro-header h2 { font-size: 24px; font-weight: 700; margin: 0 0 8px; }
 @media(min-width: 640px) { .pres-intro-header h2 { font-size: 36px; } }
 .pres-subtitle-italic { color: rgba(255,255,255,0.5); font-style: italic; font-size: 14px; }
-.pres-intro-bullets { display: flex; flex-direction: column; gap: 16px; text-align: left; width: 100%; }
+.pres-intro-bullets { display: flex; flex-direction: column; gap: 16px; text-align: center; width: 100%; }
 .pres-bullet { color: rgba(255,255,255,0.65); font-size: 14px; line-height: 1.6; }
 @media(min-width: 640px) { .pres-bullet { font-size: 16px; } }
 .pres-bullet-hero { font-size: 20px; font-weight: 700; text-align: center; padding: 8px 0; }
@@ -364,3 +364,30 @@
 .pres-scroll-gradient { background: linear-gradient(to top, #050508, transparent); height: 64px; width: 100%; position: absolute; bottom: 0; }
 .pres-scroll-label { position: relative; color: rgba(255,255,255,0.4); font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: bounce 1.5s ease-in-out infinite; }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+
+/* ── Image Loading Bar ── */
+.pres-loading-bar {
+  position: absolute; top: 48px; left: 24px; right: 24px; z-index: 35;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 12px; border-radius: 8px;
+  background: rgba(5,5,8,0.85); backdrop-filter: blur(8px);
+  border: 1px solid rgba(6,182,212,0.15);
+  animation: fadeIn 0.3s ease-out;
+}
+.pres-loading-label {
+  color: rgba(6,182,212,0.7); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.1em; white-space: nowrap; font-weight: 500;
+}
+.pres-loading-track {
+  flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px;
+  overflow: hidden;
+}
+.pres-loading-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #06b6d4, #22d3ee);
+  transition: width 0.2s ease-out;
+}
+.pres-loading-pct {
+  color: rgba(6,182,212,0.6); font-size: 10px; font-weight: 600;
+  min-width: 28px; text-align: right;
+}
