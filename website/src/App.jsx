@@ -3,7 +3,6 @@ import { AuthProvider } from './stores/authStore'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import SignalChatWidget from './components/SignalChatWidget'
-import HamburgerMenu from './components/HamburgerMenu'
 import ExplorePage from './pages/ExplorePage'
 import BlogPage from './pages/BlogPage'
 import BlogPostPage from './pages/BlogPostPage'
@@ -25,7 +24,6 @@ export default function App() {
     return (
         <AuthProvider>
             <Nav />
-            <HamburgerMenu />
             <Routes>
                 <Route path="/" element={<ExplorePage />} />
                 <Route path="/explore" element={<Navigate to="/" replace />} />

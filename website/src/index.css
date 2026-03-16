@@ -318,7 +318,8 @@ body {
     width: 32px;
     height: 24px;
     position: relative;
-    z-index: 10001;
+    z-index: 10;
+    margin-left: auto;
 }
 
 .hamburger span {
@@ -559,7 +560,7 @@ body {
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 20;
+    z-index: 30;
     display: flex;
     gap: 10px;
 }
@@ -2022,8 +2023,20 @@ body {
         display: none;
     }
 
+    .nav-right {
+        display: none;
+    }
+
     .hamburger {
         display: block;
+    }
+
+    .hero-content {
+        padding-bottom: 48px;
+    }
+
+    .hero-dots {
+        z-index: 30;
     }
 
     .section {
@@ -2399,12 +2412,15 @@ body {
 
     /* ── Hero ── */
     .hero-carousel {
-        height: 60vh;
+        height: 70vh;
     }
 
     .hero-content {
         padding: 0 20px;
-        bottom: 8%;
+        padding-bottom: 56px;
+        bottom: 0;
+        top: auto;
+        transform: none;
     }
 
     .hero-title {
@@ -2420,7 +2436,7 @@ body {
     .hero-actions {
         flex-direction: column;
         gap: 10px;
-        margin-bottom: 24px;
+        margin-bottom: 16px;
     }
 
     .btn-primary-lg,
@@ -2451,7 +2467,8 @@ body {
     }
 
     .hero-dots {
-        bottom: 16px;
+        bottom: 12px;
+        z-index: 30;
     }
 
     .hero-dot {
@@ -2473,6 +2490,10 @@ body {
     }
 
     .nav-cta {
+        display: none;
+    }
+
+    .nav-right {
         display: none;
     }
 
