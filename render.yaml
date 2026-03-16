@@ -7,9 +7,9 @@ services:
     runtime: node
     region: oregon
     plan: free
-    rootDir: server
-    buildCommand: npm install
-    startCommand: node server.js
+    rootDir: .
+    buildCommand: cd server && npm install && cd ../website && npm install && npm run build
+    startCommand: cd server && node server.js
     envVars:
       - key: NODE_ENV
         value: production

@@ -3,6 +3,8 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 import { auth } from './middleware/auth.js'
 import authRoutes from './routes/auth.js'
@@ -110,10 +112,18 @@ const lumeApiLimiter = rateLimit({
 })
 app.use('/api/lume', lumeApiLimiter, lumeApiRoutes)
 
-// ── 404 ──
-app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' })
-})
+// ── Serve Website Static Files ──
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const websiteDist = path.resolve(__dirname, '..', 'website', 'dist');
+app.use(express.static(websiteDist));
+
+// SPA fallback — serve index.html for all non-API routes
+app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(websiteDist, 'index.html'));
+});
 
 // ── Error Handler ──
 app.use((err, req, res, next) => {
