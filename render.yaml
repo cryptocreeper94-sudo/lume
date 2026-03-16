@@ -8,7 +8,7 @@ services:
     region: oregon
     plan: free
     rootDir: .
-    buildCommand: cd server && npm install && cd ../website && npm install && npm run build
+    buildCommand: cd server && npm install && cd ../website && npm install --include=dev && npm run build
     startCommand: cd server && node server.js
     envVars:
       - key: NODE_ENV
