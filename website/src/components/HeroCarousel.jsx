@@ -55,12 +55,12 @@ export default function HeroCarousel() {
                 </div>
                 <div className="hero-stats">
                     <div className="stat">
-                        <span className="stat-value">366</span>
+                        <span className="stat-value">520+</span>
                         <span className="stat-label">Tests Passing</span>
                     </div>
                     <div className="stat-divider" />
                     <div className="stat">
-                        <span className="stat-value">13</span>
+                        <span className="stat-value">15</span>
                         <span className="stat-label">Milestones</span>
                     </div>
                     <div className="stat-divider" />

@@ -2,6 +2,14 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { executeSandbox, saveProgram, loadPrograms, deleteProgram, exportAsLume } from '../utils/sandboxEngine'
 import { compileCode, runCode, explainCode } from '../api/compileApi'
 import { scanCode, formatCertificate } from '../utils/securityScanner'
+import { useKeyboardShortcuts } from '../components/playground/useKeyboardShortcuts'
+import MenuBar from '../components/playground/MenuBar'
+import StatusBar from '../components/playground/StatusBar'
+import Terminal from '../components/playground/Terminal'
+import TabBar from '../components/playground/TabBar'
+import FindReplace from '../components/playground/FindReplace'
+import CommandPalette from '../components/playground/CommandPalette'
+import HelpPanel from '../components/playground/HelpPanel'
 
 /* ── Pattern Library (in-browser subset) ── */
 const PATTERNS = [
@@ -124,6 +132,16 @@ export default function PlaygroundPage() {
     const [buildReview, setBuildReview] = useState(null)
     const [buildReviewApproved, setBuildReviewApproved] = useState(false)
     const [autoApprove, setAutoApprove] = useState(false)
+    // ── IDE State ──
+    const [showTerminal, setShowTerminal] = useState(false)
+    const [showFindReplace, setShowFindReplace] = useState(false)
+    const [findReplaceMode, setFindReplaceMode] = useState('find')
+    const [showCommandPalette, setShowCommandPalette] = useState(false)
+    const [showHelp, setShowHelp] = useState(false)
+    const [helpInitialTab, setHelpInitialTab] = useState(0)
+    const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 })
+    const [tabs, setTabs] = useState([{ id: 'default', name: 'Hello World', source: EXAMPLES['Hello World'], modified: false }])
+    const [activeTabId, setActiveTabId] = useState('default')
     const textareaRef = useRef(null)
     const recognitionRef = useRef(null)
 
@@ -410,21 +428,149 @@ export default function PlaygroundPage() {
         setActiveExample(name)
         setConsoleOutput([])
         setStatus('idle')
+        // Update current tab
+        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, name, source: EXAMPLES[name], modified: false } : t))
     }
 
+    // ── Tab Management ──
+    const handleNewTab = useCallback(() => {
+        const id = 'tab_' + Date.now()
+        const newTab = { id, name: 'Untitled', source: 'mode: english\n\n# New program\n', modified: false }
+        setTabs(prev => [...prev, newTab])
+        setActiveTabId(id)
+        setCode(newTab.source)
+        setActiveExample('')
+        setConsoleOutput([])
+    }, [])
+
+    const handleCloseTab = useCallback((tabId) => {
+        setTabs(prev => {
+            const filtered = prev.filter(t => t.id !== tabId)
+            if (filtered.length === 0) {
+                const newTab = { id: 'default', name: 'Hello World', source: EXAMPLES['Hello World'], modified: false }
+                setCode(newTab.source)
+                setActiveTabId('default')
+                return [newTab]
+            }
+            if (tabId === activeTabId) {
+                const lastTab = filtered[filtered.length - 1]
+                setCode(lastTab.source)
+                setActiveTabId(lastTab.id)
+            }
+            return filtered
+        })
+    }, [activeTabId])
+
+    const handleSelectTab = useCallback((tabId) => {
+        // Save current tab source first
+        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, source: code } : t))
+        const tab = tabs.find(t => t.id === tabId)
+        if (tab) {
+            setCode(tab.source)
+            setActiveTabId(tabId)
+            setActiveExample('')
+        }
+    }, [activeTabId, code, tabs])
+
+    // Mark tab as modified when code changes
+    useEffect(() => {
+        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, source: code, modified: true } : t))
+    }, [code])
+
+    // ── Cursor Position Tracking ──
+    const handleCursorChange = useCallback(() => {
+        if (!textareaRef.current) return
+        const pos = textareaRef.current.selectionStart
+        const lines = code.substring(0, pos).split('\n')
+        setCursorPos({ line: lines.length, col: lines[lines.length - 1].length + 1 })
+    }, [code])
+
+    // ── Centralized Action Dispatcher ──
+    const handleAction = useCallback((actionId) => {
+        switch (actionId) {
+            // File
+            case 'file.new': case 'tab.new': handleNewTab(); break
+            case 'file.open': setShowLoadModal(true); break
+            case 'file.save': setShowSaveModal(true); break
+            case 'file.saveAs': setShowSaveModal(true); break
+            case 'file.export': exportAsLume(activeExample || 'program', code); break
+            case 'file.import': { const el = document.createElement('input'); el.type = 'file'; el.accept = '.lume'; el.onchange = (ev) => { const f = ev.target.files[0]; if (f) { const r = new FileReader(); r.onload = (re) => { setCode(re.target.result); setActiveExample('') }; r.readAsText(f) } }; el.click(); break }
+            // Edit
+            case 'edit.find': setFindReplaceMode('find'); setShowFindReplace(true); break
+            case 'edit.replace': setFindReplaceMode('replace'); setShowFindReplace(true); break
+            case 'edit.comment': {
+                if (!textareaRef.current) break
+                const start = textareaRef.current.selectionStart
+                const end = textareaRef.current.selectionEnd
+                const lines = code.split('\n')
+                const startLine = code.substring(0, start).split('\n').length - 1
+                const endLine = code.substring(0, end).split('\n').length - 1
+                for (let i = startLine; i <= endLine; i++) {
+                    lines[i] = lines[i].startsWith('# ') ? lines[i].slice(2) : '# ' + lines[i]
+                }
+                setCode(lines.join('\n'))
+                break
+            }
+            // View
+            case 'view.terminal': setShowTerminal(v => !v); break
+            case 'view.commandPalette': setShowCommandPalette(true); break
+            case 'view.help': setHelpInitialTab(0); setShowHelp(true); break
+            // Run
+            case 'run.run': handleRun(); break
+            case 'run.runSkip': setBuildReviewApproved(true); executeRun(); break
+            case 'run.build': handleBuild(); break
+            case 'run.explain': handleExplain(); break
+            case 'run.toggleMode': setSandboxMode(v => !v); break
+            case 'run.toggleVoice': toggleRecording(); break
+            // Terminal
+            case 'terminal.clear': break // handled by Terminal component
+            case 'terminal.lumeFmt': {
+                const lines = code.split('\n').map(l => l.trimEnd())
+                setCode(lines.join('\n'))
+                setConsoleOutput(prev => [...prev, { type: 'info', text: '✨ Code formatted' }])
+                break
+            }
+            case 'terminal.lumeLint': {
+                const scan = scanCode(code, inputMethod)
+                setSecurityScan(scan)
+                setActiveTab('security')
+                break
+            }
+            // Tabs
+            case 'tab.close': handleCloseTab(activeTabId); break
+            // Help
+            case 'help.shortcuts': setHelpInitialTab(1); setShowHelp(true); break
+            case 'help.examples': break // example pills are visible
+            case 'help.gettingStarted': setHelpInitialTab(2); setShowHelp(true); break
+            case 'help.about': setConsoleOutput(prev => [...prev, { type: 'info', text: 'Lume v0.8.0 — The AI-Native Programming Language' }, { type: 'info', text: '© 2024 Trust Layer Ecosystem · DarkWave Studios' }]); break
+            case 'help.github': window.open('https://github.com/cryptocreeper94-sudo/lume', '_blank'); break
+            case 'help.reportIssue': window.open('https://github.com/cryptocreeper94-sudo/lume/issues', '_blank'); break
+            default: break
+        }
+    }, [code, activeExample, activeTabId, handleRun, handleBuild, handleExplain, executeRun, toggleRecording, handleNewTab, handleCloseTab, inputMethod])
+
+    // ── Keyboard Shortcuts ──
+    useKeyboardShortcuts({
+        'file.new': () => handleAction('file.new'),
+        'file.open': () => handleAction('file.open'),
+        'file.save': () => handleAction('file.save'),
+        'file.export': () => handleAction('file.export'),
+        'edit.find': () => handleAction('edit.find'),
+        'edit.replace': () => handleAction('edit.replace'),
+        'edit.comment': () => handleAction('edit.comment'),
+        'view.terminal': () => handleAction('view.terminal'),
+        'view.commandPalette': () => handleAction('view.commandPalette'),
+        'view.help': () => handleAction('view.help'),
+        'run.run': () => handleAction('run.run'),
+        'run.runSkip': () => handleAction('run.runSkip'),
+        'run.build': () => handleAction('run.build'),
+        'run.explain': () => handleAction('run.explain'),
+        'tab.new': () => handleAction('tab.new'),
+        'tab.close': () => handleAction('tab.close'),
+    })
+
     const handleKeyDown = (e) => {
-        // Ctrl+Enter to run
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault()
-            handleRun()
-        }
-        // Ctrl+Shift+Enter to skip review gate
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
-            e.preventDefault()
-            setBuildReviewApproved(true)
-            executeRun()
-        }
-        // Tab for indentation
+        // Tab for indentation (only in textarea)
         if (e.key === 'Tab') {
             e.preventDefault()
             const start = e.target.selectionStart
@@ -439,20 +585,20 @@ export default function PlaygroundPage() {
     const modeLabel = code.trim().startsWith('mode:') ? 'English' : 'Standard'
 
     return (
-        <div style={{ minHeight: '100vh', paddingTop: 80 }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingTop: 60 }}>
             <div className="orb orb-1" /><div className="orb orb-3" />
 
-            {/* ── Header ── */}
-            <div style={{ padding: '0 24px', maxWidth: 1440, margin: '0 auto 24px' }}>
-                <span className="section-label">Development Environment</span>
-                <h1 className="section-title" style={{ marginTop: 12 }}>
-                    Lume <span className="gradient-wave-text">Sandbox</span>
-                </h1>
-                <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 700, marginTop: 8, lineHeight: 1.6 }}>
-                    Write code, compile, and execute — all in your browser. Switch between Sandbox mode
-                    (instant, client-side) and Live mode (full compiler on server) when you're ready.
-                </p>
-            </div>
+            {/* ── Menu Bar ── */}
+            <MenuBar onAction={handleAction} />
+
+            {/* ── Tab Bar ── */}
+            <TabBar
+                tabs={tabs}
+                activeTabId={activeTabId}
+                onSelectTab={handleSelectTab}
+                onCloseTab={handleCloseTab}
+                onNewTab={handleNewTab}
+            />
 
             {/* ── Example Pills ── */}
             <div style={{ maxWidth: 1440, margin: '0 auto 12px', padding: '0 24px' }}>
@@ -581,12 +727,12 @@ export default function PlaygroundPage() {
 
             {/* ── Main Split Layout ── */}
             <div style={{
-                maxWidth: 1440, margin: '0 auto', padding: '0 24px 80px',
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
-                minHeight: 600,
+                flex: 1, minHeight: 0,
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2,
+                padding: '0 2px',
             }}>
                 {/* LEFT: Editor */}
-                <div className="bento-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'rgba(10,10,18,0.95)', borderRight: '1px solid rgba(255,255,255,0.04)' }}>
                     <div style={{
                         padding: '10px 16px',
                         borderBottom: '1px solid var(--glass-border)',
@@ -615,8 +761,11 @@ export default function PlaygroundPage() {
                             id="playground-editor"
                             ref={textareaRef}
                             value={code}
-                            onChange={e => setCode(e.target.value)}
+                            onChange={e => { setCode(e.target.value); setInputMethod('text') }}
                             onKeyDown={handleKeyDown}
+                            onClick={handleCursorChange}
+                            onKeyUp={handleCursorChange}
+                            onSelect={handleCursorChange}
                             spellCheck="false"
                             style={{
                                 width: '100%', height: '100%',
@@ -626,13 +775,21 @@ export default function PlaygroundPage() {
                                 resize: 'none', caretColor: 'var(--accent)',
                             }}
                         />
+                        {/* Find & Replace overlay */}
+                        <FindReplace
+                            visible={showFindReplace}
+                            mode={findReplaceMode}
+                            code={code}
+                            onCodeChange={setCode}
+                            onClose={() => setShowFindReplace(false)}
+                        />
                     </div>
                 </div>
 
                 {/* RIGHT: AST / JS / Explain + Console */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* Top Right: AST / JS / Explain tabs */}
-                    <div className="bento-card" style={{ padding: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ padding: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(10,10,18,0.95)' }}>
                         <div style={{
                             padding: '0 16px',
                             borderBottom: '1px solid var(--glass-border)',
@@ -698,7 +855,7 @@ export default function PlaygroundPage() {
                     )}
 
                     {/* Bottom Right: Console */}
-                    <div className="bento-card" style={{ padding: 0, overflow: 'hidden', minHeight: 200, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ padding: 0, overflow: 'hidden', minHeight: 200, display: 'flex', flexDirection: 'column', background: 'rgba(10,10,18,0.95)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                         <div style={{
                             padding: '10px 16px',
                             borderBottom: '1px solid var(--glass-border)',
@@ -757,27 +914,22 @@ export default function PlaygroundPage() {
                 </div>
             </div>
 
-            {/* ── Footer Info ── */}
-            <div style={{ maxWidth: 1440, margin: '-40px auto 80px', padding: '0 24px' }}>
-                <div className="bento-card" style={{
-                    padding: '14px 20px',
-                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16,
-                    fontSize: 12, color: 'var(--text-muted)',
-                }}>
-                    <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-bright)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1, fontSize: 10 }}>🧪 Sandbox Mode</div>
-                        Compiles and runs entirely in your browser using the Pattern Library. Instant feedback, zero network latency.
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-bright)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1, fontSize: 10 }}>🚀 Live Mode</div>
-                        Sends code to the Lume backend for full compilation using all 13 milestones. Real execution in a sandboxed VM.
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-bright)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1, fontSize: 10 }}>Keyboard Shortcuts</div>
-                        <span style={{ color: 'var(--accent)' }}>Ctrl+Enter</span> Run · <span style={{ color: 'var(--accent)' }}>Tab</span> Indent
-                    </div>
-                </div>
-            </div>
+            {/* ── Terminal ── */}
+            <Terminal
+                visible={showTerminal}
+                onAction={handleAction}
+                onClose={() => setShowTerminal(false)}
+            />
+
+            {/* ── Status Bar ── */}
+            <StatusBar
+                code={code}
+                cursorPos={cursorPos}
+                mode={modeLabel.toLowerCase()}
+                sandboxMode={sandboxMode}
+                isRecording={isRecording}
+                inputMethod={inputMethod}
+            />
 
             {/* ── Save Modal ── */}
             {showSaveModal && (
@@ -891,6 +1043,28 @@ export default function PlaygroundPage() {
                     onClose={() => { setShowBuildReview(false); setBuildReview(null) }}
                 />
             )}
+
+            {/* ── Command Palette Overlay ── */}
+            <CommandPalette
+                visible={showCommandPalette}
+                onAction={handleAction}
+                onClose={() => setShowCommandPalette(false)}
+            />
+
+            {/* ── Help Panel Overlay ── */}
+            <HelpPanel
+                visible={showHelp}
+                initialTab={helpInitialTab}
+                onClose={() => setShowHelp(false)}
+            />
+
+            {/* CSS animation for help panel */}
+            <style>{`
+                @keyframes slideInRight {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `}</style>
         </div>
     )
 }

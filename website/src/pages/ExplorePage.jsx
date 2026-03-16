@@ -56,7 +56,9 @@ const milestones = [
     { n: 10, title: 'Security Layer', desc: 'AST scanning, certificates, 11 threat categories.', tests: 330 },
     { n: 11, title: 'Voice Input', desc: 'Transcription cleanup, homophones, stutter collapse.', tests: 345 },
     { n: 12, title: 'Voice CLI', desc: 'lume voice with commands, flags, config.', tests: 355 },
-    { n: 13, title: 'Playground', desc: 'Sandbox IDE, mic button, security tab.', tests: 366, active: true },
+    { n: 13, title: 'Playground', desc: 'Sandbox IDE, mic button, security tab.', tests: 366 },
+    { n: 14, title: 'IDE Upgrade', desc: 'Menu bar, terminal, find/replace, command palette, tabs, status bar.', tests: 480 },
+    { n: 15, title: 'DarkWave Integration', desc: 'DarkWave Studio API wiring, Lume project management.', tests: 520, active: true },
 ]
 
 /* ─── Docs ─── */
@@ -149,7 +151,7 @@ function EcoCarousel() {
 function MilestoneCarousel() {
     const { idx, prev, next, setIdx } = useCarousel(milestones, 8000)
     const m = milestones[idx]
-    const imgs = ['/features/ai-syntax.png', '/features/pipe.png', '/features/ai-syntax.png', '/features/http.png', '/features/monitoring.png', '/features/evolving.png', '/features/ai-syntax.png', '/features/self-healing.png', '/features/monitoring.png', '/features/http.png', '/features/pipe.png', '/features/evolving.png', '/features/monitoring.png']
+    const imgs = ['/features/ai-syntax.png', '/features/pipe.png', '/features/ai-syntax.png', '/features/http.png', '/features/monitoring.png', '/features/evolving.png', '/features/ai-syntax.png', '/features/self-healing.png', '/features/monitoring.png', '/features/http.png', '/features/pipe.png', '/features/evolving.png', '/features/monitoring.png', '/features/ai-syntax.png', '/features/evolving.png']
     return (
         <div className="full-carousel milestone-carousel">
             <div className="fc-image-side">
@@ -162,7 +164,7 @@ function MilestoneCarousel() {
                 <h3 className="fc-title">{m.title}</h3>
                 <p className="fc-text">{m.desc}</p>
                 <div className="milestone-progress">
-                    <div className="milestone-bar" style={{ width: `${(m.tests / 219) * 100}%` }} />
+                    <div className="milestone-bar" style={{ width: `${(m.tests / 520) * 100}%` }} />
                 </div>
                 <div className="fc-nav" style={{ marginTop: 20 }}>
                     <button className="carousel-btn" onClick={prev}>←</button>
@@ -487,7 +489,7 @@ await db.save("profile", result);`}</pre>
             <section id="milestones" className="section-full section-dark" data-reveal>
                 <div className="section-header">
                     <span className="section-label">Journey</span>
-                    <h2 className="section-title">13 <span className="gradient-wave-text">Milestones</span> · 366 Tests</h2>
+                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · 520+ Tests</h2>
                 </div>
                 <MilestoneCarousel />
             </section>

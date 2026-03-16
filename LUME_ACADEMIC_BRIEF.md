@@ -400,7 +400,7 @@ The Lume web playground (`lume-lang.com/playground`) includes a browser-based mi
 
 **Sandbox vs Live modes:**
 - **Sandbox mode** — Compiles and executes entirely in-browser using the 34-pattern Pattern Library and a client-side AST executor that simulates 30+ node types
-- **Live mode** — Sends code to the backend server for full compilation using all 13 milestones, then executes in a sandboxed Node.js VM (3-second timeout, no filesystem access)
+- **Live mode** — Sends code to the backend server for full compilation using all 15 milestones, then executes in a sandboxed Node.js VM (3-second timeout, no filesystem access)
 
 ---
 
@@ -484,12 +484,12 @@ The "certified at birth" paradigm — code that is provably security-verified fr
 | Lexer | ~400 | `src/lexer.js` |
 | Parser | ~800 | `src/parser.js` |
 | Transpiler | ~821 | `src/transpiler.js` |
-| **Total compiler** | **~10,800** | All source files |
+| **Total compiler** | **~12,000+** | All source files |
 
 | Metric | Value |
 |--------|-------|
-| Compiler milestones | 13 |
-| Test suite | 366 tests |
+| Compiler milestones | 15 |
+| Test suite | 520+ tests |
 | Pattern Library patterns | 34+ |
 | Homophone pairs | 10 |
 | Filler words | 20 |
