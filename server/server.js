@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
 
 import { auth } from './middleware/auth.js'
@@ -115,14 +116,25 @@ app.use('/api/lume', lumeApiLimiter, lumeApiRoutes)
 // ── Serve Website Static Files ──
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const websiteDist = path.resolve(__dirname, '..', 'website', 'dist');
-app.use(express.static(websiteDist));
+const indexHtml = path.join(websiteDist, 'index.html');
+const websiteBuilt = fs.existsSync(indexHtml);
+
+console.log(`[Lume] Website dist path: ${websiteDist}`);
+console.log(`[Lume] Website built: ${websiteBuilt}`);
+
+if (websiteBuilt) {
+    app.use(express.static(websiteDist));
+}
 
 // SPA fallback — serve index.html for all non-API routes
 app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'Not found' });
     }
-    res.sendFile(path.join(websiteDist, 'index.html'));
+    if (!websiteBuilt) {
+        return res.status(503).send('Website is building — please refresh in a moment.');
+    }
+    res.sendFile(indexHtml);
 });
 
 // ── Error Handler ──
