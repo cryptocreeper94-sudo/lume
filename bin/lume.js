@@ -26,6 +26,7 @@ import { Result, __lume_ask, __lume_think, __lume_generate, __lume_loadConfig } 
 import { format } from '../src/formatter.js'
 import { lint, formatFindings } from '../src/linter.js'
 import { startREPL } from '../src/repl.js'
+import { startShell } from '../src/shell.js'
 import { startWatch } from '../src/watcher.js'
 import { detectMode, resolveEnglishFile, matchPattern } from '../src/intent-resolver/index.js'
 import { generateSourceMap } from '../src/sourcemap.js'
@@ -85,6 +86,8 @@ function main() {
             return lintFile(args[1])
         case 'repl':
             return startREPL()
+        case 'shell':
+            return startShell({ review: flags.includes('--review'), voice: flags.includes('--voice') })
         case 'watch':
             return startWatch(args[1], args.includes('--build') ? 'build' : 'run')
         case 'ast':
