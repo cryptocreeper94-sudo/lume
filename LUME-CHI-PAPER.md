@@ -467,9 +467,11 @@ This paper has presented cognitive distance — the measurable gap between human
 
 Lume's Tolerance Chain absorbs the imprecision inherent in human communication, making voice-to-code an architectural consequence rather than a feature. Auditory Mode enables fully hands-free, eyes-free programming — making Lume the first programming language usable by a developer who cannot see a screen or touch a keyboard. Review Mode and the Resolution Manifest provide deterministic transparency, establishing trust through human-in-the-loop verification rather than black-box compilation.
 
+The TrustGen 3D deployment (§11.7) validates Lume's domain-agnostic intent model — the same English Mode syntax that generates JavaScript code also directs 3D scenes, controls cameras, and triggers AI narration through a pluggable domain module architecture. This establishes Lume not as a transpiler but as an intent compilation framework.
+
 We have proposed an empirical evaluation plan (TCT, NASA-TLX, silent error rate, TAM/Trust) to validate the cognitive distance theory. We hypothesize that as CD → 0, cognitive load, frustration, and error rates will also approach minimum — that the dissonance disappears when the distance disappears.
 
-Lume is not merely a new programming language. It is a demonstration that the translation burden imposed by formal syntax is an engineering choice, not a necessity — and that eliminating it opens programming to everyone who can describe what they want, in any language, through any modality.
+Lume is not merely a new programming language. It is a demonstration that the translation burden imposed by formal syntax is an engineering choice, not a necessity — and that eliminating it opens programming to everyone who can describe what they want, in any language, through any modality. The TrustGen domain deployment, with its 16-verb/80-alias domain module, Review Mode, and Adaptive Voice Profiles, proves that this model scales to production creative tools.
 
 ---
 

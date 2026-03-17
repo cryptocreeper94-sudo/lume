@@ -1064,6 +1064,35 @@ where $R_u$ is total resolutions and $C_u$ is confirmed mappings. DC starts near
 **Academic Significance:**
 The Adaptive Voice Profile is the first instance of a compiler that learns its user's **idiolect** — the unique linguistic fingerprint of an individual. This goes beyond NLP normalization (which treats all users identically) and into personalized human-computer interaction. Over time, the compiler becomes *more efficient* for each individual user, reducing cognitive distance further. The CD score for a long-term user approaches 0 even faster than for a new user — the compiler adapts to you, not the other way around.
 
+### 8.16 TRUSTGEN: DOMAIN-SPECIFIC LUME DEPLOYMENT
+
+**Problem:** A programming language that only compiles to JavaScript is a transpiler. A *true* language must demonstrate that its intent model can target any domain — 3D engines, animation pipelines, audio synthesis — without modification to the core compiler.
+
+**Solution: TrustGen 3D as Lume Domain Compiler**
+
+TrustGen — the Trust Layer ecosystem's AI-powered 3D creation studio — embeds a full Lume integration that compiles English Mode intent not to JavaScript, but to **3D engine API calls**:
+
+```
+"place a wooden desk in the center"
+→ Intent: { verb: 'place', object: 'desk', material: 'wood', position: 'center' }
+→ Engine call: scene.addObject({ shape: 'table', material: 'wood', position: [0,0,0] })
+```
+
+The TrustGen domain module (`LumeEngine.ts`, 700+ lines) registers 16 verbs across 6 categories — scene composition, animation, camera direction, audio/narration, pipeline automation, and scene queries — with 80+ aliases. Each verb maps to a domain-specific handler that translates Lume intent into TrustGen engine calls.
+
+**Key features of the TrustGen domain deployment:**
+
+- **Full Lume Script IDE:** 4-mode panel — REPL (command-by-command), Script (multi-line), Voice Direction (speech → scene), and Verb Reference
+- **Monaco Editor Integration:** Custom `lume` language registered with Monarch tokenizer: AI keywords (`ask`, `think`, `generate`) in purple bold, English Mode verbs (`place`, `animate`, `narrate`) in green italic, standard keywords in cyan
+- **Adaptive Voice Profiles:** Per-session dialect learning with filler word filtering, accent corrections, and dialect confidence scoring (0–100%) — persisted to localStorage
+- **Review Mode:** Human-in-the-loop command approval gate — toggle between ⚡ Auto (immediate execution) and 🔒 Review (approve/reject modal showing engine call + args before execution)
+
+**Academic Significance:**
+
+TrustGen proves Lume's **domain-agnostic intent model**. The same English Mode syntax that generates JavaScript code also directs 3D scenes, controls cameras, and triggers AI narration. The compiler's architecture (Intent → Domain Module → Target API) is analogous to LLVM's frontend-agnostic IR — but operating at the *natural language* level rather than the machine code level.
+
+This establishes Lume not as a transpiler-to-JavaScript but as an **intent compilation framework** that can target any domain through pluggable domain modules. The CD score for TrustGen domain commands is identical to the CD score for general-purpose Lume — the user's experience is invariant to the compilation target.
+
 ---
 
 ## 9. IMPLEMENTATION METRICS
@@ -1081,7 +1110,8 @@ The Adaptive Voice Profile is the first instance of a compiler that learns its u
 | Lexer | ~400 | `src/lexer.js` |
 | Parser | ~800 | `src/parser.js` |
 | Transpiler | ~821 | `src/transpiler.js` |
-| **Total compiler** | **~12,000+** | All source files |
+| TrustGen Domain Module | ~700 | `LumeEngine.ts` + `LumeScriptPanel.tsx` |
+| **Total compiler** | **~12,700+** | All source files |
 
 | Metric | Value |
 |--------|-------|
