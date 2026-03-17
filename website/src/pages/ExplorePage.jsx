@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import HeroCarousel from '../components/HeroCarousel'
+import PresentationPage from './PresentationPage'
 
 /* ─── Feature Cards ─── */
 const features = [
@@ -57,8 +59,8 @@ const milestones = [
     { n: 11, title: 'Voice Input', desc: 'Transcription cleanup, homophones, stutter collapse.', tests: 345 },
     { n: 12, title: 'Voice CLI', desc: 'lume voice with commands, flags, config.', tests: 355 },
     { n: 13, title: 'Playground', desc: 'Sandbox IDE, mic button, security tab.', tests: 366 },
-    { n: 14, title: 'IDE Upgrade', desc: 'Menu bar, terminal, find/replace, command palette, tabs, status bar.', tests: 480 },
-    { n: 15, title: 'DarkWave Integration', desc: 'DarkWave Studio API wiring, Lume project management.', tests: 520, active: true },
+    { n: 14, title: 'IDE Upgrade', desc: 'Menu bar, terminal, find/replace, command palette, tabs, status bar.', tests: 1200 },
+    { n: 15, title: 'DarkWave Integration', desc: 'DarkWave Studio API wiring, Lume project management.', tests: 2093, active: true },
 ]
 
 /* ─── Docs ─── */
@@ -164,7 +166,7 @@ function MilestoneCarousel() {
                 <h3 className="fc-title">{m.title}</h3>
                 <p className="fc-text">{m.desc}</p>
                 <div className="milestone-progress">
-                    <div className="milestone-bar" style={{ width: `${(m.tests / 520) * 100}%` }} />
+                    <div className="milestone-bar" style={{ width: `${(m.tests / 2093) * 100}%` }} />
                 </div>
                 <div className="fc-nav" style={{ marginTop: 20 }}>
                     <button className="carousel-btn" onClick={prev}>←</button>
@@ -181,6 +183,18 @@ function MilestoneCarousel() {
 export default function ExplorePage() {
     const [currentSlide, setCurrentSlide] = useState(0)
     const [openAccordion, setOpenAccordion] = useState(null)
+    const [searchParams] = useSearchParams()
+    const [showPresentation, setShowPresentation] = useState(() => {
+        // Show presentation on first visit per session, or if ?presentation param exists
+        if (searchParams.has('presentation')) return true
+        if (sessionStorage.getItem('lume-pres-seen')) return false
+        return true
+    })
+
+    const dismissPresentation = () => {
+        setShowPresentation(false)
+        sessionStorage.setItem('lume-pres-seen', '1')
+    }
 
     const goSlide = (i) => setCurrentSlide(i)
     const prevSlide = () => goSlide(currentSlide > 0 ? currentSlide - 1 : codeSlides.length - 1)
@@ -197,6 +211,25 @@ export default function ExplorePage() {
 
     return (
         <>
+            {/* Enterprise Presentation Overlay */}
+            {showPresentation && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#020617' }}>
+                    <PresentationPage onDismiss={dismissPresentation} embedded />
+                    <button
+                        onClick={dismissPresentation}
+                        style={{
+                            position: 'fixed', top: 16, right: 16, zIndex: 10000,
+                            background: 'rgba(6,182,212,0.15)', border: '1px solid rgba(6,182,212,0.3)',
+                            color: '#06b6d4', padding: '8px 20px', borderRadius: 999,
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            backdropFilter: 'blur(8px)',
+                        }}
+                    >
+                        Skip to Site →
+                    </button>
+                </div>
+            )}
+
             <div className="orb orb-1" /><div className="orb orb-2" /><div className="orb orb-3" />
 
             {/* Hero Slideshow */}
@@ -269,7 +302,7 @@ export default function ExplorePage() {
                         Your voice enters the compiler directly. The compiler understands you.
                     </p>
                 </div>
-                <div style={{ maxWidth: 900, margin: '40px auto 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="voice-grid" style={{ maxWidth: 900, margin: '40px auto 0' }}>
                     <div className="bento-card" style={{ padding: '24px' }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
                             🎤 You Say
@@ -291,7 +324,7 @@ export default function ExplorePage() {
                         </div>
                     </div>
                 </div>
-                <div style={{ maxWidth: 900, margin: '16px auto 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <div className="voice-pills" style={{ maxWidth: 900, margin: '16px auto 0' }}>
                     {[
                         { icon: '🔇', label: 'Filler Stripping', desc: '"um", "uh", "like" removed' },
                         { icon: '🔁', label: 'Stutter Collapse', desc: '"get get" → "get"' },
@@ -321,7 +354,7 @@ export default function ExplorePage() {
                 </div>
                 <div style={{ maxWidth: 900, margin: '40px auto 0' }}>
                     <div className="bento-card" style={{ padding: 0, overflow: 'hidden' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 320 }}>
+                        <div className="english-grid">
                             <div style={{ padding: '24px', borderRight: '1px solid var(--glass-border)' }}>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
                                     ✍️ You Write (English)
@@ -377,7 +410,7 @@ await db.save("profile", result);`}</pre>
                         before a single line of JavaScript is generated.
                     </p>
                 </div>
-                <div style={{ maxWidth: 900, margin: '40px auto 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="security-grid" style={{ maxWidth: 900, margin: '40px auto 0' }}>
                     <div className="bento-card" style={{ padding: '24px' }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#00b894', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
                             🔒 3-Layer Security Model
@@ -489,7 +522,7 @@ await db.save("profile", result);`}</pre>
             <section id="milestones" className="section-full section-dark" data-reveal>
                 <div className="section-header">
                     <span className="section-label">Journey</span>
-                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · 552+ Tests</h2>
+                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · 2,093 Tests</h2>
                 </div>
                 <MilestoneCarousel />
             </section>

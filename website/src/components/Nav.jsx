@@ -74,6 +74,9 @@ export default function Nav() {
                     <Link to="/" className="hamburger-link" onClick={() => setMenuOpen(false)}>
                         <span className="hamburger-link-icon">🏠</span> Home
                     </Link>
+                    <Link to="/?presentation" className="hamburger-link" onClick={() => { sessionStorage.removeItem('lume-pres-seen'); setMenuOpen(false) }}>
+                        <span className="hamburger-link-icon">🎬</span> Enterprise Presentation
+                    </Link>
                     <a href="/#features" className="hamburger-link" onClick={() => setMenuOpen(false)}>
                         <span className="hamburger-link-icon">✨</span> Features
                     </a>

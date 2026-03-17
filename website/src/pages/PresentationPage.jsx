@@ -252,7 +252,7 @@ function TechSpecsScene({ scene }) {
   )
 }
 
-function CtaScene({ scene, onPlayground, onDocs, onRestart }) {
+function CtaScene({ scene, onPlayground, onDocs, onRestart, onDismiss }) {
   const features = scene.content.features || []
   return (
     <div className="pres-scene-cta pres-stagger">
@@ -273,6 +273,7 @@ function CtaScene({ scene, onPlayground, onDocs, onRestart }) {
       <div className="pres-cta-buttons pres-stagger-item">
         <button className="pres-btn-primary" onClick={onPlayground}>Try the Playground →</button>
         <button className="pres-btn-secondary" onClick={onDocs}>Read the Docs</button>
+        {onDismiss && <button className="pres-btn-secondary" onClick={onDismiss}>Explore the Site →</button>}
         <button className="pres-btn-ghost" onClick={onRestart}>Restart Presentation</button>
       </div>
       <div className="pres-hero-footer pres-fade-in-delay2">
@@ -283,8 +284,8 @@ function CtaScene({ scene, onPlayground, onDocs, onRestart }) {
 }
 
 /* ── Scene Router ────────────────────────────────── */
-function SceneRenderer({ scene, onPlayground, onDocs, onRestart }) {
-  if (scene.visualType === 'cta') return <CtaScene scene={scene} onPlayground={onPlayground} onDocs={onDocs} onRestart={onRestart} />
+function SceneRenderer({ scene, onPlayground, onDocs, onRestart, onDismiss }) {
+  if (scene.visualType === 'cta') return <CtaScene scene={scene} onPlayground={onPlayground} onDocs={onDocs} onRestart={onRestart} onDismiss={onDismiss} />
   const renderers = { intro: IntroScene, hero: HeroScene, stats: StatsScene, bento: BentoScene, workflow: WorkflowScene, feature: FeatureScene, comparison: ComparisonScene, techSpecs: TechSpecsScene }
   const Component = renderers[scene.visualType] || BentoScene
   return <Component scene={scene} />
@@ -316,7 +317,7 @@ function ScrollIndicator({ containerRef }) {
 }
 
 /* ── Main Presentation Component ────────────────── */
-export default function PresentationPage() {
+export default function PresentationPage({ onDismiss, embedded = false }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [showTOC, setShowTOC] = useState(false)
@@ -400,7 +401,7 @@ export default function PresentationPage() {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); next() }
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev() }
       else if (e.key === ' ') { e.preventDefault(); setIsPlaying(p => !p) }
-      else if (e.key === 'Escape') navigate('/')
+      else if (e.key === 'Escape') { if (onDismiss) onDismiss(); else navigate('/') }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -431,7 +432,7 @@ export default function PresentationPage() {
           <button className="pres-btn-icon pres-btn-specs" onClick={() => { const idx = scenes.findIndex(s => s.visualType === 'techSpecs'); if (idx >= 0) setCurrentIndex(idx) }}>
             <Icon name="Code" className="pres-icon-xs" /><span>Specs</span>
           </button>
-          <button className="pres-btn-icon" onClick={() => navigate('/')} aria-label="Close"><Icon name="X" /></button>
+          <button className="pres-btn-icon" onClick={() => { if (onDismiss) onDismiss(); else navigate('/') }} aria-label="Close"><Icon name="X" /></button>
         </div>
       </div>
 
@@ -452,7 +453,7 @@ export default function PresentationPage() {
           <div className={`pres-slide-inner ${scene.narration ? 'pres-with-narration' : ''}`}>
             <div ref={contentScrollRef} className="pres-slide-scroll">
               <div className="pres-slide-wrapper">
-                <SceneRenderer scene={scene} onPlayground={() => navigate('/playground')} onDocs={() => navigate('/docs')} onRestart={() => { setCurrentIndex(0); setIsPlaying(false) }} />
+                <SceneRenderer scene={scene} onPlayground={() => { if (onDismiss) { onDismiss(); setTimeout(() => window.location.href = '/playground', 100) } else navigate('/playground') }} onDocs={() => { if (onDismiss) { onDismiss(); setTimeout(() => window.location.href = '/docs', 100) } else navigate('/docs') }} onRestart={() => { setCurrentIndex(0); setIsPlaying(false) }} onDismiss={onDismiss} />
               </div>
             </div>
             <ScrollIndicator containerRef={contentScrollRef} />
