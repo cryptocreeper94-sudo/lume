@@ -14,7 +14,8 @@
 
 import { createInterface } from 'node:readline'
 import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs'
-import { resolve, homedir } from 'node:path'
+import { resolve } from 'node:path'
+import { homedir } from 'node:os'
 import { tokenize } from './lexer.js'
 import { parse } from './parser.js'
 import { transpile } from './transpiler.js'
