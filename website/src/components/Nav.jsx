@@ -34,6 +34,7 @@ export default function Nav() {
                         <Link to="/blog" className={`nav-link ${isActive('/blog')}`}>Blog</Link>
                         <Link to="/affiliate" className={`nav-link ${isActive('/affiliate')}`}>Affiliate</Link>
                         <Link to="/playground" className={`nav-link ${isActive('/playground')}`}>Playground</Link>
+                        <Link to="/research" className={`nav-link ${isActive('/research')}`}>Research</Link>
                     </div>
                     <div className="nav-right">
                         {isAuthenticated ? (
@@ -94,6 +95,9 @@ export default function Nav() {
                     </Link>
                     <Link to="/pricing" className="hamburger-link" onClick={() => setMenuOpen(false)}>
                         <span className="hamburger-link-icon">💎</span> Pricing
+                    </Link>
+                    <Link to="/research" className="hamburger-link" onClick={() => setMenuOpen(false)}>
+                        <span className="hamburger-link-icon">📄</span> Research Paper
                     </Link>
                     <div className="hamburger-section">Ecosystem</div>
                     <a href="https://dwtl.io" target="_blank" rel="noopener" className="hamburger-link">

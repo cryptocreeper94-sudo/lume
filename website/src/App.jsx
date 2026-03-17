@@ -19,6 +19,7 @@ import TutorialPage from './pages/TutorialPage'
 import ChangelogPage from './pages/ChangelogPage'
 import ShowcasePage from './pages/ShowcasePage'
 import PresentationPage from './pages/PresentationPage'
+import ResearchPage from './pages/ResearchPage'
 
 export default function App() {
     return (
@@ -42,6 +43,7 @@ export default function App() {
                 <Route path="/changelog" element={<ChangelogPage />} />
                 <Route path="/showcase" element={<ShowcasePage />} />
                 <Route path="/presentation" element={<PresentationPage />} />
+                <Route path="/research" element={<ResearchPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />
