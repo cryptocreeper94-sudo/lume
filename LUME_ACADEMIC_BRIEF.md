@@ -319,6 +319,23 @@ When all checks pass, the compiled JavaScript output includes an embedded securi
 - **Tamper detection:** The certificate hash covers the compiled output — any post-compilation modification invalidates the certificate
 - **Chain of trust:** If a `.js` file has a valid certificate, every instruction in it was security-checked at the AST level
 
+### 5.5 Differentiation from Existing Safety Systems
+
+A reviewer may object that built-in compiler security is not novel, citing Rust's memory safety guarantees or Ada/SPARK's formal verification. The distinction is precise and important:
+
+| Axis | Rust | Ada / SPARK | ESLint / Snyk | **Lume** |
+|------|------|-------------|---------------|----------|
+| **What is checked** | Memory safety (ownership, lifetimes, borrowing) | Formal correctness against specifications | Code patterns post-compilation | **Developer intent** (natural language + AST semantics) |
+| **When** | Compile time (type checking) | Compile time + proof obligations | After compilation (CI/CD) | **During compilation** (each AST node as it is created) |
+| **Against what** | Type system rules | Mathematical contracts | Known vulnerability patterns | **The developer's stated intent** vs. the operation's semantic effect |
+| **Scope** | Memory bugs only — does not detect logic errors, data exfiltration, or privilege escalation | Functional correctness — requires manual specification writing | Known CVEs and code smells — reactive, pattern-based | **11 threat categories** including semantic camouflage, intent-aware risk, and natural language injection |
+| **Output** | Safe binary (no certificate) | Proven correctness (formal proofs) | Warning reports | **Tamper-evident certificate** embedded in compiled output |
+| **Mandatory** | Yes (language-level) | Optional (SPARK subset) | Optional (must be installed) | **Yes** (built into compiler, cannot be skipped) |
+
+**The key insight:** Rust prevents you from writing unsafe *memory operations*. Ada/SPARK proves your code matches a *formal specification you wrote*. ESLint catches *known bad patterns* in code that already exists. Lume catches *dangerous intent* — it knows you said "delete all user records" and can distinguish that from "delete expired session tokens" because it has access to the original English instruction, not just the generated `DELETE FROM` query.
+
+These are complementary, not competing, paradigms. But only Lume operates on **semantic intent at compilation time with mandatory enforcement and tamper-evident certification**. That specific combination is novel.
+
 ---
 
 ## 6. CLI INTERFACE
