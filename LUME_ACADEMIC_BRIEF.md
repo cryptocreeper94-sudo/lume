@@ -406,25 +406,130 @@ The Lume web playground (`lume-lang.com/playground`) includes a browser-based mi
 
 ## 8. THEORETICAL CONTRIBUTIONS
 
-### 8.1 Cognitive Distance Minimization and the Cognitive Dissonance Connection
+### 8.1 Cognitive Distance: A Formal Definition
 
-Traditional programming requires translating intent through multiple abstraction layers:
+#### 8.1.1 Definition
 
-```
-Thought → Algorithm Design → Syntax Selection → Typing → Debug Syntax Errors → Compile
-```
+We define **cognitive distance** (CD) as the total number of conceptual transformations a developer must perform to translate an idea from natural-language intent into a representation that a compilation system will accept.
 
-Lume with voice reduces this to:
+Formally:
 
 ```
-Thought → Speaking → Compile
+CD(L, I) = Σᵢ wᵢ · Tᵢ(L, I)
 ```
 
-The cognitive distance between "what the developer wants" and "what the compiler receives" approaches zero. This is enabled by the Tolerance Chain absorbing the variability that voice input introduces.
+Where:
+- **L** is the target language/system
+- **I** is the developer's intent (expressed as a natural-language statement)
+- **Tᵢ** is a transformation dimension (see §8.1.2)
+- **wᵢ** is the cognitive weight of that transformation (determined empirically via user studies)
+- The sum is taken across all required transformation dimensions
 
-The framing of this contribution as "cognitive distance" deliberately invokes the well-known psychological concept of "cognitive dissonance." The dissonance that programmers experience — thinking in one language, forced to act in another — is a measurable, daily phenomenon. Cognitive distance is the quantification of that dissonance. Lume's thesis is that the dissonance disappears when the distance approaches zero — when the developer can express intent in the same language they think in.
+A **transformation** is any step where the developer must convert their mental representation from one form to another. Each transformation introduces a point of potential error, cognitive load, and dissonance.
 
-This gives the paper interdisciplinary appeal (computer science + cognitive psychology) and makes it accessible to reviewers who are not language designers.
+#### 8.1.2 Transformation Taxonomy (6 Dimensions)
+
+We identify six orthogonal dimensions of transformation between thought and compilable input:
+
+| Dimension | Symbol | Description | Example |
+|-----------|--------|-------------|---------|
+| **Lexical** | T₁ | Translating natural words into language-specific keywords, identifiers, or operators | "add" → `+`, "show" → `console.log()` |
+| **Syntactic** | T₂ | Conforming to structural rules: brackets, semicolons, indentation, parentheses | Knowing where to place `{`, `}`, `;`, `:` |
+| **Structural** | T₃ | Organizing logic into language-required constructs: functions, classes, modules, imports | Wrapping logic in `function`, `class`, `export` |
+| **Semantic** | T₄ | Mapping human concepts to language-specific type systems, data structures, and APIs | "a list of names" → `string[]`, `ArrayList<String>` |
+| **Representational** | T₅ | Converting between input modalities: spoken words to typed characters, diagrams to code | Speaking "for each item" → typing `for (const item of items)` |
+| **Meta-cognitive** | T₆ | Debugging the translation itself: fixing syntax errors caused by the gap between intent and syntax, not by flawed logic | Spending 10 minutes finding a missing semicolon |
+
+Each dimension is scored on a **0–5 scale**:
+- **0** — No transformation required (input matches intent exactly)
+- **1** — Trivial transformation (obvious, near-automatic)
+- **2** — Minor transformation (requires brief thought)
+- **3** — Moderate transformation (requires deliberate recall or lookup)
+- **4** — Significant transformation (requires domain expertise in the language)
+- **5** — Major transformation (requires deep language knowledge; high error risk)
+
+#### 8.1.3 Comparative Analysis
+
+Applying the CD metric to the intent *"get all users who signed up this month and show their names"*:
+
+| Dimension | Assembly (1950s) | C (1978) | Python (1991) | JavaScript (2015) | AI Agent (2024) | Lume Text | Lume Voice |
+|-----------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| T₁ Lexical | 5 | 4 | 2 | 3 | 1* | 0 | 0 |
+| T₂ Syntactic | 5 | 4 | 2 | 3 | 0* | 0 | 0 |
+| T₃ Structural | 5 | 4 | 3 | 3 | 1* | 0 | 0 |
+| T₄ Semantic | 5 | 4 | 3 | 3 | 2* | 1 | 1 |
+| T₅ Representational | 1 | 1 | 1 | 1 | 2** | 1 | 0 |
+| T₆ Meta-cognitive | 5 | 4 | 2 | 3 | 3*** | 0 | 0 |
+| **CD (unweighted sum)** | **26** | **21** | **13** | **16** | **9** | **2** | **1** |
+
+*\* AI agents eliminate syntax work but introduce new transformations:*
+*\*\* T₅ increases because the developer must compose a prompt, review generated code, and verify correctness — a new representational translation.*
+*\*\*\* T₆ increases because debugging AI-generated code requires understanding code you didn't write, in patterns you didn't choose.*
+
+#### 8.1.4 The Dissonance Hypothesis
+
+The term "cognitive distance" is deliberately chosen for its proximity to **cognitive dissonance** — the psychological discomfort arising from a conflict between belief and action (Festinger, 1957). We propose the **Dissonance Hypothesis**:
+
+> *The cognitive dissonance experienced during programming is proportional to cognitive distance. As CD → 0, dissonance → 0.*
+
+This is testable. A developer who thinks "get all the users" and types `get all the users` (CD ≈ 0) experiences no dissonance. A developer who thinks "get all the users" and must type `SELECT * FROM users WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)` (CD ≈ 16) experiences measurable dissonance — frustration, hesitation, error-prone translation.
+
+The history of programming languages is a history of reducing CD. Lume is the first language to make this reduction the **explicit design objective** rather than an incidental property.
+
+#### 8.1.5 AI Agents and the Middleman Paradox
+
+AI coding agents (Copilot, ChatGPT, Cursor) reduce some transformation dimensions but **increase the total chain length**:
+
+```
+Traditional:     Developer → Compiler                    (2 nodes, 1 hop)
+AI-Assisted:     Developer → AI → Review → Compiler      (4 nodes, 3 hops)
+Lume:            Developer → Compiler                    (2 nodes, 1 hop)
+```
+
+The AI is a **middleman**. It reduces T₁–T₃ (the developer doesn't write syntax) but increases T₅ (composing effective prompts is its own skill) and T₆ (debugging AI-generated code requires understanding code in patterns you didn't choose). Net CD may decrease, but the **chain of trust** lengthens — more opportunities for misunderstanding between intent and execution.
+
+Lume eliminates the middleman. The compiler IS the understanding layer. The developer's natural language goes directly into the compilation pipeline with no intermediary.
+
+#### 8.1.6 Empirical Evaluation Methodology
+
+We propose measuring CD empirically through three experimental protocols:
+
+**Protocol A: Task Completion Time (TCT)**
+- Participants implement identical tasks in Assembly, C, Python, JavaScript, Lume (text), and Lume (voice)
+- Measure wall-clock time from intent statement to successful compilation
+- Hypothesis: TCT correlates with CD scores in §8.1.3
+
+**Protocol B: Error Rate (ER)**
+- Count syntax errors, type errors, and logical errors per task across languages
+- Hypothesis: ER correlates with CD; near-zero CD produces near-zero syntax errors
+
+**Protocol C: Cognitive Load Index (CLI)**
+- Use NASA-TLX (Task Load Index) self-report surveys after each task
+- Optionally augment with physiological measures (eye tracking, GSR)
+- Hypothesis: Subjective cognitive load correlates with CD
+
+**Protocol D: Think-Aloud Divergence (TAD)**
+- Record developers thinking aloud while coding
+- Measure the **edit distance** between their spoken intent and the code they actually type
+- In Lume, this distance should approach zero (they say what they type / type what they say)
+
+These protocols are designed for submission to CHI, OOPSLA, or PLDI and follow established HCI evaluation standards.
+
+#### 8.1.7 Relationship to the Tolerance Chain
+
+The Tolerance Chain (§3.3) is the architectural mechanism that enables low CD. Each of its 7 layers absorbs one class of imprecision:
+
+| Tolerance Layer | Transformation Absorbed |
+|----------------|------------------------|
+| Exact Pattern Match | T₁ (lexical: maps natural verbs to AST operations) |
+| Fuzzy Match | T₁ (lexical: tolerates misspelling, word variation) |
+| Auto-Correct | T₂ (syntactic: fixes mechanical errors) |
+| Context Engine | T₄ (semantic: resolves pronouns, infers types) |
+| Temporal Resolver | T₄ (semantic: resolves relative references) |
+| i18n Library | T₁, T₅ (lexical + representational: accepts non-English input) |
+| AI Resolver | T₁–T₄ (all deterministic dimensions as final fallback) |
+
+The Tolerance Chain is the **mechanism**. Cognitive distance is the **metric**. Together, they form a complete framework: the metric defines what we are minimizing; the chain defines how we minimize it.
 
 ### 8.2 Deterministic Compilation of Non-Deterministic Input
 
