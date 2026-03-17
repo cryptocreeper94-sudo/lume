@@ -778,6 +778,12 @@ This ensures that the build is **reproducible 10 years from now** — even if th
 | Same text → same AST | CLS is deterministic; manifest locks the mapping |
 | Same voice → same AST | Cleaned text is stored; re-compilation uses text, not audio |
 | AI model updates | Layer B results are cached in manifest; re-compilation uses the cache |
+| CI/CD (Headless) | C < 0.85 → `RESOLUTION_ERROR` (no guessing in production builds) |
+| Interactive Mode | 0.6 < C < 0.85 → pause for human disambiguation; C ≥ 0.85 → auto-resolve |
+
+**Headless Build Policy:**
+
+In CI/CD environments where no human is available to disambiguate, Lume enforces a **strict resolution policy**: any instruction with confidence C < 0.85 triggers a hard `RESOLUTION_ERROR` rather than a best-guess resolution. This prevents silent semantic errors from reaching production. The CI pipeline can be configured via `lume build --headless --min-confidence=0.85`.
 | Compiler version changes | Manifest records compiler version; warnings on version mismatch |
 | Drift detection | `lume verify` compares current resolution against manifest; reports any divergence |
 
@@ -886,6 +892,132 @@ Developer B: "remove the header and use a sidebar"
 - Conflicts are expressed in natural language, not diff hunks
 - Resolution preserves the Context Stack for both developers
 - The Resolution Manifest supports multi-author entries and collaborative compile-lock files
+
+### 8.11 Recency-Frequency-Type (RFT) Model for Anaphora Resolution
+
+Building on the Context Stack (§3.4/§4.10), the RFT model enhances pronoun resolution with three-dimensional scoring:
+
+```
+Score(entity) = α·Recency(entity) + β·Frequency(entity) + γ·TypeMatch(entity, verb)
+
+Where:
+  α = 0.5  (most recent reference carries highest weight)
+  β = 0.3  (frequently-referenced entities are preferred)
+  γ = 0.2  (type compatibility acts as a filter)
+```
+
+**Recency:** Tracks the last 5 referenced entities in a sliding window, with exponential decay. Entity referenced 1 instruction ago scores 1.0; entity referenced 5 instructions ago scores 0.2.
+
+**Frequency:** Weights entities by total usage count within the current scope. An entity used 10 times is more likely the referent than one used once.
+
+**Type Matching:** Cross-references action verbs with variable types. This prevents semantic nonsense:
+
+| Verb | Valid Types | Invalid Types |
+|------|-------------|---------------|
+| "delete" | Collection, File, Record | Boolean, Number |
+| "sort" | Collection, List | String, Boolean |
+| "send" | Message, Request, File | Number, Boolean |
+| "show" | Any displayable | void, undefined |
+| "calculate" | Number, Collection | File, Boolean |
+
+If the highest-scoring entity has TypeMatch = 0 (incompatible verb-type pair), the compiler triggers `DisambiguationRequired` rather than guessing. This positions Lume as a **Contextual Anchor** system — fundamentally different from stateless NLP-to-code translators.
+
+### 8.12 Formal Experimental Design
+
+To provide empirical proof that Lume minimizes Cognitive Distance, we propose three controlled studies:
+
+**Study A — Task Completion Time (TCT): Intent-to-Execution Speed**
+
+| Group | Tool | Task |
+|-------|------|------|
+| Control A | Python (manual) | Build a CRUD API for a user database |
+| Control B | Python + GitHub Copilot | Same task, AI-assisted |
+| Experimental | Lume English Mode (text) | Same task, natural language |
+| Experimental+ | Lume Voice Mode | Same task, voice input |
+
+**Metrics:** Time from reading the spec to first passing test. Hypothesis: Lume reduces TCT by 40-60% vs. Python, 20-30% vs. Copilot.
+
+**Study B — Silent Error Rate: The "Wrong Guess" Problem**
+
+Give participants deliberately ambiguous prompts (e.g., "update the user", "delete that record", "show the results").
+
+| Tool | Metric |
+|------|--------|
+| GitHub Copilot | Count: how many times the AI generates wrong code without warning |
+| Lume | Count: how many times the compiler triggers a `DisambiguationRequired` event |
+
+**Hypothesis:** Lume produces 0 silent errors (every ambiguity is caught). Copilot produces silent errors at a rate proportional to prompt ambiguity because it has no disambiguation mechanism — it always guesses.
+
+**Study C — NASA-TLX: Cognitive Load Measurement**
+
+Using the NASA Task Load Index (Hart & Staveland, 1988) — the gold standard for subjective cognitive load measurement — to validate the Dissonance Hypothesis.
+
+| Subscale | Hypothesis |
+|----------|------------|
+| Mental Demand | Lume < Python (fewer transformations = less mental load) |
+| Frustration | Lume ≈ 0 (no "why doesn't this work" moments) |
+| Effort | Lume < Copilot (no review/edit cycle for wrong guesses) |
+| Performance | Lume ≥ Python (equal or higher self-rated success) |
+
+**Independent Variable:** CD score (number of transformation dimensions required)
+**Dependent Variable:** NASA-TLX weighted score
+**Prediction:** As CD → 0, all NASA-TLX subscales trend toward minimum.
+
+### 8.13 Semantic Invariant Certificates — Full-Chain Integrity
+
+The "Certified at Birth" claim requires that the security certificate covers the entire compilation chain, not just the output JavaScript. The certificate hash must bind three artifacts together:
+
+```
+Certificate = SHA-256(
+  Input_English +
+  Resolved_AST +
+  Compiled_JavaScript
+)
+```
+
+This creates a **tamper-evident chain of intent**:
+
+1. If the English input is modified → certificate invalidates
+2. If the AST is modified (e.g., injection attack) → certificate invalidates
+3. If the compiled JS is modified post-compilation → certificate invalidates
+
+The certificate is embedded in the compiled output as a comment:
+
+```javascript
+// LUME-CERT: sha256:a3f8b2c1... | Intent: QUERY | Risk: LOW | Chain: VALID
+const result = await db.query('SELECT * FROM users');
+```
+
+Runtime verification can check `LUME-CERT` against the original manifest entry, ensuring that no step in the pipeline has been tampered with. This is the **Semantic Invariant Test** — not a linter, but a cryptographic proof of intent-to-execution integrity.
+
+### 8.14 Auditory Mode — Fully Hands-Free Programming
+
+Lume's voice pipeline already provides Voice → Text → Code. Auditory Mode completes the loop by adding **compiler-to-developer speech output**, making programming entirely auditory:
+
+```
+Developer (speaks): "Get all the users who signed up this month"
+
+Lume (speaks back): "I understood: query the users collection,
+  filtering by signup date in the current month.
+  Confidence: 97 percent. Shall I compile?"
+
+Developer (speaks): "Yes"
+
+Lume (speaks back): "Compiled successfully. One line resolved
+  by exact pattern match."
+```
+
+**Implementation:**
+- Input: Web Speech API (`SpeechRecognition`) — already in the voice pipeline
+- Output: Web Speech API (`SpeechSynthesis`) — zero-dependency browser TTS
+- Review Mode (§8.7) provides the verification content; Auditory Mode provides the delivery mechanism
+- Voice commands for approval: "yes", "no", "read it back", "undo", "explain"
+
+**Academic Significance:**
+
+Auditory Mode makes Lume the **first programming language usable with eyes closed** — fully hands-free, fully accessible. This eliminates not just cognitive distance but **physical distance** from the development process. For developers with visual impairments, motor disabilities, or hands-occupied scenarios (e.g., field engineering), Auditory Mode transforms programming from a keyboard-dependent activity to a conversational one.
+
+CD for Auditory Mode = 0 across all dimensions — the developer speaks their intent, hears confirmation, speaks approval. No screens, no keyboards, no translation.
 
 ---
 
