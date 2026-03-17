@@ -1380,6 +1380,7 @@ This makes Lume the **first programming language usable with eyes closed** — f
 5. **Agent-to-agent communication** — Lume scripts as a shared protocol for inter-agent communication across distributed systems
 6. **Formal verification integration** — extending the security certificate to include formal proofs of specific properties
 7. **Self-modifying programs** — controlled self-modification with safety guardrails (type signature preservation, intent block validation, mutation depth limits)
+8. **Adaptive Voice Profiles** — per-user dialect learning inserted at Layer 1.5 of the Tolerance Chain. The system records each user's unique colloquialisms ("gimme" → "get," "toss" → "delete"), accent-specific transcription artifacts, and filler words. Candidate mappings auto-promote to confirmed status after 5 consistent uses. This transforms the compiler from a static tool into a personalized interaction partner: the more a user programs with Lume, the better the compiler understands them. Partially implemented as `voice-profile.js` in `src/intent-resolver/`. Includes a Dialect Confidence score (sigmoid-based, asymptotic to 1.0) and integration with the Self-Evolving runtime layer for long-term pattern analysis.
 
 ---
 

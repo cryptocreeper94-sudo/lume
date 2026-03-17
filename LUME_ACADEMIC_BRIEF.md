@@ -1019,6 +1019,51 @@ Auditory Mode makes Lume the **first programming language usable with eyes close
 
 CD for Auditory Mode = 0 across all dimensions — the developer speaks their intent, hears confirmation, speaks approval. No screens, no keyboards, no translation.
 
+### 8.15 ADAPTIVE VOICE PROFILES
+
+**Problem:** Even with the Tolerance Chain, every developer speaks differently. "Gimme" for "get," "toss" for "delete," "spin up" for "create." Regional accents cause consistent transcription artifacts ("roit" for "right"). Filler words vary per person ("y'know," "basically," "right so"). A static pattern library cannot anticipate every user's dialect.
+
+**Solution:** The Adaptive Voice Profile is a per-user learning layer inserted at **Layer 1.5** of the Tolerance Chain — after exact pattern matching but before fuzzy match. It operates on three axes:
+
+**Axis 1 — Dialect Mapping**
+Every successful resolution where the user's phrasing differs from the canonical pattern is recorded as a candidate mapping. After 5 consistent uses (configurable threshold), the candidate is auto-promoted to a confirmed mapping:
+
+```json
+{
+  "userId": "jason",
+  "confirmed": {
+    "gimme": { "target": "get", "uses": 12, "confidence": 0.95 },
+    "toss": { "target": "delete", "uses": 7, "confidence": 0.93 },
+    "spin up": { "target": "create", "uses": 9, "confidence": 0.97 }
+  },
+  "candidates": {
+    "yeet": { "target": "remove", "count": 3 }
+  },
+  "dialectConfidence": 0.87
+}
+```
+
+**Axis 2 — Accent Correction**
+Consistent transcription errors (caused by the user's accent interacting with the speech-to-text engine) are stored per-user. "Roit" → "right," "dat" → "that." These corrections are applied *before* the Tolerance Chain even begins, reducing false-positive fuzzy matches.
+
+**Axis 3 — Filler Word Personalization**
+The system maintains a per-user list of filler words that are stripped during preprocessing. Generic fillers ("um," "uh") are handled by the voice pipeline. Adaptive fillers ("y'know," "basically," "right so," "like") are learned per-user and added over time.
+
+**Integration with Self-Evolving Runtime (Layer 4):**
+The profile module feeds into the Self-Evolving layer's pattern learning. The evolver can detect trends like "this user's vocabulary has shifted — they now say 'toss' for both 'delete' and 'discard' — propose disambiguation rule." The approval workflow (`proposeDialectMapping()` → `autoApply()`) ensures no mapping is applied without consistent evidence.
+
+**Dialect Confidence Score:**
+A sigmoid-based metric tracking how well the system knows the user:
+
+$$\text{DC}(u) = 1 - e^{-0.01 \cdot R_u - 0.1 \cdot C_u}$$
+
+where $R_u$ is total resolutions and $C_u$ is confirmed mappings. DC starts near 0 for new users and asymptotically approaches 1.0 as the system learns their patterns.
+
+**Implementation:** `voice-profile.js` in `src/intent-resolver/`. Profiles stored at `~/.lume/profiles/{userId}.json`. The module is instantiated by the compiler on startup and its `resolve()` method is called at Layer 1.5 before the fuzzy match layer.
+
+**Academic Significance:**
+The Adaptive Voice Profile is the first instance of a compiler that learns its user's **idiolect** — the unique linguistic fingerprint of an individual. This goes beyond NLP normalization (which treats all users identically) and into personalized human-computer interaction. Over time, the compiler becomes *more efficient* for each individual user, reducing cognitive distance further. The CD score for a long-term user approaches 0 even faster than for a new user — the compiler adapts to you, not the other way around.
+
 ---
 
 ## 9. IMPLEMENTATION METRICS

@@ -439,6 +439,26 @@ Extending Lume to accept mixed-modality input: voice + typed text + pasted code 
 
 Proposing CD as a general-purpose HCI metric: applicable to any system where humans must translate intent into system-compatible input. CD may provide a framework for evaluating command-line tools, configuration languages, database query interfaces, and API design.
 
+### 11.6 Adaptive Voice Profiles: The Compiler That Learns You
+
+Current implementation: the Tolerance Chain applies the same resolution logic to every user. Future work (partially implemented as `voice-profile.js`): a per-user **Adaptive Voice Profile** inserted at Layer 1.5 of the Tolerance Chain — after exact pattern matching, before fuzzy match.
+
+The profile learns three axes of personalization:
+
+1. **Dialect Mapping.** When a user consistently says "gimme" for "get" or "toss" for "delete," the system records these as candidates. After a configurable threshold of consistent uses (default: 5), the candidate is auto-promoted to a confirmed mapping with confidence ≥ 0.95.
+
+2. **Accent Correction.** Speech-to-text accuracy varies across accents. When a Southern US accent consistently produces "roit" for "right," or a non-native speaker's accent produces "dat" for "that," the profile stores these corrections and applies them before the Tolerance Chain begins.
+
+3. **Filler Word Personalization.** Beyond generic fillers ("um," "uh"), the profile learns user-specific fillers ("y'know," "basically," "right so") and strips them during preprocessing.
+
+**HCI Significance:** The Adaptive Voice Profile transforms the compiler from a static tool into a *personalized interaction partner* — one that becomes more attuned to the individual over time. This is an instance of **adaptive UI** applied to compilation:
+
+$$\text{DC}(u) = 1 - e^{-0.01 \cdot R_u - 0.1 \cdot C_u}$$
+
+where DC(u) is the Dialect Confidence for user *u*, *R* is total resolutions, and *C* is confirmed mappings. As the system learns, cognitive distance for that specific user decreases even further — the compiler adapts to you, not the other way around.
+
+This has particular implications for **accessibility**: users with speech impediments or non-standard accents will experience improving accuracy over time as the profile absorbs their specific patterns. The system does not require them to change how they speak — it changes how it listens.
+
 ---
 
 ## 12. Conclusion
