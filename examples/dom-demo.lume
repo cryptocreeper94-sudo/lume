@@ -1,0 +1,130 @@
+/// ═══════════════════════════════════════════════════════════
+///  Lume Example: DOM Rendering & Frontend UI
+///  Demonstrates the dom module: element creation, styling,
+///  animations, events, and the state module.
+///
+///  Compile: lume build dom-demo.lume
+///  Bundle:  lume bundle dom-demo.lume --target=browser
+///  Open:    dom-demo.html in a browser
+/// ═══════════════════════════════════════════════════════════
+
+/// --- Inject Global Styles ---
+dom.inject_css("
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #06060a; color: #fff; min-height: 100vh; }
+  .glass-card {
+    background: rgba(16, 16, 26, 0.72);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, #06b6d4, #14b8a6, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradient-shift 4s ease infinite;
+  }
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+", "global-styles")
+
+/// --- Create Floating Orbs ---
+let orb1 = dom.create("div", {
+  className: "orb",
+  styles: { width: "400px", height: "400px", background: "#06b6d4", top: "10%", left: "20%" }
+})
+dom.mount(orb1)
+
+let orb2 = dom.create("div", {
+  className: "orb",
+  styles: { width: "300px", height: "300px", background: "#a855f7", bottom: "20%", right: "15%" }
+})
+dom.mount(orb2)
+
+/// --- Animate Orbs ---
+dom.animate(orb1, [
+  { transform: "translate(0, 0)" },
+  { transform: "translate(30px, -20px)" },
+  { transform: "translate(-10px, 15px)" },
+  { transform: "translate(0, 0)" }
+], { duration: 8000, iterations: "Infinity", easing: "ease-in-out" })
+
+/// --- Create Hero Section ---
+let hero = dom.create("section", {
+  styles: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "2rem", textAlign: "center" },
+  children: [
+    dom.create("h1", {
+      className: "gradient-text",
+      text: "DarkWave Systems Collective",
+      styles: { fontSize: "3.5rem", fontWeight: "800", marginBottom: "1rem" }
+    }),
+    dom.create("p", {
+      text: "Research & Engineering Division of DarkWave Studios LLC",
+      styles: { fontSize: "1.25rem", color: "rgba(255,255,255,0.6)", marginBottom: "2rem" }
+    }),
+    dom.create("div", {
+      className: "glass-card",
+      styles: { maxWidth: "600px" },
+      children: [
+        dom.create("p", {
+          text: "Building the future of human-computer interaction through Lume — the AI-native programming language that eliminates cognitive distance.",
+          styles: { lineHeight: "1.8", color: "rgba(255,255,255,0.8)" }
+        })
+      ]
+    })
+  ]
+})
+dom.mount(hero)
+
+/// --- Create Counter with Reactive State ---
+let counter = state.reactive(0)
+
+let counter_display = dom.create("span", {
+  text: "0",
+  styles: { fontSize: "2rem", fontWeight: "bold", color: "#06b6d4" }
+})
+counter.bind(counter_display)
+
+let counter_section = dom.create("section", {
+  className: "glass-card reveal",
+  styles: { maxWidth: "400px", margin: "2rem auto", textAlign: "center" },
+  children: [
+    dom.create("p", { text: "Reactive State Demo:", styles: { marginBottom: "1rem", color: "rgba(255,255,255,0.6)" } }),
+    counter_display,
+    dom.create("div", {
+      styles: { marginTop: "1rem", display: "flex", gap: "1rem", justifyContent: "center" },
+      children: [
+        dom.create("button", {
+          text: "- Decrement",
+          styles: { padding: "0.5rem 1.5rem", background: "rgba(6, 182, 212, 0.2)", border: "1px solid #06b6d4", borderRadius: "0.5rem", color: "#06b6d4", cursor: "pointer" },
+          onClick: () => counter.set(counter.get() - 1)
+        }),
+        dom.create("button", {
+          text: "+ Increment",
+          styles: { padding: "0.5rem 1.5rem", background: "rgba(6, 182, 212, 0.2)", border: "1px solid #06b6d4", borderRadius: "0.5rem", color: "#06b6d4", cursor: "pointer" },
+          onClick: () => counter.set(counter.get() + 1)
+        })
+      ]
+    })
+  ]
+})
+dom.mount(counter_section)
+
+/// --- Skeleton Reveal on Scroll ---
+dom.reveal_on_scroll(".reveal", { stagger: 150, duration: 800 })
+
+show "✦ DOM demo rendered successfully!"

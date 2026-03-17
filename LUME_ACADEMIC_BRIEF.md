@@ -799,6 +799,94 @@ $ lume compile app.lume --review
 
 In Review Mode, **no code is emitted until the developer confirms** each resolution. This provides a human-in-the-loop verification step without adding cognitive distance — the developer reviews the compiler's understanding in plain English, not in generated code.
 
+### 8.8 DOM Intent Model — Cognitive Distance Applied to UI
+
+Traditional frontend development requires learning HTML, CSS, JavaScript DOM APIs, and often a framework (React, Vue, etc.). Each layer adds transformation dimensions:
+
+```
+Designer's Intent → HTML structure → CSS styling → JS behavior → Framework abstractions
+                  T₁ (Lexical)    T₂ (Syntactic)  T₃ (Structural)  T₅ (Representational)
+```
+
+Lume collapses this entire chain. The `dom` standard library module allows developers to express UI intent directly:
+
+```lume
+dom.create("section", {
+  className: "glass-card",
+  children: [
+    dom.create("h2", { text: "Welcome", className: "gradient-text" }),
+    dom.create("p", { text: "Built entirely with Lume" })
+  ]
+})
+```
+
+With `dom.inject_css()`, `dom.animate()`, `dom.reveal_on_scroll()`, and `dom.on()`, the entire frontend stack — structure, styling, animation, and interactivity — is expressed in Lume syntax. No HTML files, no CSS preprocessors, no build tools.
+
+**CD Mapping for UI Development:**
+
+| Dimension | Traditional Web Dev | Lume DOM Model |
+|-----------|-------------------|----------------|
+| T₁ (Lexical) | HTML tags, CSS selectors | `dom.create(tag, opts)` |
+| T₂ (Syntactic) | CSS property syntax | `styles: { color: "#06b6d4" }` |
+| T₃ (Structural) | Component tree, state management | `dom.mount()`, `state.reactive()` |
+| T₅ (Representational) | Framework abstractions (JSX, hooks) | None — direct DOM |
+| T₆ (Meta-cognitive) | Debugging React re-renders, hook deps | `state.bind()` — explicit reactivity |
+
+### 8.9 Verbal State Machines
+
+The `state` standard library module introduces declarative state machines and reactive values:
+
+```lume
+let page_state = state.machine({
+  initial: "loading",
+  states: {
+    loading: { on: { LOADED: "ready", ERROR: "failed" } },
+    ready:   { on: { REFRESH: "loading" } },
+    failed:  { on: { RETRY: "loading" } }
+  }
+})
+
+page_state.send("LOADED")
+show page_state.current  // → "ready"
+```
+
+Combined with English Mode, state transitions will be expressible verbally (future milestone):
+
+```
+create a state machine called page_state
+  it starts in loading
+  when it loads successfully, go to ready
+  when it fails, go to failed
+  from ready, refresh goes back to loading
+```
+
+This eliminates T₃ (structural) and T₄ (semantic) distance for state management — the developer describes behavior, not implementation.
+
+### 8.10 Collaborative Intent — Multi-Developer Compilation (Roadmap)
+
+Milestone 12 envisions **collaborative compilation** — multiple developers writing Lume simultaneously, with the compiler resolving conflicting intents:
+
+```
+Developer A: "add a login form to the header"
+Developer B: "remove the header and use a sidebar"
+
+⚠ ConflictDetected:
+  Developer A references "header" (line 3)
+  Developer B removes "header" (line 5)
+  Resolution required before compilation.
+  Options:
+    (a) Keep header + login form [Developer A's intent]
+    (b) Replace header with sidebar + login form [Merge]
+    (c) Reject — ask both developers to clarify
+```
+
+**Key Design Principles:**
+- Intent-level conflict detection (not just text-level merge conflicts)
+- The compiler understands WHAT each developer wants, not just WHAT they typed
+- Conflicts are expressed in natural language, not diff hunks
+- Resolution preserves the Context Stack for both developers
+- The Resolution Manifest supports multi-author entries and collaborative compile-lock files
+
 ---
 
 ## 9. IMPLEMENTATION METRICS
