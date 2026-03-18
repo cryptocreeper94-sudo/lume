@@ -1116,7 +1116,7 @@ This establishes Lume not as a transpiler-to-JavaScript but as an **intent compi
 | Metric | Value |
 |--------|-------|
 | Compiler milestones | 15 |
-| Test suite | 2,149+ tests (0 failures) |
+| Test suite | 2,149 tests (0 failures) |
 | Pattern Library patterns | 102+ |
 | Homophone pairs | 10 |
 | Filler words | 20 |
