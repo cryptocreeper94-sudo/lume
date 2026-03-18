@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom'
+import { useRef } from 'react'
 
 export default function Footer() {
+    const dwscClickRef = useRef({ count: 0, timer: null })
+    const handleDWSCClick = () => {
+        dwscClickRef.current.count++
+        if (dwscClickRef.current.count === 3) {
+            dwscClickRef.current.count = 0
+            clearTimeout(dwscClickRef.current.timer)
+            window.open('https://dwsc.io/#portal', '_blank')
+        } else {
+            clearTimeout(dwscClickRef.current.timer)
+            dwscClickRef.current.timer = setTimeout(() => { dwscClickRef.current.count = 0 }, 800)
+        }
+    }
     return (
         <footer className="footer">
             <div className="footer-inner">
@@ -40,7 +53,7 @@ export default function Footer() {
             </div>
             <div className="footer-bottom">
                 <p>© 2026 DarkWave Studios LLC. Built with ✦ Lume.</p>
-                <p>Protected by TrustShield.tech</p>
+                <p>Protected by TrustShield.tech <span onClick={handleDWSCClick} style={{ cursor: 'default', userSelect: 'none', marginLeft: 6, opacity: 0.3 }} title="◈ DWSC">◈</span></p>
             </div>
         </footer>
     )
