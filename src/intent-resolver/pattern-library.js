@@ -27,6 +27,10 @@ export const synonymRings = {
     heal: ['heal', 'fix', 'repair', 'recover', 'retry', 'patch things up'],
     optimize: ['optimize', 'improve', 'speed up', 'make faster', 'tune', 'enhance'],
     evolve: ['evolve', 'adapt', 'learn', 'grow', 'upgrade', 'advance'],
+    deploy: ['deploy', 'push', 'ship', 'release', 'publish', 'launch', 'go live'],
+    draw: ['draw', 'sketch', 'paint', 'illustrate', 'render', 'plot'],
+    verify: ['verify', 'confirm', 'assert', 'ensure', 'validate', 'prove'],
+    configure: ['configure', 'setup', 'config', 'initialize', 'wire up'],
 }
 
 /**
@@ -781,6 +785,84 @@ export const patterns = [
         resolve: (m) => ({ type: 'FocusOperation', target: slugify(m[1]) }),
         tags: ['ui']
     },
+
+    // ══════════════════════════════════════════════
+    //  VERTICAL APPLICATIONS — Deploy, Config,
+    //  Education, Verify, Accessibility
+    // ══════════════════════════════════════════════
+
+    // ── DEPLOY ──
+    {
+        match: /^(?:deploy|push|ship|release)(?:\s+(?:this|the\s+app|the\s+site))?\s+to\s+(\w+)(?:\s+from\s+["']?(\w+)["']?)?$/i,
+        resolve: (m) => ({ type: 'DeployCommand', action: 'deploy', target: m[1].toLowerCase(), branch: m[2] || 'main' }),
+        tags: ['devops', 'deploy']
+    },
+    {
+        match: /^(?:check|show|get)\s+(?:the\s+)?deploy(?:ment)?\s+status$/i,
+        resolve: () => ({ type: 'DeployCommand', action: 'status' }),
+        tags: ['devops', 'deploy']
+    },
+    {
+        match: /^(?:rollback|revert|undo)\s+(?:the\s+)?(?:last\s+)?deploy(?:ment)?$/i,
+        resolve: () => ({ type: 'DeployCommand', action: 'rollback' }),
+        tags: ['devops', 'deploy']
+    },
+    {
+        match: /^(?:is\s+)?(?:the\s+)?(?:site|app|deployment)\s+(?:up|running|alive|healthy)\??$/i,
+        resolve: () => ({ type: 'DeployCommand', action: 'status' }),
+        tags: ['devops', 'health']
+    },
+
+    // ── CONFIG ──
+    {
+        match: /^(?:set|configure|config)\s+(?:the\s+)?(\w+)\s+(?:to|as)\s+(.+)$/i,
+        resolve: (m) => ({ type: 'ConfigDeclaration', key: m[1], value: m[2] }),
+        tags: ['config', 'devops']
+    },
+    {
+        match: /^(?:connect|use)\s+(\w+)\s+(?:database|db|cache)\s+at\s+["'](.+?)["']$/i,
+        resolve: (m) => ({ type: 'ConfigDeclaration', key: 'database', service: m[1].toLowerCase(), host: m[2] }),
+        tags: ['config', 'database']
+    },
+
+    // ── VERIFY (Natural Language Assertions) ──
+    {
+        match: /^(?:verify|confirm|assert|ensure|make sure)\s+(?:that\s+)?(.+?)\s+(?:is|equals?)\s+(.+)$/i,
+        resolve: (m) => ({ type: 'VerifyExpression', left: slugify(m[1]), operator: '===', right: m[2] }),
+        tags: ['testing', 'verify']
+    },
+    {
+        match: /^(?:verify|confirm|assert|ensure)\s+(?:that\s+)?(.+?)\s+(?:contains?|includes?)\s+(.+)$/i,
+        resolve: (m) => ({ type: 'VerifyExpression', left: slugify(m[1]), operator: 'includes', right: m[2] }),
+        tags: ['testing', 'verify']
+    },
+    {
+        match: /^(?:verify|confirm|assert|ensure)\s+(?:that\s+)?(.+?)\s+is\s+not\s+empty$/i,
+        resolve: (m) => ({ type: 'VerifyExpression', left: slugify(m[1]), operator: 'notEmpty' }),
+        tags: ['testing', 'verify']
+    },
+
+    // ── EDUCATION (Beginner-Friendly) ──
+    {
+        match: /^(?:draw|make|create)\s+(?:a\s+)?(?:(tiny|small|big|large|huge)\s+)?(\w+)\s+(circle|square|rectangle|triangle|star)$/i,
+        resolve: (m) => ({
+            type: 'EducationDraw',
+            size: { tiny: 20, small: 40, medium: 80, big: 120, large: 160, huge: 240 }[m[1]?.toLowerCase()] || 80,
+            color: m[2],
+            shape: m[3].toLowerCase(),
+        }),
+        tags: ['education', 'draw']
+    },
+    {
+        match: /^(?:add|create)\s+(?:a\s+)?button\s+(?:that\s+)?(?:says?\s+)?["']?(.+?)["']?$/i,
+        resolve: (m) => ({ type: 'EducationElement', element: 'button', text: m[1] }),
+        tags: ['education', 'ui']
+    },
+    {
+        match: /^(?:change|make|set)\s+(?:the\s+)?background\s+(?:to\s+)?(\w+)$/i,
+        resolve: (m) => ({ type: 'EducationStyle', property: 'backgroundColor', value: m[1], target: 'body' }),
+        tags: ['education', 'style']
+    },
 ]
 
 /* ── Helpers ──────────────────────────────────────────── */
@@ -837,3 +919,4 @@ export function matchPattern(input) {
     }
     return { matched: false }
 }
+

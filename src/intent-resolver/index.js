@@ -41,10 +41,13 @@ import { parseVersionDeclaration, loadProjectConfig } from './pattern-versioning
 import { detectPackageReference, recognizePackage, generateImport, formatMissingPackageError } from './package-registry.js'
 import { detectStructureStart, parseStructureBlock, compileStructure } from './structure-parser.js'
 import { detectTryBlock, parseTryCatchBlock, detectThrowStatement, parseThrowStatement } from './error-handling.js'
-import { detectTestBlock, detectDescribeBlock, parseTestBlockFull, parseDescribeBlockFull } from './test-framework.js'
+import { detectTestBlock, detectDescribeBlock, parseTestBlockFull, parseDescribeBlockFull, detectVerify, parseVerify } from './test-framework.js'
 import { detectEnvironmentBlock, parseEnvironmentBlock, detectEnvReference, detectFeatureFlag } from './environment.js'
 import { detectConcurrencyBlock, parseConcurrencyBlock, detectSequentialChain, parseSequentialChain, detectTimerInstruction, parseTimerInstruction } from './concurrency.js'
 import { detectComment, parseExplainBlock, stripInlineComment, toCommentAST } from './comments.js'
+import { detectDeploy, compileDeploy } from './deploy-engine.js'
+import { detectConfig, compileConfig } from './config-engine.js'
+import { detectEducationCommand, compileEducationCommand } from './education-mode.js'
 
 /**
  * Check if a file should use English Mode
@@ -599,7 +602,7 @@ function extractSubject(text) {
 
 function extractVerb(text) {
     const words = text.toLowerCase().split(/\s+/)
-    const verbs = new Set(['get', 'show', 'save', 'delete', 'create', 'update', 'send', 'sort', 'filter', 'connect', 'wait', 'repeat', 'return', 'set', 'check', 'ask', 'monitor', 'heal', 'optimize', 'evolve', 'fetch', 'display', 'store', 'remove', 'make', 'build'])
+    const verbs = new Set(['get', 'show', 'save', 'delete', 'create', 'update', 'send', 'sort', 'filter', 'connect', 'wait', 'repeat', 'return', 'set', 'check', 'ask', 'monitor', 'heal', 'optimize', 'evolve', 'fetch', 'display', 'store', 'remove', 'make', 'build', 'deploy', 'verify', 'config', 'draw'])
     return words.find(w => verbs.has(w)) || words[0]
 }
 
@@ -698,3 +701,9 @@ export { formatReviewEntry, generateReviewReport, cliReviewMode, playgroundRevie
 
 // ── CHI §7.2: Auditory Mode ──
 export { BrowserAuditoryEngine, CLIAuditoryEngine, AuditoryMode } from './auditory-mode.js'
+
+// ── Vertical Applications ──
+export { detectDeploy, compileDeploy, DEPLOY_TARGETS, deployPatterns } from './deploy-engine.js'
+export { detectConfig, compileConfig, CONFIG_TYPES, configPatterns } from './config-engine.js'
+export { detectEducationCommand, compileEducationCommand, educationError, educationPatterns, COLORS, SHAPES, SIZES } from './education-mode.js'
+export { detectVerify, parseVerify, verifyPatterns } from './test-framework.js'

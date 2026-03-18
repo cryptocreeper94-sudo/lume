@@ -126,6 +126,8 @@ export function parseTestBlockFull(lines, startIdx) {
         type: 'TestCase',
         name: header.name,
         body: body.map(l => {
+            const verification = parseVerify(l)
+            if (verification) return verification
             const assertion = parseAssertion(l)
             return assertion || { instruction: l }
         }),
@@ -217,6 +219,8 @@ export function compileTestSuite(node) {
         for (const item of node.body) {
             if (item.jest) {
                 lines.push(`  ${item.jest}`)
+            } else if (item.verify) {
+                lines.push(`  ${item.verify}`)
             } else if (item.instruction) {
                 lines.push(`  // ${item.instruction}`)
             }
@@ -226,3 +230,121 @@ export function compileTestSuite(node) {
 
     return lines.join('\n')
 }
+
+
+// ═══════════════════════════════════════════════════════════
+//  VERIFY KEYWORD — Natural Language Assertions
+//
+//  Lume syntax:
+//    verify that response.status is 200
+//    verify users is not empty
+//    verify name contains "John"
+//    verify count is greater than 0
+//    verify result equals expected
+//    verify that logged_in is true
+// ═══════════════════════════════════════════════════════════
+
+const VERIFY_PATTERNS = [
+    // verify that X is greater/less than Y
+    {
+        regex: /^verify\s+(?:that\s+)?(.+?)\s+is\s+(greater|less|more|fewer)\s+than\s+(.+)$/i,
+        compile: (m) => {
+            const op = m[2].match(/greater|more/) ? '>' : '<'
+            const opWord = op === '>' ? 'greater than' : 'less than'
+            return `if (!(${sanitizeValue(m[1])} ${op} ${sanitizeValue(m[3])})) throw new Error('Verification failed: expected ${m[1].trim()} to be ${opWord} ${m[3].trim()}');`
+        }
+    },
+    // verify that X is not empty
+    {
+        regex: /^verify\s+(?:that\s+)?(.+?)\s+is\s+not\s+empty$/i,
+        compile: (m) => {
+            return `if (!${sanitizeValue(m[1])} || (Array.isArray(${sanitizeValue(m[1])}) && ${sanitizeValue(m[1])}.length === 0) || ${sanitizeValue(m[1])}.length === 0) throw new Error('Verification failed: expected ${m[1].trim()} to not be empty');`
+        }
+    },
+    // verify that X is empty
+    {
+        regex: /^verify\s+(?:that\s+)?(.+?)\s+is\s+empty$/i,
+        compile: (m) => {
+            return `if (${sanitizeValue(m[1])} && ${sanitizeValue(m[1])}.length > 0) throw new Error('Verification failed: expected ${m[1].trim()} to be empty');`
+        }
+    },
+    // verify that X contains Y
+    {
+        regex: /^verify\s+(?:that\s+)?(.+?)\s+(?:contains?|includes?|has)\s+(.+)$/i,
+        compile: (m) => {
+            return `if (!${sanitizeValue(m[1])}.includes(${sanitizeValue(m[2])})) throw new Error('Verification failed: expected ${m[1].trim()} to contain ${m[2].trim()}');`
+        }
+    },
+    // verify that X is not Y
+    {
+        regex: /^verify\s+(?:that\s+)?(.+?)\s+is\s+not\s+(.+)$/i,
+        compile: (m) => {
+            return `if (${sanitizeValue(m[1])} === ${sanitizeValue(m[2])}) throw new Error('Verification failed: expected ${m[1].trim()} to NOT be ${m[2].trim()}');`
+        }
+    },
+    // verify that X equals Y / verify that X is Y
+    {
+        regex: /^verify\s+(?:that\s+)?(.+?)\s+(?:is|equals?|==)\s+(.+)$/i,
+        compile: (m) => {
+            return `if (${sanitizeValue(m[1])} !== ${sanitizeValue(m[2])}) throw new Error('Verification failed: expected ${m[1].trim()} to be ${m[2].trim()}, got ' + ${sanitizeValue(m[1])});`
+        }
+    },
+    // verify that X (truthy check)
+    {
+        regex: /^verify\s+(?:that\s+)?(.+)$/i,
+        compile: (m) => {
+            return `if (!${sanitizeValue(m[1])}) throw new Error('Verification failed: ${m[1].trim()} is not truthy');`
+        }
+    },
+]
+
+/**
+ * Detect and parse a verify statement
+ */
+export function detectVerify(line) {
+    const trimmed = line.trim()
+    if (!trimmed.match(/^verify\s+/i)) return null
+
+    for (const pattern of VERIFY_PATTERNS) {
+        const match = trimmed.match(pattern.regex)
+        if (match) {
+            return {
+                type: 'VerifyExpression',
+                original: trimmed,
+                compiled: pattern.compile(match),
+            }
+        }
+    }
+    return null
+}
+
+/**
+ * Parse a verify line (for use inside test blocks)
+ */
+export function parseVerify(line) {
+    const result = detectVerify(line)
+    if (!result) return null
+    return { verify: result.compiled, original: result.original }
+}
+
+/**
+ * English Mode patterns for verify
+ */
+export const verifyPatterns = [
+    {
+        match: /^(?:verify|confirm|assert|ensure|make sure)\s+(?:that\s+)?(.+?)\s+(?:is|equals?)\s+(.+)$/i,
+        resolve: (m) => ({ type: 'VerifyExpression', left: m[1], operator: '===', right: m[2] }),
+        tags: ['testing', 'verify']
+    },
+    {
+        match: /^(?:verify|confirm|assert|ensure)\s+(?:that\s+)?(.+?)\s+(?:contains?|includes?)\s+(.+)$/i,
+        resolve: (m) => ({ type: 'VerifyExpression', left: m[1], operator: 'includes', right: m[2] }),
+        tags: ['testing', 'verify']
+    },
+    {
+        match: /^(?:verify|confirm|assert|ensure)\s+(?:that\s+)?(.+?)\s+is\s+not\s+empty$/i,
+        resolve: (m) => ({ type: 'VerifyExpression', left: m[1], operator: 'notEmpty' }),
+        tags: ['testing', 'verify']
+    },
+]
+

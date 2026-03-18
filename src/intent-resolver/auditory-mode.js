@@ -323,6 +323,185 @@ export class AuditoryMode {
         speech += `Shall I compile?`
         return speech
     }
+
+
+    // ═══════════════════════════════════════════════════════
+    //  ENHANCED ACCESSIBILITY — Full Eyes-Free Pipeline
+    // ═══════════════════════════════════════════════════════
+
+    /**
+     * Speak an error with human-friendly description
+     * Instead of: "SyntaxError: Unexpected token ) at line 2035"
+     * Says: "Error on line 2035. You have an extra closing parenthesis."
+     */
+    async speakError(error, sourceLines = []) {
+        if (!this.enabled) return
+
+        const msg = error.message || String(error)
+        let speech = ''
+
+        // Extract line number
+        const lineMatch = msg.match(/line\s*(\d+)/i) || error.stack?.match(/:(\d+)/)
+        const line = lineMatch ? parseInt(lineMatch[1]) : null
+
+        if (line) {
+            speech += `Error on line ${line}. `
+            // Read the source line for context
+            if (sourceLines[line - 1]) {
+                const srcLine = sourceLines[line - 1].trim().slice(0, 50)
+                speech += `The line reads: ${srcLine}. `
+            }
+        }
+
+        // Translate error message to plain English
+        const friendlyErrors = {
+            'missing )': 'You forgot to close a parenthesis. Every open paren needs a matching close paren.',
+            'missing }': 'You forgot to close a curly brace. Every open brace needs a matching close brace.',
+            'is not defined': `The variable you mentioned hasn't been created yet. Try defining it first.`,
+            'is not a function': `You're trying to call something as a function, but it's not one.`,
+            'Unexpected token': 'There\'s an unexpected character. Check for missing commas, quotes, or brackets.',
+            'Unexpected end': 'Your code ended too early. You\'re probably missing a closing bracket or quote.',
+            'Cannot read properties of null': 'You\'re trying to access something on a value that doesn\'t exist.',
+            'Cannot read properties of undefined': 'You\'re trying to use a value that hasn\'t been set yet.',
+        }
+
+        let friendly = null
+        for (const [pattern, description] of Object.entries(friendlyErrors)) {
+            if (msg.includes(pattern)) {
+                friendly = description
+                break
+            }
+        }
+
+        speech += friendly || `The error says: ${msg}.`
+        speech += ' Would you like me to help fix it?'
+
+        this.history.push({ type: 'error', speech, error: msg, line })
+        await this.engine.speak(speech)
+    }
+
+    /**
+     * Read a specific function's code aloud
+     * Voice command: "read me the function called process_data"
+     */
+    async readFunction(funcName, sourceLines) {
+        if (!this.enabled) return
+
+        // Find the function in source
+        const funcRegex = new RegExp(`(?:function|to|const|let|var)\\s+${funcName}`, 'i')
+        let startLine = -1
+        for (let i = 0; i < sourceLines.length; i++) {
+            if (funcRegex.test(sourceLines[i])) {
+                startLine = i
+                break
+            }
+        }
+
+        if (startLine === -1) {
+            await this.engine.speak(`I couldn't find a function called ${funcName}.`)
+            return
+        }
+
+        // Read up to 10 lines
+        const maxLines = Math.min(startLine + 10, sourceLines.length)
+        let speech = `Function ${funcName}, starting at line ${startLine + 1}. `
+
+        for (let i = startLine; i < maxLines; i++) {
+            const line = sourceLines[i].trim()
+            if (!line) continue
+            speech += `Line ${i + 1}: ${line}. `
+        }
+
+        this.history.push({ type: 'read_function', funcName, startLine })
+        await this.engine.speak(speech)
+    }
+
+    /**
+     * Speak the deploy status
+     */
+    async speakDeployStatus(status) {
+        if (!this.enabled) return
+
+        let speech = 'Deploy status. '
+        if (status.bundleSize) speech += `Bundle size: ${(status.bundleSize / 1024).toFixed(0)} kilobytes. `
+        if (status.valid !== undefined) speech += status.valid ? 'Build is valid. ' : 'Build has errors. '
+        if (status.lastGood) speech += `Last known good commit: ${status.lastGood}. `
+        if (status.failRate !== undefined) speech += `Failure rate: ${status.failRate} percent. `
+
+        await this.engine.speak(speech)
+    }
+
+    /**
+     * Speak verification results
+     */
+    async speakVerification(results) {
+        if (!this.enabled) return
+
+        let speech = `Verification complete. `
+        const passed = results.filter(r => r.passed).length
+        const total = results.length
+        speech += `${passed} of ${total} checks passed. `
+
+        const failed = results.filter(r => !r.passed)
+        if (failed.length > 0) {
+            speech += `Failed checks: `
+            failed.forEach((f, i) => {
+                speech += `${i + 1}. ${f.description}. `
+            })
+        } else {
+            speech += `All verifications passed successfully.`
+        }
+
+        await this.engine.speak(speech)
+    }
+
+    /**
+     * Spoken help command — describes available voice commands
+     */
+    async speakHelp() {
+        if (!this.enabled) return
+
+        await this.engine.speak(
+            'Lume voice commands. ' +
+            'Say "compile" to run your code. ' +
+            'Say "read me the function called" followed by the name to hear a function. ' +
+            'Say "deploy status" to check your deployment. ' +
+            'Say "verify" followed by a condition to test your code. ' +
+            'Say "undo" to undo the last change. ' +
+            'Say "save" to save your work. ' +
+            'Say "help" to hear this again. ' +
+            'Say "stop" at any time to cancel.'
+        )
+    }
+
+    /**
+     * Process a voice navigation command
+     * Supports: "go to line X", "read line X", "next function", "previous function"
+     */
+    async processVoiceNavigation(command, sourceLines) {
+        if (!this.enabled) return
+
+        // "go to line X" / "read line X"
+        const lineMatch = command.match(/(?:go to|read|show me)\s+line\s+(\d+)/i)
+        if (lineMatch) {
+            const lineNum = parseInt(lineMatch[1])
+            if (lineNum > 0 && lineNum <= sourceLines.length) {
+                await this.engine.speak(`Line ${lineNum}: ${sourceLines[lineNum - 1].trim()}`)
+            } else {
+                await this.engine.speak(`Line ${lineNum} doesn't exist. Your file has ${sourceLines.length} lines.`)
+            }
+            return
+        }
+
+        // "what line am I on" — context
+        const contextMatch = command.match(/(?:where am i|what line|current position)/i)
+        if (contextMatch) {
+            await this.engine.speak(`Your file has ${sourceLines.length} lines.`)
+            return
+        }
+
+        await this.engine.speak(`I didn't understand that navigation command. Say "help" for available commands.`)
+    }
 }
 
 /* ── Voice Approval Interpreter ─────────────────────────── */
