@@ -33,11 +33,13 @@ function createFreshContext() {
         },
 
         // Short-term memory (for pronoun resolution)
+        // CHI Paper §5.5 — Bounded sliding window with RFT scoring
         memory: {
-            lastSubject: null,   // Most recent noun/entity
-            lastAction: null,    // Most recent verb
-            lastResult: null,    // Most recent operation result
-            history: [],         // Stack of { line, subject, type }
+            lastSubject: null,       // Most recent singular entity
+            lastCollection: null,    // Most recent plural entity/collection
+            lastAction: null,        // Most recent verb
+            lastResult: null,        // Most recent operation result
+            history: [],             // Stack of { line, subject, action, type, isCollection }
         },
 
         // Session memory (persisted to .lume/context-memory.json)
@@ -48,6 +50,11 @@ function createFreshContext() {
         },
     }
 }
+
+/* ── RFT Configuration (CHI Paper §5.5) ─────────────── */
+const RFT_WEIGHTS = { recency: 0.5, frequency: 0.3, typeMatch: 0.2 }
+const DISAMBIGUATION_THRESHOLD = 0.15 // If top-2 candidates within this gap → ask
+const CONTEXT_WINDOW = 5              // Sliding window for pronoun resolution
 
 /* ── Context API ─────────────────────────────────────── */
 
@@ -64,6 +71,7 @@ export function resetFileScope() {
     }
     context.memory = {
         lastSubject: null,
+        lastCollection: null,
         lastAction: null,
         lastResult: null,
         history: [],
@@ -94,13 +102,20 @@ export function registerFunction(name, params = []) {
 }
 
 /**
- * Update short-term memory after resolving a line
+ * Update short-term memory after resolving a line.
+ * Classifies the subject as singular or collection for pronoun routing.
  */
 export function updateMemory(line, subject, action, result) {
-    context.memory.lastSubject = subject
+    const isCollection = detectCollection(subject, result)
+
+    if (isCollection) {
+        context.memory.lastCollection = subject
+    } else {
+        context.memory.lastSubject = subject
+    }
     context.memory.lastAction = action
     context.memory.lastResult = result
-    context.memory.history.push({ line, subject, action, type: result?.type })
+    context.memory.history.push({ line, subject, action, type: result?.type, isCollection })
 
     // Track in file references for dependency graph
     context.fileScope.references.push({ line, name: subject, type: result?.type })
@@ -108,27 +123,165 @@ export function updateMemory(line, subject, action, result) {
 }
 
 /**
- * Resolve a pronoun ("it", "they", "their", "this", "that")
- * Returns the most likely referent from short-term memory
+ * Detect whether a subject refers to a collection or a singular entity
  */
-export function resolvePronoun(pronoun, currentLine = 0) {
+function detectCollection(subject, result) {
+    if (!subject) return false
+    const s = subject.toLowerCase()
+    // Plural heuristics: ends in 's' (but not 'ss'), or known collection types
+    const pluralEndings = s.endsWith('s') && !s.endsWith('ss') && !s.endsWith('us')
+    const collectionKeywords = ['all', 'every', 'each', 'list', 'array', 'set', 'group', 'results']
+    const isCollectionType = result?.type && ['ForEachLoop', 'QueryOperation', 'FilterOperation', 'SortOperation'].includes(result.type)
+    return pluralEndings || collectionKeywords.some(k => s.includes(k)) || isCollectionType
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ *  PRONOUN RESOLUTION with RFT SCORING & DisambiguationRequired
+ *  CHI Paper §5.5 — Anaphora Resolution: The Context Stack
+ *
+ *  Uses a Recency-Frequency-Type (RFT) model:
+ *    Score(entity) = α·Recency + β·Frequency + γ·TypeMatch(entity, verb)
+ *  where α=0.5, β=0.3, γ=0.2
+ *
+ *  When the top-2 candidates are within DISAMBIGUATION_THRESHOLD,
+ *  returns a DisambiguationRequired result instead of guessing.
+ * ═══════════════════════════════════════════════════════════
+ */
+export function resolvePronoun(pronoun, currentLine = 0, verb = null) {
     const p = pronoun.toLowerCase()
 
-    // "it" / "this" / "that" → last subject
+    // ── Singular pronouns: "it" / "this" / "that" ──
     if (['it', 'this', 'that'].includes(p)) {
-        if (!context.memory.lastSubject) return { resolved: false, warning: `LUME-W003: No referent found for "${pronoun}"` }
-        const distance = currentLine - (context.memory.history[context.memory.history.length - 1]?.line || 0)
-        if (distance > 20) return { resolved: true, value: context.memory.lastSubject, warning: `LUME-W002: "${pronoun}" refers to "${context.memory.lastSubject}" from ${distance} lines ago. Consider using the name explicitly.` }
-        return { resolved: true, value: context.memory.lastSubject }
+        return resolveWithRFT(p, currentLine, verb, false)
     }
 
-    // "they" / "them" / "their" → last subject (collection or entity)
+    // ── Plural pronouns: "they" / "them" / "their" / "those" ──
     if (['they', 'them', 'their', 'those'].includes(p)) {
-        if (!context.memory.lastSubject) return { resolved: false, warning: `LUME-W003: No referent found for "${pronoun}"` }
-        return { resolved: true, value: context.memory.lastSubject }
+        return resolveWithRFT(p, currentLine, verb, true)
     }
 
     return { resolved: false }
+}
+
+/**
+ * RFT-based resolution with disambiguation detection
+ */
+function resolveWithRFT(pronoun, currentLine, verb, preferCollection) {
+    // Get the sliding window of recent history
+    const window = context.memory.history.slice(-CONTEXT_WINDOW)
+    if (window.length === 0) {
+        return { resolved: false, warning: `LUME-W003: No referent found for "${pronoun}"` }
+    }
+
+    // Build candidate list — unique subjects in the window
+    const candidateMap = new Map()
+    for (const entry of window) {
+        if (!entry.subject) continue
+        const key = entry.subject.toLowerCase()
+        if (!candidateMap.has(key)) {
+            candidateMap.set(key, { subject: entry.subject, entries: [], isCollection: entry.isCollection })
+        }
+        candidateMap.get(key).entries.push(entry)
+    }
+
+    if (candidateMap.size === 0) {
+        return { resolved: false, warning: `LUME-W003: No referent found for "${pronoun}"` }
+    }
+
+    // If only one candidate, use it directly (no ambiguity possible)
+    if (candidateMap.size === 1) {
+        const [, candidate] = [...candidateMap.entries()][0]
+        const distance = currentLine - candidate.entries[candidate.entries.length - 1].line
+        if (distance > 20) {
+            return {
+                resolved: true,
+                value: candidate.subject,
+                warning: `LUME-W002: "${pronoun}" refers to "${candidate.subject}" from ${distance} lines ago. Consider using the name explicitly.`
+            }
+        }
+        return { resolved: true, value: candidate.subject }
+    }
+
+    // Score each candidate using RFT model
+    const scored = []
+    const maxLine = Math.max(...window.map(e => e.line), 1)
+    const minLine = Math.min(...window.map(e => e.line), 0)
+    const lineRange = maxLine - minLine || 1
+
+    for (const [key, candidate] of candidateMap) {
+        // Recency: most recent occurrence normalized to [0, 1]
+        const lastLine = Math.max(...candidate.entries.map(e => e.line))
+        const recency = (lastLine - minLine) / lineRange
+
+        // Frequency: count of occurrences normalized by window size
+        const frequency = candidate.entries.length / window.length
+
+        // TypeMatch: does the entity type match what the verb expects?
+        let typeMatch = 0.5 // neutral default
+        if (preferCollection && candidate.isCollection) typeMatch = 1.0
+        else if (!preferCollection && !candidate.isCollection) typeMatch = 1.0
+        else if (preferCollection && !candidate.isCollection) typeMatch = 0.1
+        else if (!preferCollection && candidate.isCollection) typeMatch = 0.1
+
+        // If verb is provided, boost matching types
+        if (verb) {
+            const collectionVerbs = ['sort', 'filter', 'count', 'group', 'iterate', 'list', 'each']
+            const singularVerbs = ['show', 'display', 'update', 'edit', 'save', 'print']
+            if (collectionVerbs.includes(verb) && candidate.isCollection) typeMatch = 1.0
+            if (singularVerbs.includes(verb) && !candidate.isCollection) typeMatch = 1.0
+        }
+
+        const score = RFT_WEIGHTS.recency * recency +
+                       RFT_WEIGHTS.frequency * frequency +
+                       RFT_WEIGHTS.typeMatch * typeMatch
+
+        scored.push({ subject: candidate.subject, score, recency, frequency, typeMatch, line: lastLine, isCollection: candidate.isCollection })
+    }
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score)
+    const best = scored[0]
+    const runnerUp = scored[1]
+
+    // ── DisambiguationRequired check ──
+    // If top-2 are within threshold → ambiguous, ask the developer
+    const gap = best.score - runnerUp.score
+    if (gap < DISAMBIGUATION_THRESHOLD) {
+        return {
+            resolved: false,
+            disambiguationRequired: true,
+            pronoun,
+            candidates: scored.slice(0, Math.min(scored.length, 4)).map((c, i) => ({
+                label: String.fromCharCode(97 + i), // a, b, c, d
+                subject: c.subject,
+                score: Math.round(c.score * 100),
+                line: c.line,
+                isCollection: c.isCollection,
+            })),
+            message: `DisambiguationRequired at line ${currentLine}:\n` +
+                `  "${pronoun}" — ambiguous reference.\n` +
+                `  Did you mean:\n` +
+                scored.slice(0, 4).map((c, i) =>
+                    `    (${String.fromCharCode(97 + i)}) ${c.subject}    [${c.isCollection ? 'LastCollection' : 'LastSubject'}, set at line ${c.line}]`
+                ).join('\n') + '\n' +
+                `  Clarify with: "the ${scored[0].subject}" or "the ${scored[1].subject}"`,
+            warning: `LUME-W004: "${pronoun}" is ambiguous — multiple referents scored within ${(DISAMBIGUATION_THRESHOLD * 100).toFixed(0)}% of each other.`,
+        }
+    }
+
+    // Clear winner — resolve directly
+    const distance = currentLine - best.line
+    if (distance > 20) {
+        return {
+            resolved: true,
+            value: best.subject,
+            confidence: best.score,
+            warning: `LUME-W002: "${pronoun}" refers to "${best.subject}" from ${distance} lines ago. Consider using the name explicitly.`
+        }
+    }
+
+    return { resolved: true, value: best.subject, confidence: best.score }
 }
 
 /**

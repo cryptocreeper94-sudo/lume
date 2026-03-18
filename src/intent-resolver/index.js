@@ -29,6 +29,7 @@ import { splitSentence } from './sentence-splitter.js'
 import { resolveTemporal } from './temporal-resolver.js'
 import { checkSecurity, scanASTNode, formatThreat, generateCertificate, THREAT_CATEGORIES } from './security-layer.js'
 import { resetFileScope, updateMemory, resolvePronoun, getAutocorrectContext } from './context-engine.js'
+import { ResolutionManifest, verifyManifestCLI } from './resolution-manifest.js'
 import { aiResolve, batchResolve } from './ai-resolver.js'
 import { detectLanguage } from './lang-detect.js'
 import { resolveMultilingualVerb, translateVerb, getLocalizedError } from './pattern-library-i18n.js'
@@ -74,7 +75,12 @@ export async function resolveEnglishFile(source, options = {}) {
 
     const ast = []
     const diagnostics = []
-    const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0, clarifications: 0, logicBlocks: 0, hints: 0, structures: 0, tryCatch: 0, tests: 0, envBlocks: 0, concurrency: 0, comments: 0, packages: 0 }
+    const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0, clarifications: 0, logicBlocks: 0, hints: 0, structures: 0, tryCatch: 0, tests: 0, envBlocks: 0, concurrency: 0, comments: 0, packages: 0, manifestHits: 0, disambiguations: 0 }
+
+    // Resolution Manifest — deterministic compilation (CHI §8.2)
+    const manifest = options.lockCache !== false
+        ? new ResolutionManifest(options.projectRoot || '.')
+        : null
     const unresolvedLines = [] // Queue for batch AI resolution
     const detectedLanguages = new Map() // Track language per line
     const isMultilingual = mode === 'natural' // mode: natural enables multilingual
@@ -313,10 +319,13 @@ export async function resolveEnglishFile(source, options = {}) {
         const operations = splitSentence(processedInput)
 
         for (const op of operations) {
-            // Resolve pronouns
-            const pronounResolved = resolvePronouns(op.text)
+            // Resolve pronouns (with RFT disambiguation — CHI §5.5)
+            const pronounResolved = resolvePronouns(op.text, lineNum)
             if (pronounResolved.warnings) {
                 diagnostics.push(...pronounResolved.warnings.map(w => ({ type: 'warning', code: 'LUME-W002', line: lineNum, message: w })))
+            }
+            if (pronounResolved.disambiguations) {
+                diagnostics.push(...pronounResolved.disambiguations)
             }
             const resolveText = pronounResolved.text
 
@@ -333,6 +342,20 @@ export async function resolveEnglishFile(source, options = {}) {
 
             // ═══ TOLERANCE CHAIN ═══
 
+            // Step 0.9: Check Resolution Manifest first (CHI §8.2)
+            if (manifest) {
+                const cached = manifest.lookup(matchText)
+                if (cached) {
+                    const node = { ...cached.ast, line: lineNum, resolvedBy: cached.resolvedBy, originalResolvedBy: cached.originalResolvedBy, confidence: cached.confidence, ...(hasHints ? { hints } : {}), ...(isMultilingual ? { language: lineLanguage } : {}) }
+                    guardianScan(node, lineNum, diagnostics, options)
+                    ast.push(node)
+                    updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
+                    stats.manifestHits++
+                    diagnostics.push({ type: 'info', code: 'LUME-I012', line: lineNum, message: `Manifest cache hit: "${matchText}" (originally: ${cached.originalResolvedBy})` })
+                    continue
+                }
+            }
+
             // Step 1: Exact Pattern Match (Layer A)
             const exactMatch = matchPattern(matchText)
             if (exactMatch.matched) {
@@ -340,6 +363,7 @@ export async function resolveEnglishFile(source, options = {}) {
                 guardianScan(node, lineNum, diagnostics, options)
                 ast.push(node)
                 updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
+                if (manifest) manifest.record(matchText, node, 'layer_a_exact', 1.0)
                 stats.layerA++
                 continue
             }
@@ -352,6 +376,7 @@ export async function resolveEnglishFile(source, options = {}) {
                 ast.push(node)
                 updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
                 stats.layerA++
+                if (manifest) manifest.record(matchText, node, 'layer_a_fuzzy', fuzzyResult.score)
                 diagnostics.push({ type: 'info', code: 'LUME-I003', line: lineNum, message: `Fuzzy match (${(fuzzyResult.score * 100).toFixed(0)}%): "${matchText}" → pattern "${fuzzyResult.pattern}"` })
                 continue
             }
@@ -364,6 +389,7 @@ export async function resolveEnglishFile(source, options = {}) {
                 ast.push(node)
                 updateMemory(lineNum, extractSubject(matchText), extractVerb(matchText), node)
                 stats.layerA++
+                if (manifest) manifest.record(matchText, node, 'layer_a_wordbag', bagResult.score)
                 diagnostics.push({ type: 'info', code: 'LUME-I003', line: lineNum, message: `Word-bag match (${(bagResult.score * 100).toFixed(0)}%): "${matchText}"` })
                 continue
             }
@@ -431,6 +457,9 @@ export async function resolveEnglishFile(source, options = {}) {
     // Sort AST by line number
     ast.sort((a, b) => a.line - b.line)
 
+    // Save Resolution Manifest (CHI §8.2)
+    if (manifest) manifest.save()
+
     // Generate security certificate
     const rawBlockCount = ast.filter(n => n.type === 'RawBlock').length
     const hash = generateHash(ast)
@@ -441,6 +470,7 @@ export async function resolveEnglishFile(source, options = {}) {
         ast,
         diagnostics,
         certificate,
+        manifest: manifest ? manifest.getStats() : null,
         detectedLanguages: Object.fromEntries(detectedLanguages),
         stats: {
             ...stats,
@@ -477,17 +507,34 @@ function getIndent(line) {
     return match ? match[1].length : 0
 }
 
-function resolvePronouns(text) {
+function resolvePronouns(text, lineNum = 0) {
     const pronouns = ['\\bit\\b', '\\bthey\\b', '\\bthem\\b', '\\btheir\\b', '\\bthis\\b', '\\bthat\\b', '\\bthose\\b']
     const warnings = []
+    const disambiguations = []
     let resolved = text
+
+    // Extract verb for type-aware resolution
+    const verb = extractVerb(text)
 
     for (const p of pronouns) {
         const regex = new RegExp(p, 'gi')
         if (regex.test(text)) {
             const word = text.match(regex)[0]
-            const result = resolvePronoun(word)
-            if (result.resolved) {
+            const result = resolvePronoun(word, lineNum, verb)
+
+            if (result.disambiguationRequired) {
+                // ── CHI §5.5: DisambiguationRequired ──
+                // Don't guess — surface the ambiguity to the developer
+                disambiguations.push({
+                    type: 'disambiguation',
+                    code: 'LUME-W004',
+                    line: lineNum,
+                    message: result.message,
+                    candidates: result.candidates,
+                    pronoun: result.pronoun,
+                })
+                warnings.push(result.warning)
+            } else if (result.resolved) {
                 resolved = resolved.replace(regex, result.value)
                 if (result.warning) warnings.push(result.warning)
             } else if (result.warning) {
@@ -496,7 +543,11 @@ function resolvePronouns(text) {
         }
     }
 
-    return { text: resolved, warnings: warnings.length > 0 ? warnings : null }
+    return {
+        text: resolved,
+        warnings: warnings.length > 0 ? warnings : null,
+        disambiguations: disambiguations.length > 0 ? disambiguations : null,
+    }
 }
 
 function fuzzyMatch(input) {
@@ -638,3 +689,12 @@ export { extractHints, summarizeHints, generateCacheWrapper, generateRetryWrappe
 
 // ── Gap 6: Error Translation ──
 export { translateError, formatEnglishError, createStepDebugger } from './error-translator.js'
+
+// ── CHI §8.2: Resolution Manifest ──
+export { ResolutionManifest, verifyManifestCLI } from './resolution-manifest.js'
+
+// ── CHI §8.3: Review Mode ──
+export { formatReviewEntry, generateReviewReport, cliReviewMode, playgroundReviewData, auditoryReviewText } from './review-mode.js'
+
+// ── CHI §7.2: Auditory Mode ──
+export { BrowserAuditoryEngine, CLIAuditoryEngine, AuditoryMode } from './auditory-mode.js'
