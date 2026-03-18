@@ -182,6 +182,97 @@ function MilestoneCarousel() {
     )
 }
 
+/* ─── Interactive Playground Demo ─── */
+const pgDemos = [
+    { tab: 'Standard Mode', lume: 'let name = "Lume"\nlet version = 0.8\n\nif version >= 1.0 {\n  show name + " is production ready"\n} else {\n  show name + " v" + version + " (preview)"\n}', js: 'let name = "Lume";\nlet version = 0.8;\n\nif (version >= 1.0) {\n  console.log(name + " is production ready");\n} else {\n  console.log(name + " v" + version + " (preview)");\n}\n// LUME-CERT: sha256:b7e2... | Risk: LOW', result: '✦ Output: Lume v0.8 (preview)' },
+    { tab: 'English Mode', lume: '// Just describe what you want:\nget all the users who signed up this month\nfilter only the ones with verified emails\nsort them by signup date descending\nshow their names and emails', js: "const users = await db.query(\n  `SELECT name, email FROM users\n   WHERE created_at >= DATE_TRUNC('month', NOW())\n   AND email_verified = true\n   ORDER BY created_at DESC`\n);\nconsole.log(users);\n// LUME-CERT: sha256:a3f8... | Intent: QUERY", result: '✦ 4 English instructions → 1 optimized SQL query' },
+    { tab: 'Verify', lume: 'let response = { status: 200 }\nlet users = ["Alice", "Bob"]\nlet count = 10\n\nverify response.status is 200\nverify users is not empty\nverify count is greater than 5', js: 'if (response.status !== 200)\n  throw new Error(`✗ expected ${response.status} === 200`);\nif (!users || users.length === 0)\n  throw new Error("✗ expected not empty");\nif (!(count > 5))\n  throw new Error("✗ expected > 5");', result: '✓ All 3 assertions passed' },
+    { tab: 'Deploy', lume: '// Deployment as a language keyword:\ndeploy to render from "main"\n\n// Check status:\ndeploy status\n\n// Rollback:\ndeploy rollback', js: 'await DeployEngine.deploy({\n  platform: "render",\n  branch: "main",\n  selfHeal: true,\n  rollbackOnFail: true\n});\n// Pre-push: 3-stage validation\n// Failure: auto-rollback + notify', result: '✦ Deploy Engine: render ← main — All 3 stages passed' },
+    { tab: 'Error Reporting', lume: '// Traditional JavaScript error:\nTypeError: Cannot read properties\n  of undefined (reading \'map\')\n    at Object.<anonymous>\n      (index.js:47:12)\n\n// Same error in Lume:\n⚠ You tried to use "map" on\n  "users", but users is empty.\n  Suggestion: check if users\n  exists before mapping.', js: '// Lume error pipeline:\n// 1. Catch runtime exception\n// 2. Map to original Lume intent\n// 3. Generate human-readable msg\n// 4. Suggest fix based on context\n\nGuardian.report({\n  intent: "show user names",\n  error: "users is undefined",\n  suggestion: "add: verify users"\n});', result: '✦ Human-readable, context-aware errors with fix suggestions.' },
+]
+
+function PlaygroundDemo() {
+    const [active, setActive] = useState(0)
+    const d = pgDemos[active]
+    return (
+        <div style={{ maxWidth: 1000, margin: '40px auto 0' }}>
+            <div style={{ display: 'flex', gap: 3, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                {pgDemos.map((p, i) => (
+                    <button key={i} onClick={() => setActive(i)} style={{
+                        padding: '8px 16px', border: '1px solid var(--border)', borderBottom: 'none',
+                        borderRadius: '8px 8px 0 0', background: i === active ? 'var(--bg-secondary)' : 'rgba(16,16,26,0.4)',
+                        color: i === active ? 'var(--accent-glow)' : 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                        whiteSpace: 'nowrap', transition: 'all 0.3s',
+                    }}>{p.tab}</button>
+                ))}
+            </div>
+            <div className="bento-card" style={{ borderRadius: '0 12px 12px 12px', padding: 0, overflow: 'hidden' }}>
+                <div className="playground-split">
+                    <div style={{ padding: 20, borderRight: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>◈ Lume Source</div>
+                        <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-bright)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{d.lume}</pre>
+                    </div>
+                    <div style={{ padding: 20 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#00b894', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>✓ Compiled Output</div>
+                        <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#00b894', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{d.js}</pre>
+                    </div>
+                </div>
+                <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', background: 'rgba(34,197,94,0.04)', fontSize: 12, fontFamily: 'var(--font-mono)', color: '#22c55e' }}>{d.result}</div>
+            </div>
+        </div>
+    )
+}
+
+/* ─── Test Results Dashboard ─── */
+const testCategories = [
+    { name: 'Core Compiler', count: 892 },
+    { name: 'English Mode Patterns', count: 456 },
+    { name: 'Voice Pipeline', count: 234 },
+    { name: 'Security Scanner', count: 312 },
+    { name: 'Vertical Applications', count: 255 },
+]
+
+function TestDashboard() {
+    const [animated, setAnimated] = useState(false)
+    const ref = useRef(null)
+
+    useEffect(() => {
+        if (!ref.current) return
+        const obs = new IntersectionObserver(([e]) => {
+            if (e.isIntersecting) { setTimeout(() => setAnimated(true), 300); obs.disconnect() }
+        }, { threshold: 0.3 })
+        obs.observe(ref.current)
+        return () => obs.disconnect()
+    }, [])
+
+    return (
+        <div ref={ref} style={{ maxWidth: 900, margin: '40px auto 0' }}>
+            <div className="bento-card" style={{ textAlign: 'center', padding: '40px 24px', marginBottom: 20, background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(168,85,247,0.04) 100%)' }}>
+                <div className="gradient-wave-text" style={{ fontSize: 'clamp(3rem, 7vw, 5rem)', fontWeight: 900, lineHeight: 1 }}>2,149</div>
+                <div style={{ fontSize: 16, color: 'var(--text-muted)', marginTop: 8, marginBottom: 20 }}>Tests Passing · Zero Failures</div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, background: 'rgba(34,197,94,0.08)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>✓ 100% Pass Rate</span>
+                    <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, background: 'rgba(6,182,212,0.08)', color: 'var(--accent-glow)', border: '1px solid rgba(6,182,212,0.2)' }}>◈ 505 Test Suites</span>
+                    <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, background: 'rgba(168,85,247,0.08)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>⚡ 12.4s Runtime</span>
+                </div>
+            </div>
+            <div className="test-grid">
+                {testCategories.map((c, i) => (
+                    <div key={i} className="bento-card" style={{ padding: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: 'var(--text-bright)' }}>{c.name}</div>
+                        <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: 10 }}>{c.count} tests</div>
+                        <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #22c55e, #14b8a6)', width: animated ? '100%' : '0%', transition: 'width 1.5s cubic-bezier(0.16,1,0.3,1)' }} />
+                        </div>
+                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#22c55e', marginTop: 6, textAlign: 'right' }}>100% passing</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 export default function ExplorePage() {
     const [currentSlide, setCurrentSlide] = useState(0)
     const [openAccordion, setOpenAccordion] = useState(null)
@@ -514,6 +605,62 @@ await db.save("profile", result);`}</pre>
                                 <h3 className="layer-name">{l.name}</h3>
                                 <p className="layer-desc">{l.desc}</p>
                                 <div className="layer-keywords">{l.kw.map(k => <span key={k} className="keyword-tag">{k}</span>)}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── Interactive Playground ── */}
+            <section id="playground-demo" className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Interactive Examples</span>
+                    <h2 className="section-title">See Lume in <span className="gradient-wave-text">Action</span></h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Explore how Lume source code compiles to certified JavaScript. Each tab demonstrates a different capability.
+                    </p>
+                </div>
+                <PlaygroundDemo />
+            </section>
+
+            {/* ── Test Results Dashboard ── */}
+            <section id="test-results" className="section-full" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Reliability</span>
+                    <h2 className="section-title">Battle-Tested <span className="gradient-wave-text">Reliability</span></h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Every Lume commit passes a comprehensive test suite spanning the compiler, pattern library, voice pipeline, security scanner, and vertical applications.
+                    </p>
+                </div>
+                <TestDashboard />
+            </section>
+
+            {/* ── Vertical Applications ── */}
+            <section id="verticals" className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Platform</span>
+                    <h2 className="section-title">From Language to <span className="gradient-wave-text">Platform</span></h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Five domain-specific verticals prove Lume's cognitive distance minimization generalizes across DevOps, testing, configuration, education, and accessibility.
+                    </p>
+                </div>
+                <div className="verticals-grid" style={{ maxWidth: 1100, margin: '40px auto 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                    {[
+                        { title: 'Deploy Engine', desc: 'Deployment as a language keyword. deploy to render compiles to a full CI/CD pipeline with 3-stage validation and auto-rollback.', img: '/features/deploy-engine.png', code: 'deploy to render from "main"' },
+                        { title: 'Verify Keyword', desc: 'Natural language assertions. verify count is 10 compiles to proper assertions with human-readable error messages.', img: '/features/verify-keyword.png', code: 'verify response.status is 200' },
+                        { title: 'Config Language', desc: 'Infrastructure configuration in natural English. Compiles to platform-specific YAML, TOML, or JSON with type validation.', img: '/features/config-engine.png', code: 'config port to 3000' },
+                        { title: 'Education Mode', desc: 'Beginner-friendly errors that explain what went wrong and suggest fixes. The compiler teaches while it compiles.', img: '/features/education-mode.png', code: 'mode: education\nlet x = 5 / 0' },
+                        { title: 'Accessibility', desc: 'Eyes-free programming pipeline. Voice input → auditory feedback → screenreader-optimized output.', img: '/features/accessibility.png', code: 'mode: voice\n"get the users"' },
+                    ].map((v, i) => (
+                        <div key={i} className="bento-card" data-reveal style={{ overflow: 'hidden', padding: 0 }}>
+                            <div style={{ height: 180, overflow: 'hidden', position: 'relative' }}>
+                                <img src={v.img} alt={v.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--bg-primary) 0%, transparent 60%)' }} />
+                            </div>
+                            <div style={{ padding: '20px 24px 24px' }}>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: 'var(--text-bright)' }}>{v.title}</h3>
+                                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>{v.desc}</p>
+                                <pre style={{ padding: 12, background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: '#00b894', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{v.code}</pre>
                             </div>
                         </div>
                     ))}

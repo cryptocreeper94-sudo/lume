@@ -2849,4 +2849,40 @@ body {
         height: 30px;
         font-size: 16px;
     }
+
+    .playground-split {
+        grid-template-columns: 1fr !important;
+    }
+
+    .playground-split > div:first-child {
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+    }
+
+    .test-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .verticals-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ══ Playground Split ══ */
+.playground-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+/* ══ Test Grid ══ */
+.test-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .test-grid {
+        grid-template-columns: 1fr;
+    }
 }
