@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { executeSandbox, saveProgram, loadPrograms, deleteProgram, exportAsLume } from '../utils/sandboxEngine'
 import { compileCode, runCode, explainCode } from '../api/compileApi'
 import { scanCode, formatCertificate } from '../utils/securityScanner'
+import { PlaygroundAnalytics, hasConsent, setConsent } from '../utils/playgroundAnalytics'
 import { useKeyboardShortcuts } from '../components/playground/useKeyboardShortcuts'
 import MenuBar from '../components/playground/MenuBar'
 import StatusBar from '../components/playground/StatusBar'
@@ -144,6 +145,7 @@ export default function PlaygroundPage() {
     const [activeTabId, setActiveTabId] = useState('default')
     const textareaRef = useRef(null)
     const recognitionRef = useRef(null)
+    const analyticsRef = useRef(new PlaygroundAnalytics())
 
     // Load saved programs
     useEffect(() => { setSavedPrograms(loadPrograms()) }, [])
@@ -183,6 +185,13 @@ export default function PlaygroundPage() {
                         setCode(prev => prev + (prev.endsWith('\n') || !prev ? '' : '\n') + cleaned)
                         setConsoleOutput(prev => [...prev, { type: 'info', text: `🎤 ${cleaned}` }])
                         setInputMethod('voice')
+                        // CHI Analytics: log voice input
+                        analyticsRef.current.logVoiceInput({
+                            rawTranscript: finalTranscript,
+                            cleanedTranscript: cleaned,
+                            fillersRemoved: (finalTranscript.match(/\b(?:um|uh|like|you know|basically|actually)\b/gi) || []).length,
+                            repeatsCollapsed: finalTranscript !== cleaned ? 1 : 0,
+                        })
                     }
                 }
             }
@@ -331,6 +340,17 @@ export default function PlaygroundPage() {
             setVariables(result.variables)
             setExecutionTime(result.executionTime)
             setStatus(result.errors.length > 0 ? 'error' : 'success')
+            // CHI Analytics: log sandbox compilation
+            analyticsRef.current.logCompilation({
+                inputMode: inputMethod,
+                sourceLineCount: code.split('\n').length,
+                mode: code.trim().startsWith('mode:') ? 'english' : 'standard',
+                totalResolved: output.filter(r => r.type === 'match').length,
+                totalUnresolved: output.filter(r => r.type === 'unresolved').length,
+                compilationTimeMs: result.executionTime,
+                executionTimeMs: result.executionTime,
+                reviewModeUsed: buildReviewApproved,
+            })
             if (result.errors.length > 0) {
                 setConsoleOutput(prev => [...prev, ...result.errors.map(e => ({ type: 'error', text: `Line ${e.line}: ${e.message}` }))])
             }
