@@ -112,7 +112,7 @@ lume run examples/discount.lume     # Pattern matching
 
 ## Project Stats
 
-- **2,093 tests** — 0 failures across 505 suites
+- **2,149 tests** — 0 failures across 505 suites
 - **102+ patterns** in the English Mode resolver
 - **14K+ lines** of source code
 - **38 example programs**

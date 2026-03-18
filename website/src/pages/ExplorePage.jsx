@@ -522,7 +522,7 @@ await db.save("profile", result);`}</pre>
             <section id="milestones" className="section-full section-dark" data-reveal>
                 <div className="section-header">
                     <span className="section-label">Journey</span>
-                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · 2,093 Tests</h2>
+                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · 2,149 Tests</h2>
                 </div>
                 <MilestoneCarousel />
             </section>

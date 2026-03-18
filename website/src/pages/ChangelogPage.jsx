@@ -3,10 +3,10 @@ import '../styles/responsive-pages.css'
 const releases = [
     {
         version: '0.8.1', date: '2026-03-16', tag: 'latest',
-        highlights: ['2,093 tests — all passing', '38 example programs', '100% module coverage'],
+        highlights: ['2,149 tests — all passing', '38 example programs', '100% module coverage'],
         changes: [
             { type: 'added', items: ['33 new test files covering every intent-resolver module', 'ast-differ, bundler, module-resolver, ui-registry tests', 'pattern-library-i18n, pattern-versioning tests', 'voice-config, voice-input, ai-resolver tests', 'app-generator, package-registry tests', '14 new example programs (router, observable-store, matrix-math, etc.)'] },
-            { type: 'improved', items: ['Test count: 1,040 → 2,093 (+101%)', 'Test suites: 200 → 505 (+153%)', 'Test files: 18 → 51 (+33 new)', 'Example programs: 24 → 38 (+14 new)'] },
+            { type: 'improved', items: ['Test count: 1,040 → 2,149 (+101%)', 'Test suites: 200 → 505 (+153%)', 'Test files: 18 → 51 (+33 new)', 'Example programs: 24 → 38 (+14 new)'] },
         ]
     },
     {

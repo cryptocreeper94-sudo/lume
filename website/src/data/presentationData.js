@@ -326,7 +326,7 @@ export const presentationScenes = [
         { icon: 'Key', title: 'Single Sign-On', description: 'Trust Layer SSO integration. One identity across the entire ecosystem of 30+ applications.', image: '/demo/trust-layer.png' },
         { icon: 'Link', title: 'Blockchain Hallmarks', description: 'Solana-verified trust stamps. SHA-256 hashed records. Immutable proof of compilation and certification.', image: '/demo/ecosystem-network.png' },
         { icon: 'MessageCircle', title: 'Signal Chat', description: 'Integrated with the Signal Chat real-time messaging platform. Bot framework for compiler notifications.' },
-        { icon: 'Shield', title: 'DarkWave Verified', description: 'Meets DarkWave Studios quality standards: 2,093 tests, security scanning, and audit trails.' },
+        { icon: 'Shield', title: 'DarkWave Verified', description: 'Meets DarkWave Studios quality standards: 2,149 tests, security scanning, and audit trails.' },
       ],
     },
   },
@@ -382,7 +382,7 @@ export const presentationScenes = [
   {
     id: 23, act: 'By The Numbers', actNumber: 6,
     title: 'The Test Suite',
-    subtitle: '2,093 tests. Zero failures.',
+    subtitle: '2,149 tests. Zero failures.',
     narration: 'Lume\'s test suite is one of the most comprehensive in any programming language project at this stage. Every module, every pattern, every edge case — tested and verified.',
     duration: 9, icon: 'CheckCircle', visualType: 'stats',
     content: {
@@ -557,7 +557,7 @@ export const presentationScenes = [
     id: 29, act: 'What\'s Next', actNumber: 7,
     title: 'Enterprise Ready',
     subtitle: 'Trust Layer verified. MIT licensed.',
-    narration: 'Lume is production-ready and enterprise-verified. 2,093 tests. Zero failures. Security scanning. Blockchain audit trails. MIT licensed for maximum flexibility.',
+    narration: 'Lume is production-ready and enterprise-verified. 2,149 tests. Zero failures. Security scanning. Blockchain audit trails. MIT licensed for maximum flexibility.',
     duration: 8, icon: 'Building', visualType: 'stats',
     content: {
       stats: [

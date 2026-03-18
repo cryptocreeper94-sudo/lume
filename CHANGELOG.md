@@ -5,13 +5,13 @@ All notable changes to Lume are documented here.
 ## [0.8.1] — 2026-03-16
 
 ### Added
-- **Comprehensive Test Expansion** — 2,093 tests (up from 1,040), 505 suites, 51 test files, 0 failures
+- **Comprehensive Test Expansion** — 2,149 tests (up from 1,040), 505 suites, 51 test files, 0 failures
 - **33 new test files** covering every intent-resolver module (ast-differ, bundler, module-resolver, ui-registry, pattern-library-i18n, pattern-versioning, voice-config, voice-input, ai-resolver, app-generator, package-registry, and more)
 - **14 new example programs** (38 total) — task-scheduler, state-machine, cache-system, event-bus, validation, logger, plugin-system, query-builder, color-system, router, observable-store, testing-framework, async-pipeline, matrix-math
 - 100% module coverage of the `src/intent-resolver/` directory
 
 ### Changed
-- README updated with current stats (2,093 tests, 38 examples)
+- README updated with current stats (2,149 tests, 38 examples)
 - Academic brief updated with current metrics
 - Changelog page updated with current test counts
 
@@ -34,7 +34,7 @@ All notable changes to Lume are documented here.
 
 ### Changed
 - Package renamed to `@lume/compiler` with comprehensive `exports` map
-- DevPortal updated: 2,093 tests, 14K+ LOC, 51 test files, 25+ modules
+- DevPortal updated: 2,149 tests, 14K+ LOC, 51 test files, 25+ modules
 - Playground expanded: 31 in-browser patterns, 6 example programs
 - `lume compile` uses static `require` instead of dynamic `import()`
 - Barrel export fixed: `resolveEnglishFile` (was broken `resolveIntent`)
@@ -43,7 +43,7 @@ All notable changes to Lume are documented here.
 - `lume create` now generates real code, not stub comments
 - `raw:` blocks now scanned for dangerous patterns (eval, child_process, etc.)
 - Nav version updated from v0.6 to v0.8
-- Talking points reflect actual stats (2,093 tests, 102+ patterns)
+- Talking points reflect actual stats (2,149 tests, 102+ patterns)
 
 ## [0.7.0] — 2026-03-06
 
