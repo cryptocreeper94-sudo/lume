@@ -7,7 +7,7 @@ let answer = ask gpt4 "Summarize this article"
 show answer
 ```
 
-[![Tests](https://img.shields.io/badge/tests-2%2C093%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Tests](https://img.shields.io/badge/tests-2%2C149%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
@@ -66,18 +66,33 @@ if the user is not verified
 show the dashboard
 ```
 
+**6. Verify — Natural Language Assertions**
+```
+let count = 10
+let users = ["alice", "bob"]
+
+verify count is 10
+verify users is not empty
+verify count is greater than 5
+```
+
 ## Features
 
 | Feature | Description |
 |---------|-------------|
 | 🤖 **AI as Syntax** | `ask`, `think`, `generate` are keywords — no SDK needed |
-| 🗣️ **English Mode** | Write code in plain English (102 patterns) |
+| 🗣️ **English Mode** | Write code in plain English (114+ patterns) |
 | 🌍 **Multilingual** | Write in any human language — Spanish, Japanese, Hindi... |
 | 🎤 **Voice-to-Code** | Speak your code, Lume compiles it |
 | 🔄 **Self-Sustaining Runtime** | Programs monitor, heal, optimize, and evolve themselves |
 | 🔒 **Security Layer** | 11 threat categories, Guardian scanner, raw block protection |
 | 📦 **Full-Stack Generator** | `lume create "an ecommerce store"` scaffolds entire apps |
 | 🔍 **Reverse Mode** | `lume explain file.js` — any code explained in English |
+| ✅ **Verify Keyword** | Natural language assertions: `verify count is 10` |
+| 🚀 **Deploy Engine** | First-class deployment: `deploy to render from "main"` |
+| ⚙️ **Config Language** | Type-safe config as code — replaces YAML/TOML/JSON |
+| 🎓 **Education Mode** | Beginner-tuned tolerance: `draw a big red circle` |
+| ♿ **Accessibility** | Complete eyes-free programming with auditory feedback |
 
 ## CLI Commands
 
@@ -98,6 +113,8 @@ lume test <file>         Run inline tests
 lume listen              Voice-to-code (browser mic)
 lume bundle <file>       Bundle for distribution
 lume verify <file>       Verify compile lock
+lume deploy <target>     Deploy to render/vercel/netlify
+lume heal status         View self-healing status
 ```
 
 ## Examples
@@ -113,11 +130,12 @@ lume run examples/discount.lume     # Pattern matching
 ## Project Stats
 
 - **2,149 tests** — 0 failures across 505 suites
-- **102+ patterns** in the English Mode resolver
-- **14K+ lines** of source code
+- **114+ patterns** in the English Mode resolver
+- **15K+ lines** of source code
 - **38 example programs**
-- **18+ CLI commands**
+- **20+ CLI commands**
 - **13 milestones** complete
+- **5 vertical applications** — DevOps, Testing, Config, Education, Accessibility
 - **MIT licensed**
 
 ## Documentation
@@ -129,6 +147,7 @@ lume run examples/discount.lume     # Pattern matching
 - [Voice-to-Code](docs/voice.md) — Speak your code
 - [Self-Sustaining Runtime](docs/runtime.md) — How programs heal themselves
 - [Security](docs/security.md) — The Guardian security layer
+- [Vertical Applications](docs/verticals.md) — Deploy, Verify, Config, Education, Accessibility
 
 ## Part of the Trust Layer Ecosystem
 

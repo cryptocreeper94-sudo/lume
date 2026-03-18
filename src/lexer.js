@@ -97,7 +97,9 @@ const KEYWORDS = new Set([
     // Error handling
     'ok', 'error', 'fail', 'with', 'try',
     // Testing
-    'test', 'expect', 'equal', 'intent', 'given', 'expects',
+    'test', 'expect', 'equal', 'intent', 'given', 'expects', 'verify',
+    // Vertical Applications
+    'deploy', 'config',
     // Literals (handled separately but still reserved)
     'true', 'false', 'null',
     // Pattern

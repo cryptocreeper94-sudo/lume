@@ -72,6 +72,7 @@ export const NodeType = {
     ResultPattern: 'ResultPattern',
     BlockStatement: 'BlockStatement',
     CommentNode: 'CommentNode',
+    VerifyStatement: 'VerifyStatement',
 
     // ── English Mode (M7) AST Types ──
     VariableAccess: 'VariableAccess',
@@ -222,6 +223,7 @@ export class Parser {
                 case 'continue': return this._parseContinueStatement()
                 case 'type': return this._parseTypeDeclaration()
                 case 'test': return this._parseTestBlock()
+                case 'verify': return this._parseVerifyStatement()
                 case 'export': return this._parseExportStatement()
                 case 'use': return this._parseUseStatement()
                 case 'read': return this._parseReadExpression()
@@ -729,6 +731,85 @@ export class Parser {
             line: tok.line,
             column: tok.column,
         }
+    }
+
+    // ── verify <expr> is <expr> / verify <expr> is not empty / verify <expr> contains <expr> ──
+    _parseVerifyStatement() {
+        const tok = this._advance() // consume 'verify'
+
+        // Skip optional "that"
+        if (this._check(TokenType.IDENTIFIER) && this._current().value === 'that') {
+            this._advance()
+        }
+
+        // The lexer pre-tokenizes "is" as DOUBLE_EQUALS, "is not" as NOT_EQUALS,
+        // "is greater than" as GREATER, etc. So _parseExpression() will produce
+        // a BinaryExpression for patterns like "count is 10" or "count is greater than 5".
+        //
+        // But first, check for "contains" which is a simple identifier we need to handle manually.
+        // Parse the subject first (just the primary + member access, not full comparison)
+
+        // Strategy: parse the full expression, then introspect it.
+        // If it's a BinaryExpression, extract the assertion type from the operator.
+        // If it's not, it's a truthy check.
+
+        const expr = this._parseExpression()
+        this._skipNewlines()
+
+        // Check if parse produced a BinaryExpression (from "count is 10", "count is greater than 5", etc.)
+        if (expr.type === 'BinaryExpression') {
+            const opMap = {
+                '==': { operator: '===', assertionType: 'equals' },
+                '!=': { operator: '!==', assertionType: 'notEquals' },
+                '>':  { operator: '>',   assertionType: 'comparison' },
+                '<':  { operator: '<',   assertionType: 'comparison' },
+                '>=': { operator: '>=',  assertionType: 'comparison' },
+                '<=': { operator: '<=',  assertionType: 'comparison' },
+            }
+
+            const mapping = opMap[expr.operator]
+
+            // Special case: "is not empty" → NOT_EQUALS produces != with right side = Identifier("empty")
+            if (expr.operator === '!=' && expr.right.type === 'Identifier' && expr.right.name === 'empty') {
+                return {
+                    type: NodeType.VerifyStatement,
+                    subject: expr.left,
+                    expected: null,
+                    operator: '===',
+                    assertionType: 'notEmpty',
+                    line: tok.line,
+                    column: tok.column,
+                }
+            }
+
+            if (mapping) {
+                return {
+                    type: NodeType.VerifyStatement,
+                    subject: expr.left,
+                    expected: expr.right,
+                    operator: mapping.operator,
+                    assertionType: mapping.assertionType,
+                    line: tok.line,
+                    column: tok.column,
+                }
+            }
+        }
+
+        // Fallback: truthy assertion (just "verify someCondition")
+        return {
+            type: NodeType.VerifyStatement,
+            subject: expr,
+            expected: null,
+            operator: '===',
+            assertionType: 'truthy',
+            line: tok.line,
+            column: tok.column,
+        }
+    }
+
+    _isNextWord(word) {
+        const next = this._peek(1)
+        return next && next.type === TokenType.IDENTIFIER && next.value === word
     }
 
     // ══════════════════════════

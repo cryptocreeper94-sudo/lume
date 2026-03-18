@@ -149,6 +149,7 @@ export class Transpiler {
             case NodeType.ContinueStatement: return this._indent('continue;')
             case NodeType.TypeDeclaration: return this._emitTypeDeclaration(node)
             case NodeType.TestBlock: return this._emitTestBlock(node)
+            case NodeType.VerifyStatement: return this._emitVerify(node)
             case NodeType.ExpectStatement: return this._emitExpect(node)
             case NodeType.ExportStatement: return this._emitExport(node)
             case NodeType.UseStatement: return this._emitUse(node)
@@ -517,6 +518,32 @@ export class Transpiler {
         this.indentLevel--
         lines.push(this._indent('})();'))
         return lines
+    }
+
+    _emitVerify(node) {
+        const subject = this._emitExpression(node.subject)
+        switch (node.assertionType) {
+            case 'equals': {
+                const expected = this._emitExpression(node.expected)
+                return this._indent(`if (${subject} !== ${expected}) throw new Error(\`✗ Verify failed: expected \${JSON.stringify(${subject})} to equal \${JSON.stringify(${expected})}\`);`)
+            }
+            case 'notEquals': {
+                const expected = this._emitExpression(node.expected)
+                return this._indent(`if (${subject} === ${expected}) throw new Error(\`✗ Verify failed: expected \${JSON.stringify(${subject})} to NOT equal \${JSON.stringify(${expected})}\`);`)
+            }
+            case 'notEmpty':
+                return this._indent(`if (!${subject} || (Array.isArray(${subject}) ? ${subject}.length === 0 : ${subject} === '')) throw new Error(\`✗ Verify failed: expected \${JSON.stringify(${subject})} to not be empty\`);`)
+            case 'contains': {
+                const expected = this._emitExpression(node.expected)
+                return this._indent(`if (!(Array.isArray(${subject}) ? ${subject}.includes(${expected}) : String(${subject}).includes(${expected}))) throw new Error(\`✗ Verify failed: expected \${JSON.stringify(${subject})} to contain \${JSON.stringify(${expected})}\`);`)
+            }
+            case 'comparison': {
+                const expected = this._emitExpression(node.expected)
+                return this._indent(`if (!(${subject} ${node.operator} ${expected})) throw new Error(\`✗ Verify failed: expected \${${subject}} ${node.operator} \${${expected}}\`);`)
+            }
+            default:
+                return this._indent(`if (!${subject}) throw new Error('✗ Verify failed: assertion is falsy');`)
+        }
     }
 
     _emitExpect(node) {
