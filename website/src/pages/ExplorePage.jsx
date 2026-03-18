@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import HeroCarousel from '../components/HeroCarousel'
 import PresentationPage from './PresentationPage'
+import { LiveCompiler, ToleranceChainViz, VoiceDemo, SecurityDemo, CognitiveDistanceChart } from '../components/InteractiveDemos'
 
 /* ─── Feature Cards ─── */
 const features = [
@@ -339,48 +340,13 @@ export default function ExplorePage() {
                         Every programming language creates cognitive dissonance — you think in human language but write in machine language. Lume eliminates the distance between the two.
                     </p>
                 </div>
-                <div style={{ maxWidth: 760, margin: '40px auto 0' }}>
-                    <div className="bento-card" style={{ overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Era</th>
-                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Language</th>
-                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Distance</th>
-                                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, display: 'none' }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[
-                                    { era: '1950s', lang: 'Assembly', dist: 'Maximum', bar: 10, what: '"Add two numbers" → MOV AX, 5 / ADD AX, 3' },
-                                    { era: '1970s', lang: 'C', dist: 'High', bar: 7.5, what: '"Add two numbers" → int result = a + b;' },
-                                    { era: '1990s', lang: 'Python', dist: 'Medium', bar: 5, what: '"Add two numbers" → result = a + b' },
-                                    { era: '2020s', lang: 'AI Agents', dist: 'Medium-High', bar: 6.5, what: 'Ask AI → AI writes code → you review → you run' },
-                                    { era: '2026', lang: 'Lume', dist: 'Near-Zero', bar: 0.5, what: '"Add two numbers" → add two numbers', highlight: true },
-                                ].map((r, i) => (
-                                    <tr key={i} style={{ borderBottom: i < 4 ? '1px solid var(--border)' : 'none', background: r.highlight ? 'rgba(6,182,212,0.06)' : 'transparent' }}>
-                                        <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{r.era}</td>
-                                        <td style={{ padding: '14px 16px', color: r.highlight ? 'var(--accent-glow)' : 'var(--text-bright)', fontWeight: r.highlight ? 700 : 500 }}>{r.lang}</td>
-                                        <td style={{ padding: '14px 16px', minWidth: 200 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <div style={{ flex: 1, height: 6, borderRadius: 99, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
-                                                    <div style={{ width: `${r.bar * 10}%`, height: '100%', borderRadius: 99, background: r.highlight ? 'var(--accent-glow)' : 'var(--text-muted)', transition: 'width 1s ease' }} />
-                                                </div>
-                                                <span style={{ fontSize: 11, color: r.highlight ? 'var(--accent-glow)' : 'var(--text-muted)', fontWeight: 600, minWidth: 85, textAlign: 'right' }}>{r.dist}</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="bento-card" style={{ padding: '28px 24px', marginTop: 16, textAlign: 'center', background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(20,184,166,0.05) 100%)' }}>
-                        <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-bright)', lineHeight: 1.7, margin: 0 }}>
-                            "Other tools add an AI between you and your code.<br />
-                            <span className="gradient-wave-text">Lume removes the code between you and your machine.</span>"
+                <CognitiveDistanceChart />
+                <div className="bento-card" style={{ padding: '28px 24px', marginTop: 16, textAlign: 'center', maxWidth: 800, margin: '16px auto 0', background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(20,184,166,0.05) 100%)' }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-bright)', lineHeight: 1.7, margin: 0 }}>
+                        "Other tools add an AI between you and your code.<br />
+                        <span className="gradient-wave-text">Lume removes the code between you and your machine.</span>"
                         </p>
                     </div>
-                </div>
             </section>
 
             {/* ── Voice-to-Code ── */}
@@ -430,6 +396,12 @@ export default function ExplorePage() {
                             <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{f.desc}</div>
                         </div>
                     ))}
+                </div>
+                <div style={{ maxWidth: 900, margin: '24px auto 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginBottom: 8 }}>
+                        ◈ Try it yourself — speak code into the compiler
+                    </div>
+                    <VoiceDemo />
                 </div>
             </section>
 
@@ -548,6 +520,12 @@ await db.save("profile", result);`}</pre>
                         <span className="gradient-wave-text">Lume scans during compilation. It sees intent.</span>"
                     </p>
                 </div>
+                <div style={{ maxWidth: 900, margin: '24px auto 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginBottom: 8 }}>
+                        ◈ Try it — type a dangerous instruction and watch the Guardian Scanner block it
+                    </div>
+                    <SecurityDemo />
+                </div>
             </section>
 
             {/* ── Features — Full-width Carousel ── */}
@@ -611,13 +589,37 @@ await db.save("profile", result);`}</pre>
                 </div>
             </section>
 
-            {/* ── Interactive Playground ── */}
+            {/* ── Live Compilation Demo ── */}
+            <section id="live-compiler" className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Try It Live</span>
+                    <h2 className="section-title">Compile English to JavaScript — <span className="gradient-wave-text">Right Now</span></h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Type any English instruction below. The compiler runs client-side — 102 patterns, zero API calls, instant results.
+                    </p>
+                </div>
+                <LiveCompiler />
+            </section>
+
+            {/* ── Tolerance Chain Visualizer ── */}
+            <section id="tolerance-chain" className="section-full" data-reveal style={{ padding: '80px 24px' }}>
+                <div className="section-header">
+                    <span className="section-label">Under the Hood</span>
+                    <h2 className="section-title">The 7-Layer <span className="gradient-wave-text">Tolerance Chain</span></h2>
+                    <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
+                        Watch how misspelled, sloppy, or informal input flows through 7 progressive resolution layers until it compiles. No other compiler does this.
+                    </p>
+                </div>
+                <ToleranceChainViz />
+            </section>
+
+            {/* ── Interactive Playground (static examples) ── */}
             <section id="playground-demo" className="section-full section-dark" data-reveal style={{ padding: '80px 24px' }}>
                 <div className="section-header">
-                    <span className="section-label">Interactive Examples</span>
-                    <h2 className="section-title">See Lume in <span className="gradient-wave-text">Action</span></h2>
+                    <span className="section-label">Code Gallery</span>
+                    <h2 className="section-title">English Mode <span className="gradient-wave-text">Examples</span></h2>
                     <p className="section-subtitle" style={{ maxWidth: 650, margin: '12px auto 0' }}>
-                        Explore how Lume source code compiles to certified JavaScript. Each tab demonstrates a different capability.
+                        Real-world Lume source → compiled JavaScript side-by-side.
                     </p>
                 </div>
                 <PlaygroundDemo />
