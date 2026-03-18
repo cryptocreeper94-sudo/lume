@@ -5,13 +5,13 @@ import PresentationPage from './PresentationPage'
 
 /* ─── Feature Cards ─── */
 const features = [
-    { title: '🎤 Voice-to-Code', text: 'Speak your code. The compiler understands natural speech — filler words, stuttering, homophones — and compiles it. No typing required.', code: '"get the users name" → VariableAccess { target: "user_name" }' },
-    { title: '🔒 Certified at Birth', text: 'Every instruction is security-scanned at the AST level during compilation. Output includes a tamper-evident SHA-256 certificate.', code: 'LUME SECURITY CERTIFIED ✓\nHash: a3f8b2c1e9d4...' },
-    { title: '🧠 English Mode', text: '"Get the user\'s name from the database" compiles directly to JavaScript. Not a prompt. Not AI-generated. The compiler resolves intent.', code: 'mode: english\nget the users name from the database\nshow it on the screen' },
-    { title: '🔗 7-Layer Tolerance', text: 'Misspelled? Ambiguous? Informal? The compiler tries 7 resolution layers before giving up — exact match, fuzzy, auto-correct, context, temporal, i18n, AI.', code: '"git teh usrs naem" → auto-corrected → VariableAccess' },
-    { title: '⚡ AI as Syntax', text: 'ask, think, and generate are language primitives. Call any model with one keyword — no SDK, no boilerplate.', code: 'let summary = ask claude.sonnet "Summarize this"' },
-    { title: '🛡️ Self-Healing Functions', text: 'Automatic retry with exponential backoff, circuit breakers, and AI model fallback chains built-in.', code: '@healable\nto fetch_data(url: text):\n    return fetch url as json' },
-    { title: '📊 Self-Sustaining Runtime', text: 'Monitor, Heal, Optimize, Evolve — four layers that make your software alive and self-managing.', code: 'monitor:\n    dashboard: true\n    alert_on: error_rate > 0.05' },
+    { title: 'Voice-to-Code', text: 'Speak your code. The compiler understands natural speech — filler words, stuttering, homophones — and compiles it. No typing required.', code: '"get the users name" → VariableAccess { target: "user_name" }', img: '/features/voice-to-code.png' },
+    { title: 'Certified at Birth', text: 'Every instruction is security-scanned at the AST level during compilation. Output includes a tamper-evident SHA-256 certificate.', code: 'LUME SECURITY CERTIFIED ✓\nHash: a3f8b2c1e9d4...', img: '/features/certified-security.png' },
+    { title: 'English Mode', text: '"Get the user\'s name from the database" compiles directly to JavaScript. Not a prompt. Not AI-generated. The compiler resolves intent.', code: 'mode: english\nget the users name from the database\nshow it on the screen', img: '/features/english-mode.png' },
+    { title: '7-Layer Tolerance', text: 'Misspelled? Ambiguous? Informal? The compiler tries 7 resolution layers before giving up — exact match, fuzzy, auto-correct, context, temporal, i18n, AI.', code: '"git teh usrs naem" → auto-corrected → VariableAccess', img: '/features/tolerance-chain.png' },
+    { title: 'AI as Syntax', text: 'ask, think, and generate are language primitives. Call any model with one keyword — no SDK, no boilerplate.', code: 'let summary = ask claude.sonnet "Summarize this"', img: '/features/ai-as-syntax.png' },
+    { title: 'Self-Healing Functions', text: 'Automatic retry with exponential backoff, circuit breakers, and AI model fallback chains built-in.', code: '@healable\nto fetch_data(url: text):\n    return fetch url as json', img: '/features/self-healing-fn.png' },
+    { title: 'Self-Sustaining Runtime', text: 'Monitor, Heal, Optimize, Evolve — four layers that make your software alive and self-managing.', code: 'monitor:\n    dashboard: true\n    alert_on: error_rate > 0.05', img: '/features/self-sustaining.png' },
 ]
 
 /* ─── Code Comparison Slides ─── */
@@ -101,21 +101,23 @@ function FeatureCarousel() {
     const { idx, prev, next, setIdx } = useCarousel(features, 8000)
     const f = features[idx]
     return (
-        <div className="bento-card" style={{ maxWidth: 900, margin: '0 auto', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 24px 0' }}>
-                <div style={{ flex: 1 }}>
-                    <div className="fc-counter">{String(idx + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}</div>
-                    <h3 className="fc-title" style={{ fontSize: 22 }}>{f.title}</h3>
-                    <p className="fc-text">{f.text}</p>
-                </div>
+        <div className="full-carousel feature-carousel">
+            <div className="fc-image-side">
+                <img src={f.img} alt={f.title} key={idx} />
+                <div className="fc-overlay" />
             </div>
-            {f.code && <pre style={{ margin: '16px 24px 24px', padding: '16px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#00b894', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{f.code}</pre>}
-            <div className="fc-nav" style={{ padding: '0 24px 20px' }}>
-                <button className="carousel-btn" onClick={prev}>←</button>
-                <div className="carousel-dots">
-                    {features.map((_, i) => <button key={i} className={`carousel-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} />)}
+            <div className="fc-content-side">
+                <div className="fc-counter">{String(idx + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}</div>
+                <h3 className="fc-title">{f.title}</h3>
+                <p className="fc-text">{f.text}</p>
+                {f.code && <pre style={{ padding: 16, background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#00b894', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: '12px 0 0' }}>{f.code}</pre>}
+                <div className="fc-nav" style={{ marginTop: 20 }}>
+                    <button className="carousel-btn" onClick={prev}>←</button>
+                    <div className="carousel-dots">
+                        {features.map((_, i) => <button key={i} className={`carousel-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} />)}
+                    </div>
+                    <button className="carousel-btn" onClick={next}>→</button>
                 </div>
-                <button className="carousel-btn" onClick={next}>→</button>
             </div>
         </div>
     )
@@ -382,7 +384,7 @@ await db.save("profile", result);`}</pre>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16 }}>
                         <div className="bento-card" style={{ padding: '20px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>34+</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>114+</div>
                             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Pattern Library patterns</div>
                         </div>
                         <div className="bento-card" style={{ padding: '20px', textAlign: 'center' }}>
