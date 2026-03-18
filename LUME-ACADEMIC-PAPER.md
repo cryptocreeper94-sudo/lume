@@ -908,7 +908,7 @@ Standalone executables from natural language. `lume build app.lume --compile` pr
 | Metric | Value |
 |--------|-------|
 | Compiler milestones | 13 |
-| Test suite | 552 tests |
+| Test suite | 2,149 tests |
 | Acceptance criteria | 305 |
 | Pattern Library patterns | 102 |
 | Supported languages (M8) | 10 |
@@ -933,10 +933,10 @@ The compiler underwent a finalization phase (Phase 14B) that added three critica
 ### 10.3 Final Test Verification
 
 ```
-552 tests passing · 0 failures · duration: 8,788ms
+2,149 tests passing · 0 failures
 ```
 
-All 552 tests pass across the complete compiler surface: lexer, parser, transpiler, intent resolver, voice pipeline, security layers (including prompt injection and output sanitization), REPL, and merge driver.
+All 2,149 tests pass across the complete compiler surface: lexer, parser, transpiler, intent resolver, voice pipeline, security layers (including prompt injection and output sanitization), REPL, and merge driver.
 
 ### 10.4 Performance Targets
 
