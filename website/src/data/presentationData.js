@@ -387,7 +387,7 @@ export const presentationScenes = [
     duration: 9, icon: 'CheckCircle', visualType: 'stats',
     content: {
       stats: [
-        { value: '2093', label: 'Passing Tests', suffix: '' },
+        { value: '2149', label: 'Passing Tests', suffix: '' },
         { value: '505', label: 'Test Suites', suffix: '' },
         { value: '51', label: 'Test Files', suffix: '' },
         { value: '0', label: 'Failures', suffix: '' },
@@ -561,7 +561,7 @@ export const presentationScenes = [
     duration: 8, icon: 'Building', visualType: 'stats',
     content: {
       stats: [
-        { value: '2093', label: 'Tests Passing', suffix: '' },
+        { value: '2149', label: 'Tests Passing', suffix: '' },
         { value: '0', label: 'Test Failures', suffix: '' },
         { value: '11', label: 'Security Threat Categories', suffix: '' },
         { value: '102', label: 'English Mode Patterns', suffix: '+' },

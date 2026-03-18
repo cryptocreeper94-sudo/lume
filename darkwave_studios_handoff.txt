@@ -53,7 +53,7 @@ KEY DIFFERENTIATORS
 1. AI as syntax (ask/think/generate are keywords, not library calls)
 2. Self-sustaining runtime (4-layer autonomous system)
 3. Trust Layer ecosystem integration (SSO, hallmarks, Signal Chat)
-4. 2,093 passing tests across all milestones (0 failures)
+4. 2,149 passing tests across all milestones (0 failures)
 5. Full toolchain (formatter, linter, REPL, watcher, source maps, IDE)
 6. 90% less code than Python for equivalent AI operations
 
@@ -242,7 +242,7 @@ WEBHOOK/EVENT INTEGRATION (for darkwavestudios.io)
 Events Lume can emit to DarkWave Studios:
   - app.health.check      — Periodic health status
   - app.deploy.complete    — New version deployed
-  - app.test.results       — Test suite results (2,093 tests)
+  - app.test.results       — Test suite results (2,149 tests)
   - blog.post.published    — New blog post created
   - hallmark.created       — New hallmark minted
   - affiliate.conversion   — New referral conversion

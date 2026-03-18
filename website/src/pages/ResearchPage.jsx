@@ -144,7 +144,7 @@ export default function ResearchPage() {
                 {/* Stats bar */}
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: 48 }}>
                     <div className="hero-stats" style={{ flexWrap: 'wrap', gap: '16px 28px' }}>
-                        <div className="stat"><span className="stat-value"><AnimatedNumber target={2093} /></span><span className="stat-label">Tests Passing</span></div>
+                        <div className="stat"><span className="stat-value"><AnimatedNumber target={2149} /></span><span className="stat-label">Tests Passing</span></div>
                         <div className="stat-divider" style={{ display: 'none' }} /><div className="stat-divider" />
                         <div className="stat"><span className="stat-value"><AnimatedNumber target={12000} /></span><span className="stat-label">Lines of Compiler</span></div>
                         <div className="stat-divider" />
