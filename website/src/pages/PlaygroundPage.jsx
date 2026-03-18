@@ -133,6 +133,7 @@ export default function PlaygroundPage() {
     const [buildReview, setBuildReview] = useState(null)
     const [buildReviewApproved, setBuildReviewApproved] = useState(false)
     const [autoApprove, setAutoApprove] = useState(false)
+    const [auditoryMode, setAuditoryMode] = useState(false)
     // ── IDE State ──
     const [showTerminal, setShowTerminal] = useState(false)
     const [showFindReplace, setShowFindReplace] = useState(false)
@@ -146,6 +147,17 @@ export default function PlaygroundPage() {
     const textareaRef = useRef(null)
     const recognitionRef = useRef(null)
     const analyticsRef = useRef(new PlaygroundAnalytics())
+
+    // CHI §7.2: Browser TTS helper for Auditory Mode
+    const speak = useCallback((text) => {
+        if (!auditoryMode || typeof window === 'undefined' || !window.speechSynthesis) return
+        window.speechSynthesis.cancel()
+        const utt = new SpeechSynthesisUtterance(text)
+        utt.rate = 1.0
+        utt.pitch = 1.0
+        utt.lang = 'en-US'
+        window.speechSynthesis.speak(utt)
+    }, [auditoryMode])
 
     // Load saved programs
     useEffect(() => { setSavedPrograms(loadPrograms()) }, [])
@@ -353,6 +365,10 @@ export default function PlaygroundPage() {
             })
             if (result.errors.length > 0) {
                 setConsoleOutput(prev => [...prev, ...result.errors.map(e => ({ type: 'error', text: `Line ${e.line}: ${e.message}` }))])
+                speak(`Compilation complete with ${result.errors.length} error${result.errors.length > 1 ? 's' : ''}.`)
+            } else {
+                const matched = output.filter(r => r.type === 'match').length
+                speak(`Compilation complete. ${matched} lines resolved successfully in ${result.executionTime} milliseconds.`)
             }
         } else {
             // Live backend execution
@@ -364,6 +380,9 @@ export default function PlaygroundPage() {
                 setStatus(result.errors?.length > 0 ? 'error' : 'success')
                 if (result.errors?.length > 0) {
                     setConsoleOutput(prev => [...prev, ...result.errors.map(e => ({ type: 'error', text: e.message }))])
+                    speak(`Compilation complete with ${result.errors.length} error${result.errors.length > 1 ? 's' : ''}.`)
+                } else {
+                    speak(`Live compilation complete. ${result.executionTime} milliseconds.`)
                 }
             } catch (err) {
                 setConsoleOutput([{ type: 'error', text: err.message }])
@@ -677,6 +696,30 @@ export default function PlaygroundPage() {
                                 }}
                             >
                                 🎤 {isRecording ? 'Stop' : 'Voice'}
+                            </button>
+                        )}
+                        {/* CHI §7.2: Auditory Mode toggle */}
+                        {'speechSynthesis' in (typeof window !== 'undefined' ? window : {}) && (
+                            <button
+                                id="btn-auditory"
+                                onClick={() => {
+                                    setAuditoryMode(!auditoryMode)
+                                    if (!auditoryMode) {
+                                        const utt = new SpeechSynthesisUtterance('Auditory mode enabled.')
+                                        utt.rate = 1.0
+                                        window.speechSynthesis.speak(utt)
+                                    } else {
+                                        window.speechSynthesis.cancel()
+                                    }
+                                    setConsoleOutput(prev => [...prev, { type: 'info', text: !auditoryMode ? '🔊 Auditory Mode enabled — compiler will speak results' : '🔇 Auditory Mode disabled' }])
+                                }}
+                                title={auditoryMode ? 'Auditory Mode ON: Compiler speaks results' : 'Auditory Mode OFF'}
+                                style={{
+                                    ...btnStyle(auditoryMode ? '#6c5ce7' : '#636e72', auditoryMode),
+                                    animation: auditoryMode ? 'pulse 2s ease-in-out infinite' : 'none',
+                                }}
+                            >
+                                {auditoryMode ? '🔊' : '🔇'} Audio
                             </button>
                         )}
                         <div style={{ width: 1, height: 24, background: 'var(--glass-border)', margin: '0 4px' }} />
