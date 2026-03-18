@@ -1279,6 +1279,55 @@ function BuildReviewModal({ review, onApprove, onEdit, onExplain, onClose }) {
     const confColor = confidence >= 90 ? '#00b894' : confidence >= 70 ? '#fdcb6e' : '#d63031'
     const confLabel = confidence >= 90 ? 'High Confidence' : confidence >= 70 ? 'Medium Confidence' : 'Low Confidence — Review Carefully'
 
+    // CHI §8.3: Per-line risk assessment
+    const assessRisk = (nodeType) => {
+        const high = ['DeleteOperation', 'SendOperation']
+        const med = ['UpdateOperation', 'StoreOperation']
+        if (high.includes(nodeType)) return { level: 'HIGH', color: '#d63031', icon: '⛔' }
+        if (med.includes(nodeType)) return { level: 'MED', color: '#fdcb6e', icon: '⚠️' }
+        return { level: 'LOW', color: '#00b894', icon: '✓' }
+    }
+
+    // CHI §8.3: Plain-English intent description
+    const describeIntent = (nodeType, nodeStr) => {
+        const intents = {
+            'ShowStatement': 'Display output to the user',
+            'VariableDeclaration': 'Declare and set a variable',
+            'VariableAccess': 'Read a stored value',
+            'CreateOperation': 'Create a new entity',
+            'StoreOperation': 'Save data persistently',
+            'DeleteOperation': 'Permanently remove data',
+            'UpdateOperation': 'Modify existing data',
+            'SendOperation': 'Send data externally',
+            'ForEachLoop': 'Iterate over a collection',
+            'RepeatLoop': 'Repeat an action N times',
+            'WhileLoop': 'Loop while condition is true',
+            'IfStatement': 'Conditional branch',
+            'ReturnStatement': 'Return a value',
+            'SortOperation': 'Sort a collection',
+            'BinaryExpression': 'Arithmetic operation',
+            'IncrementOperation': 'Increase a value',
+            'DecrementOperation': 'Decrease a value',
+            'AskExpression': 'AI-powered query',
+            'NavigateOperation': 'Redirect the user',
+            'ToggleOperation': 'Toggle a boolean state',
+            'ResetOperation': 'Clear/reset state',
+            'ThrowStatement': 'Throw an error',
+            'TryBlock': 'Error-safe operation',
+            'MonitorBlock': 'Observe a value',
+            'DelayStatement': 'Pause execution',
+            'AlertStatement': 'Show an alert/notification',
+        }
+        return intents[nodeType] || `${nodeType} operation`
+    }
+
+    // Count risks for summary
+    const riskCounts = { HIGH: 0, MED: 0, LOW: 0 }
+    review.ast.filter(r => r.type === 'match').forEach(r => {
+        const risk = assessRisk(r.nodeType)
+        riskCounts[risk.level]++
+    })
+
     return (
         <div style={{
             position: 'fixed', inset: 0, zIndex: 9999,
@@ -1306,17 +1355,26 @@ function BuildReviewModal({ review, onApprove, onEdit, onExplain, onClose }) {
                         <span style={{ fontSize: 20 }}>🔍</span>
                         <div>
                             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>
-                                Build Review Gate
+                                Review Mode
                             </h3>
                             <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                                Review what Lume understood before executing
+                                CHI §8.3 — Verify compiler interpretation before execution
                             </span>
                         </div>
                     </div>
-                    {/* Confidence Badge */}
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                    }}>
+                    {/* Confidence + Risk Summary */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {/* Risk summary pills */}
+                        {riskCounts.HIGH > 0 && (
+                            <span style={{ padding: '3px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', background: 'rgba(214,48,49,0.15)', border: '1px solid #d6303140', color: '#d63031' }}>
+                                {riskCounts.HIGH} HIGH
+                            </span>
+                        )}
+                        {riskCounts.MED > 0 && (
+                            <span style={{ padding: '3px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', background: 'rgba(253,203,110,0.15)', border: '1px solid #fdcb6e40', color: '#fdcb6e' }}>
+                                {riskCounts.MED} MED
+                            </span>
+                        )}
                         <div style={{
                             padding: '6px 16px', borderRadius: 20,
                             background: `${confColor}15`,
@@ -1378,7 +1436,7 @@ function BuildReviewModal({ review, onApprove, onEdit, onExplain, onClose }) {
                         </div>
                     </div>
 
-                    {/* Center: AI Interpretation */}
+                    {/* Center: Review Mode — AI Interpretation with Risk + Intent */}
                     <div style={{
                         borderRight: '1px solid rgba(255,255,255,0.06)',
                         display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -1388,7 +1446,7 @@ function BuildReviewModal({ review, onApprove, onEdit, onExplain, onClose }) {
                             borderBottom: '1px solid rgba(255,255,255,0.06)',
                             fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5,
                             color: '#00b894',
-                        }}>✦ AI Interpretation</div>
+                        }}>✦ Review Mode — Compiler Interpretation</div>
                         <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
                             {review.ast.map((r, i) => {
                                 if (r.type === 'skip') {
@@ -1401,21 +1459,54 @@ function BuildReviewModal({ review, onApprove, onEdit, onExplain, onClose }) {
                                 }
                                 if (r.type === 'match') {
                                     const c = NODE_COLORS[r.nodeType] || '#00b894'
+                                    const risk = assessRisk(r.nodeType)
+                                    const intent = describeIntent(r.nodeType, r.node)
                                     return (
-                                        <div key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.7', marginBottom: 2 }}>
-                                            <span style={{ color: '#00b894' }}>✓ </span>
-                                            <span style={{ color: c, fontWeight: 700 }}>{r.nodeType}</span>
-                                            <div style={{ paddingLeft: 16, fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+                                        <div key={i} style={{
+                                            fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.5',
+                                            marginBottom: 6, padding: '6px 8px', borderRadius: 6,
+                                            background: risk.level === 'HIGH' ? 'rgba(214,48,49,0.06)'
+                                                : risk.level === 'MED' ? 'rgba(253,203,110,0.04)'
+                                                    : 'transparent',
+                                            borderLeft: `3px solid ${risk.color}`,
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <span style={{ fontSize: 10 }}>{risk.icon}</span>
+                                                <span style={{ color: c, fontWeight: 700 }}>{r.nodeType}</span>
+                                                <span style={{
+                                                    fontSize: 8, padding: '1px 5px', borderRadius: 4,
+                                                    background: `${risk.color}20`, color: risk.color,
+                                                    fontWeight: 800, letterSpacing: 0.5,
+                                                }}>{risk.level}</span>
+                                            </div>
+                                            <div style={{ paddingLeft: 20, fontSize: 10, color: '#74b9ff', marginTop: 2 }}>
+                                                {intent}
+                                            </div>
+                                            <div style={{ paddingLeft: 20, fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                                                 {r.node}
                                             </div>
                                         </div>
                                     )
                                 }
                                 return (
-                                    <div key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.7', marginBottom: 2 }}>
-                                        <span style={{ color: '#fdcb6e' }}>⚠ </span>
-                                        <span style={{ color: '#fdcb6e' }}>Unresolved</span>
-                                        <span style={{ color: 'var(--text-muted)' }}> — "{r.text}"</span>
+                                    <div key={i} style={{
+                                        fontSize: 11, fontFamily: 'var(--font-mono)', lineHeight: '1.5',
+                                        marginBottom: 6, padding: '6px 8px', borderRadius: 6,
+                                        borderLeft: '3px solid #fdcb6e',
+                                        background: 'rgba(253,203,110,0.04)',
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={{ color: '#fdcb6e' }}>⚠</span>
+                                            <span style={{ color: '#fdcb6e', fontWeight: 700 }}>Unresolved</span>
+                                            <span style={{
+                                                fontSize: 8, padding: '1px 5px', borderRadius: 4,
+                                                background: 'rgba(253,203,110,0.2)', color: '#fdcb6e',
+                                                fontWeight: 800,
+                                            }}>NEEDS AI</span>
+                                        </div>
+                                        <div style={{ paddingLeft: 20, fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                                            "{r.text}" — will route to Layer B (AI Resolver)
+                                        </div>
                                     </div>
                                 )
                             })}
