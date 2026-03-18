@@ -134,6 +134,7 @@ export default function PlaygroundPage() {
     const [buildReviewApproved, setBuildReviewApproved] = useState(false)
     const [autoApprove, setAutoApprove] = useState(false)
     const [auditoryMode, setAuditoryMode] = useState(false)
+    const [disambiguation, setDisambiguation] = useState(null)  // { line, pronoun, candidates[] }
     // ── IDE State ──
     const [showTerminal, setShowTerminal] = useState(false)
     const [showFindReplace, setShowFindReplace] = useState(false)
@@ -244,7 +245,42 @@ export default function PlaygroundPage() {
             return { ...result, lineNum: i + 1 }
         })
         setOutput(results)
-    }, [code])
+
+        // CHI §5.5: Detect potential disambiguation scenarios
+        // Track subjects for pronoun ambiguity detection
+        const subjects = []
+        for (const r of results) {
+            if (r.type === 'match' && r.node) {
+                const targetMatch = r.node.match(/target:\s*"([^"]+)"/)
+                const valueMatch = r.node.match(/value:\s*"([^"]+)"/)
+                if (targetMatch) subjects.push({ name: targetMatch[1], line: r.lineNum, type: r.nodeType })
+                if (valueMatch && !targetMatch) subjects.push({ name: valueMatch[1], line: r.lineNum, type: r.nodeType })
+            }
+        }
+        // Check for pronoun usage ("it", "them", "that") with multiple recent subjects
+        for (const r of results) {
+            if (r.type === 'match' && r.text && /\b(it|them|that|those|these|this)\b/i.test(r.text)) {
+                const recentSubjects = subjects.filter(s => s.line < r.lineNum).slice(-3)
+                if (recentSubjects.length >= 2) {
+                    // Trigger disambiguation
+                    const pronoun = r.text.match(/\b(it|them|that|those|these|this)\b/i)?.[0]
+                    setDisambiguation({
+                        line: r.lineNum,
+                        pronoun,
+                        text: r.text,
+                        candidates: recentSubjects.map((s, idx) => ({
+                            label: String.fromCharCode(65 + idx),
+                            subject: s.name,
+                            line: s.line,
+                            type: s.type,
+                        })),
+                    })
+                    speak(`Ambiguous reference on line ${r.lineNum}. "${pronoun}" could refer to ${recentSubjects.map(s => s.name).join(' or ')}. Which did you mean?`)
+                    break // Only show first disambiguation
+                }
+            }
+        }
+    }, [code, speak])
 
     useEffect(() => { compileLocal() }, [compileLocal])
 
@@ -1075,7 +1111,76 @@ export default function PlaygroundPage() {
                 </Modal>
             )}
 
-            {/* ── Build Review Gate ── */}
+            {/* ── CHI §5.5: Disambiguation Modal ── */}
+            {disambiguation && (
+                <Modal onClose={() => setDisambiguation(null)} title="🔀 Disambiguation Required">
+                    <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                        Ambiguous reference on <span style={{ color: '#6c5ce7', fontWeight: 700 }}>line {disambiguation.line}</span>:
+                    </div>
+                    <div style={{
+                        padding: '10px 14px', marginBottom: 16, borderRadius: 8,
+                        background: 'rgba(108,92,231,0.08)', border: '1px solid rgba(108,92,231,0.2)',
+                        fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-bright)',
+                    }}>
+                        "{disambiguation.text}"
+                        <div style={{ fontSize: 10, color: '#fdcb6e', marginTop: 4 }}>
+                            ⚠ "<strong>{disambiguation.pronoun}</strong>" could refer to multiple subjects
+                        </div>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                        Which did you mean?
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {disambiguation.candidates.map((c) => (
+                            <button
+                                key={c.label}
+                                onClick={() => {
+                                    const startTime = disambiguation._startTime || Date.now()
+                                    analyticsRef.current.logDisambiguation({
+                                        line: disambiguation.line,
+                                        pronoun: disambiguation.pronoun,
+                                        candidates: disambiguation.candidates,
+                                        selectedCandidate: c.label,
+                                        timeToDecideMs: Date.now() - startTime,
+                                    })
+                                    setConsoleOutput(prev => [...prev, {
+                                        type: 'info',
+                                        text: `🔀 Disambiguation resolved: "${disambiguation.pronoun}" → "${c.subject}" (line ${c.line})`
+                                    }])
+                                    speak(`Resolved. "${disambiguation.pronoun}" refers to ${c.subject}.`)
+                                    setDisambiguation(null)
+                                }}
+                                style={{
+                                    padding: '10px 14px', textAlign: 'left', cursor: 'pointer',
+                                    background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
+                                    borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12,
+                                    transition: 'all 0.15s ease',
+                                }}
+                                onMouseEnter={e => { e.target.style.background = 'rgba(0,184,148,0.08)'; e.target.style.borderColor = 'rgba(0,184,148,0.3)' }}
+                                onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.03)'; e.target.style.borderColor = 'var(--glass-border)' }}
+                            >
+                                <span style={{
+                                    width: 28, height: 28, borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(0,184,148,0.15)', border: '1px solid rgba(0,184,148,0.3)',
+                                    fontSize: 12, fontWeight: 900, color: '#00b894', fontFamily: 'var(--font-mono)',
+                                    flexShrink: 0,
+                                }}>
+                                    {c.label}
+                                </span>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-bright)' }}>
+                                        {c.subject}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                        from line {c.line} · {c.type}
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </Modal>
+            )}
             {showBuildReview && buildReview && (
                 <BuildReviewModal
                     review={buildReview}
