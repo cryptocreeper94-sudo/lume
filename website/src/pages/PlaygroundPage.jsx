@@ -617,7 +617,7 @@ export default function PlaygroundPage() {
             case 'help.shortcuts': setHelpInitialTab(1); setShowHelp(true); break
             case 'help.examples': break // example pills are visible
             case 'help.gettingStarted': setHelpInitialTab(2); setShowHelp(true); break
-            case 'help.about': setConsoleOutput(prev => [...prev, { type: 'info', text: 'Lume v0.8.0 — The AI-Native Programming Language' }, { type: 'info', text: '© 2024 Trust Layer Ecosystem · DarkWave Studios' }]); break
+            case 'help.about': setConsoleOutput(prev => [...prev, { type: 'info', text: 'Lume v0.9.0 — The AI-Native Programming Language' }, { type: 'info', text: '© 2024 Trust Layer Ecosystem · DarkWave Studios' }]); break
             case 'help.github': window.open('https://github.com/cryptocreeper94-sudo/lume', '_blank'); break
             case 'help.reportIssue': window.open('https://github.com/cryptocreeper94-sudo/lume/issues', '_blank'); break
             default: break

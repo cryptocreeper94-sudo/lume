@@ -60,7 +60,7 @@ export default function StatusBar({ code, cursorPos, mode, sandboxMode, isRecord
                     }} />
                     {sandboxMode ? 'Sandbox' : 'Live'}
                 </span>
-                <span style={{ color: 'var(--text-muted)', opacity: 0.5 }}>Lume v0.8.0</span>
+                <span style={{ color: 'var(--text-muted)', opacity: 0.5 }}>Lume v0.9.0</span>
             </div>
         </div>
     )

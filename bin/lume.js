@@ -43,7 +43,7 @@ import { diffVersions, analyzeUpgradeImpact, formatUpgradeReport, getAvailableVe
 import { generateDocs } from '../src/intent-resolver/comments.js'
 import { estimateCost } from '../src/estimator.js'
 
-const VERSION = '0.8.0'
+const VERSION = '0.9.0'
 
 const COLORS = {
     reset: '\x1b[0m',

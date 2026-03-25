@@ -390,7 +390,7 @@ export function formatFindings(findings, format = 'text') {
             $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
             version: '2.1.0',
             runs: [{
-                tool: { driver: { name: 'lume-lint', version: '0.8.0' } },
+                tool: { driver: { name: 'lume-lint', version: '0.9.0' } },
                 results: findings.map(f => ({
                     ruleId: f.code,
                     level: f.severity === 'error' ? 'error' : f.severity === 'warning' ? 'warning' : 'note',

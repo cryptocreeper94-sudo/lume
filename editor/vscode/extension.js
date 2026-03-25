@@ -8,7 +8,7 @@ function activate(context) {
 
     // Register a simple command to show Lume version
     const disposable = vscode.commands.registerCommand('lume.showVersion', () => {
-        vscode.window.showInformationMessage('Lume v0.8.0 — The AI-Native Programming Language')
+        vscode.window.showInformationMessage('Lume v0.9.0 — The AI-Native Programming Language')
     })
 
     context.subscriptions.push(disposable)

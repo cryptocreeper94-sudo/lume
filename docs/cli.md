@@ -1,6 +1,6 @@
 # CLI Reference
 
-Lume v0.8.0 — Complete command-line reference.
+Lume v0.9.0 — Complete command-line reference.
 
 ## Core Commands
 

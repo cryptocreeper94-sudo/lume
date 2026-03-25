@@ -224,7 +224,7 @@ const processDomain = {
                         `  ${c('cyan', 'Memory:')}    ${formatBytes(totalmem())} total, ${formatBytes(freemem())} free`,
                         `  ${c('cyan', 'Uptime:')}    ${formatUptime(uptime())}`,
                         `  ${c('cyan', 'Node:')}      ${process.version}`,
-                        `  ${c('cyan', 'Lume:')}      v0.8.0`,
+                        `  ${c('cyan', 'Lume:')}      v0.9.0`,
                     ]
                     return { ok: true, msg: info.join('\n') }
                 }

@@ -913,7 +913,7 @@ Standalone executables from natural language. `lume build app.lume --compile` pr
 | Metric | Value |
 |--------|-------|
 | Compiler milestones | 13 |
-| Test suite | 2,149 tests |
+| Test suite | CI-verified (Node 18/20/22) |
 | Acceptance criteria | 305 |
 | Pattern Library patterns | 102 |
 | Supported languages (M8) | 10 |
@@ -938,10 +938,10 @@ The compiler underwent a finalization phase (Phase 14B) that added three critica
 ### 10.3 Final Test Verification
 
 ```
-2,149 tests passing · 0 failures
+CI-verified test suite passing · 0 failures
 ```
 
-All 2,149 tests pass across the complete compiler surface: lexer, parser, transpiler, intent resolver, voice pipeline, security layers (including prompt injection and output sanitization), REPL, and merge driver.
+All tests pass across the complete compiler surface: lexer, parser, transpiler, intent resolver, voice pipeline, security layers (including prompt injection and output sanitization), REPL, and merge driver.
 
 ### 10.4 Performance Targets
 
@@ -1437,7 +1437,7 @@ Ko, A. J., Abraham, R., Beckwith, L., et al. (2011). The state of the art in end
 | Secondary domain | lume-lang.org |
 | Backend | Express.js + PostgreSQL |
 | Frontend | React (Vite) |
-| Version | 0.8.0 |
+| Version | 0.9.0 |
 | License | Open source |
 | Support | team@dwsc.io |
 | Launch | August 23, 2026 CST |

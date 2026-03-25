@@ -42,7 +42,7 @@
 ```bash
 cd editor/vscode
 npx -y @vscode/vsce package
-code --install-extension lume-language-0.8.0.vsix
+code --install-extension lume-language-0.9.0.vsix
 ```
 
 ### Manual

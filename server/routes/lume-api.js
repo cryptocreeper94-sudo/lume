@@ -25,7 +25,7 @@ import { detectMode, resolveEnglishFile, matchPattern } from '../../src/intent-r
 
 const router = Router()
 
-const LUME_VERSION = '0.8.0'
+const LUME_VERSION = '0.9.0'
 const PATTERN_COUNT = 87
 
 // ── Allowed CORS origins ──

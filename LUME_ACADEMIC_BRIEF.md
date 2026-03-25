@@ -1218,7 +1218,7 @@ The 5 vertical applications demonstrate that Lume's cognitive distance minimizat
 | Metric | Value |
 |--------|-------|
 | Compiler milestones | 15 |
-| Test suite | 2,149 tests (0 failures) |
+| Test suite | CI-verified test suite (Node 18/20/22) |
 | Pattern Library patterns | 114+ |
 | Synonym rings | 30+ |
 | Homophone pairs | 10 |
@@ -1290,7 +1290,7 @@ Lume's differentiation: Voice-to-code is a compiler feature, not an IDE plugin. 
 - **Backend:** Express.js + PostgreSQL on Render
 - **Frontend:** React (Vite) on Vercel
 - **Live API:** `https://lume-api-m8o0.onrender.com`
-- **Version:** 0.8.0
+- **Version:** 0.9.0
 - **License:** Open source
 
 ---

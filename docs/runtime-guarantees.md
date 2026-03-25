@@ -1,5 +1,5 @@
 # Lume Runtime Guarantee Specification
-## v0.8.0
+## v0.9.0
 
 Lume introduces abstract runtime directives (`monitor`, `heal`, `optimize`, `evolve`). Unlike standard English Mode compilation—which strictly emits structural AST geometry—these root-level architectural bounds encapsulate internal logic blocks with specialized event hooks.
 

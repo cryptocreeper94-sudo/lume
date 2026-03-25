@@ -2,7 +2,7 @@
     "name": "lume-language",
     "displayName": "Lume — AI-Native Programming Language",
     "description": "Syntax highlighting, snippets, and language support for the Lume programming language.",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "publisher": "darkwave-studios",
     "author": "DarkWave Studios",
     "license": "MIT",

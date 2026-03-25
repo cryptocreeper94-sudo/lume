@@ -250,7 +250,7 @@ function TestDashboard() {
     return (
         <div ref={ref} style={{ maxWidth: 900, margin: '40px auto 0' }}>
             <div className="bento-card" style={{ textAlign: 'center', padding: '40px 24px', marginBottom: 20, background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(168,85,247,0.04) 100%)' }}>
-                <div className="gradient-wave-text" style={{ fontSize: 'clamp(3rem, 7vw, 5rem)', fontWeight: 900, lineHeight: 1 }}>2,149</div>
+                <div className="gradient-wave-text" style={{ fontSize: 'clamp(3rem, 7vw, 5rem)', fontWeight: 900, lineHeight: 1 }}>CI ✓</div>
                 <div style={{ fontSize: 16, color: 'var(--text-muted)', marginTop: 8, marginBottom: 20 }}>Tests Passing · Zero Failures</div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, background: 'rgba(34,197,94,0.08)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>✓ 100% Pass Rate</span>
@@ -673,7 +673,7 @@ await db.save("profile", result);`}</pre>
             <section id="milestones" className="section-full section-dark" data-reveal>
                 <div className="section-header">
                     <span className="section-label">Journey</span>
-                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · 2,149 Tests</h2>
+                    <h2 className="section-title">15 <span className="gradient-wave-text">Milestones</span> · CI ✓ Tests</h2>
                 </div>
                 <MilestoneCarousel />
             </section>

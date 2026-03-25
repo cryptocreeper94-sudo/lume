@@ -5,7 +5,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
 const PROMPT = 'lume@playground'
-const LUME_VERSION = '0.8.0'
+const LUME_VERSION = '0.9.0'
 
 const HELP_TEXT = [
     { type: 'info', text: '  Lume CLI v' + LUME_VERSION + ' — Interactive Playground Terminal' },

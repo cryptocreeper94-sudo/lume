@@ -44,7 +44,7 @@ const KEY_CLAIMS = [
     'Certified-at-birth compiled output with tamper-evident certificates',
     'Cognitive distance as an explicit, measurable design objective',
     'AI agents increase translation chain length — Lume eliminates the middleman',
-    '2,149 tests, 0 failures, 12,000+ lines of compiler code',
+    'CI-verified test suite (Node 18/20/22), 15,000+ lines of compiler code',
 ]
 
 const VENUES = [

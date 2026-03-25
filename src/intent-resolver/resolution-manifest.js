@@ -42,7 +42,7 @@ export class ResolutionManifest {
             version: MANIFEST_VERSION,
             created: new Date().toISOString(),
             lastCompiled: null,
-            compilerVersion: '0.8.0',
+            compilerVersion: '0.9.0',
             totalResolutions: 0,
             layerDistribution: {},
         }
