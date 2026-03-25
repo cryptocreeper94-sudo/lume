@@ -67,7 +67,7 @@ const codebase = [
     { module: 'Linter', file: 'src/linter.js', loc: 260, desc: '15 lint rules across error, warning, style, and perf categories. Suggested auto-fixes. Checks naming conventions, AI prompt quality, line length, etc.' },
     { module: 'REPL', file: 'src/repl.js', loc: 235, desc: 'Interactive Read-Eval-Print-Loop v0.3.0 with multi-line block support, persistent scope, English Mode toggle (.mode), colored output, history, and special commands.' },
     { module: 'Stdlib', file: 'src/stdlib.js', loc: 240, desc: '5 modules (text, math, list, time, convert) with 67 utility functions. Exposed via use text, use math, etc.' },
-    { module: 'CLI', file: 'bin/lume.js', loc: 770, desc: 'Command-line interface: run, build, explain, listen, create, bundle, compile, diff, verify, fmt, lint, repl, watch, test, ast, tokens. Version 0.8.0.' },
+    { module: 'CLI', file: 'bin/lume.js', loc: 850, desc: 'Command-line interface: run, build, explain, listen, create, bundle, compile, diff, verify, fmt, lint, repl, watch, test, ast, tokens, estimate. Projects financial token bounds natively. Version 0.9.0.' },
     { module: 'Error Formatter', file: 'src/error-formatter.js', loc: 170, desc: 'Human-readable error messages with source context, color output, "did you mean?" suggestions, and Levenshtein distance typo correction for 30+ common misspellings.' },
     { module: 'Barrel (index)', file: 'src/index.js', loc: 68, desc: 'Main entry point for @lume/compiler npm package. Re-exports 19 named exports across core pipeline, intent resolver, formatting, and convenience compile() function.' },
 ]

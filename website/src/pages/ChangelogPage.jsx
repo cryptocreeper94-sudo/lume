@@ -3,10 +3,10 @@ import '../styles/responsive-pages.css'
 const releases = [
     {
         version: '0.9.0', date: '2026-03-25', tag: 'latest',
-        highlights: ['Strict Deterministic Fallback', 'Zod Runtime Validation', 'AST Cost Estimators', 'Healer AST Auto-Rewrite'],
+        highlights: ['Strict Deterministic Fallback', 'Zod Runtime Validation', 'Fiscal CLI Estimations', 'Healer AST Auto-Rewrite'],
         changes: [
-            { type: 'added', items: ['Resolution Manifest (lume.lock) for deterministic offline builds', 'Zod schema injection for all generate/ask type constraints', 'Static compile-time token budget analysis via --budget CLI', 'True @auto-rewrite AST mutation for heal blocks via child process'] },
-            { type: 'improved', items: ['Tolerance Chain strictly locks all high-confidence resolutions', 'DWSC ecosystem integration complete'] },
+            { type: 'added', items: ['Resolution Manifest (lume.lock) for deterministic offline builds', 'Zod schema injection for all generate/ask type constraints', 'Static compile-time token budget analysis via --budget CLI and lume estimate <file> execution matrices', 'True @auto-rewrite AST mutation for heal blocks via child process', 'The LLM layer can be violently decoupled via --strict-english compiler arguments, forcing total deterministic geometry without silent mutations.'] },
+            { type: 'improved', items: ['Purged vanity/marketing test count synchronizations in favor of absolute semantic AST branch verifications', 'Tolerance Chain strictly locks all high-confidence resolutions', 'DWSC ecosystem integration complete'] },
         ]
     },
     {

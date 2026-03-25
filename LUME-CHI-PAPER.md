@@ -175,7 +175,7 @@ When input does not directly match a pattern, it cascades through seven resoluti
 
 **Layer 6 — i18n Pattern Library.** Multilingual pattern matching for non-English speakers. Supports 10 languages.
 
-**Layer 7 — Zod-Validated AI Resolver.** Falls back to an LLM for intent classification when all deterministic layers fail. Execution is strictly bound by Zod schema invariants. This is the *only* initially non-deterministic layer, and its successfully validated results are rigidly locked into the `lume.lock` Resolution Manifest (§8.2) to guarantee downstream determinism.
+**Layer 7 — Zod-Validated AI Resolver.** Falls back to an LLM for intent classification when all deterministic layers fail. Execution is strictly bound by Zod schema invariants. This is the *only* initially non-deterministic layer, and its successfully validated results are rigidly locked into the `lume.lock` Resolution Manifest (§8.2) to guarantee downstream determinism. When enterprise compliance is required, Layer 7 can be surgically disabled via the `--strict-english` compiler flag, instructing the compiler to violently reject non-deterministic AST branches entirely.
 
 Each layer reports a confidence score (0.0–1.0). The first layer to exceed the threshold (default: 0.85) produces the AST node, enforcing a strict **Never Silently Guess** policy for AI resolution.
 
@@ -487,7 +487,7 @@ Current accessibility approaches add assistive technology *on top of* inaccessib
 
 3. **Ambiguity ceiling.** Some natural language instructions are genuinely ambiguous even to humans. The DisambiguationRequired mechanism surfaces these cases, but it adds interaction steps that may feel onerous for expert users.
 
-4. **AI resolver cost.** Layer 7 requires LLM API calls, introducing latency and monetary cost. Compile-lock caching mitigates repeated costs, but first-compilation cold starts remain expensive.
+4. **AI resolver cost.** Layer 7 requires LLM API calls, introducing latency and monetary cost. Compile-lock caching mitigates repeated costs, but first-compilation cold starts remain expensive. To proactively manage these bounds, the `lume estimate <file>` CLI utility natively traverses AST pipelines pre-compilation to map token densities and project absolute USD execution limits based on current OpenAI scaling rates.
 
 5. **Evaluation scope.** `[POST-LAUNCH]` The proposed evaluation plan requires real participants across diverse populations. Results will be included after the August 23, 2026 launch.
 
