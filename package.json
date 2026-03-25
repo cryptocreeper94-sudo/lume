@@ -1,6 +1,6 @@
 {
     "name": "@lume/compiler",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "Lume — The AI-Native Programming Language. Write English, ship JavaScript.",
     "type": "module",
     "main": "src/index.js",
@@ -54,7 +54,7 @@
     },
     "homepage": "https://lume-lang.org",
     "bugs": {
-        "url": "https://github.com/lume-lang/lume/issues"
+        "url": "https://github.com/Cryptocreeper94-sudo/lume/issues"
     },
     "author": "Lume Contributors",
     "license": "MIT"

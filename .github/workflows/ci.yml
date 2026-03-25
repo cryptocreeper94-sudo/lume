@@ -31,7 +31,7 @@ jobs:
           node bin/lume.js version
 
   lint:
-    name: Lint & Format
+    name: Lint & Compile Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,9 +39,12 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Check examples compile
         run: |
           for f in examples/*.lume; do
             echo "Compiling $f..."
-            node bin/lume.js build "$f" || true
+            node bin/lume.js build "$f"
           done

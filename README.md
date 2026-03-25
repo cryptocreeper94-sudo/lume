@@ -7,7 +7,7 @@ let answer = ask gpt4 "Summarize this article"
 show answer
 ```
 
-[![Tests](https://img.shields.io/badge/tests-2%2C149%20passing-brightgreen)]() [![Version](https://img.shields.io/badge/version-0.8.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![CI](https://github.com/cryptocreeper94-sudo/lume/actions/workflows/ci.yml/badge.svg)](https://github.com/cryptocreeper94-sudo/lume/actions/workflows/ci.yml) [![Version](https://img.shields.io/badge/version-0.9.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
@@ -129,11 +129,11 @@ lume run examples/discount.lume     # Pattern matching
 
 ## Project Stats
 
-- **2,149 tests** — 0 failures across 505 suites
+- **CI tested** on Node 18, 20, and 22 on every push
 - **114+ patterns** in the English Mode resolver
 - **15K+ lines** of source code
 - **38 example programs**
-- **20+ CLI commands**
+- **20+ CLI commands** including `estimate` (cost analysis) and `--strict-english` (deterministic mode)
 - **13 milestones** complete
 - **5 vertical applications** — DevOps, Testing, Config, Education, Accessibility
 - **MIT licensed**
