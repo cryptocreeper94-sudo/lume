@@ -66,6 +66,17 @@ export async function aiResolve(input, options = {}) {
             if (cached) return { resolved: true, ast: cached.ast, confidence: cached.confidence, cached: true }
         }
 
+        // Apply strict mode guard
+        if (options.strict) {
+            console.error(`\x1b[31m  ✖ Strict Mode Error: Unrecognized syntax pattern\x1b[0m\n    Line: "${input}"\n    (Layer B AI resolution is disabled by --strict-english)`)
+            return { resolved: false, error: 'Strict mode: Layer A pattern match failed.', confidence: 0 }
+        }
+
+        // Add explicit console warning to standard mode
+        if (!options.quiet) {
+            console.warn(`\x1b[33m  ⚠ Warning: Line dropped to Layer B (AI) — execution may be non-deterministic:\x1b[0m\n    "${input}"`)
+        }
+
         // Call the AI model
         const response = await callAI(prompt, options.model || 'gpt-4o-mini')
 
@@ -110,6 +121,17 @@ ${JSON.stringify(context, null, 2)}`,
     }
 
     try {
+        // Apply strict mode guard
+        if (options.strict) {
+            console.error(`\x1b[31m  ✖ Strict Mode Error: Batch contains unrecognized syntax patterns\x1b[0m\n    (Layer B AI resolution is disabled by --strict-english)`)
+            throw new Error('Strict mode: Layer A pattern match failed for batch intent.')
+        }
+
+        // Add explicit console warning to standard mode
+        if (!options.quiet) {
+            console.warn(`\x1b[33m  ⚠ Warning: Batch dropped to Layer B (AI) — execution may be non-deterministic:\x1b[0m\n    Lines: ${lines.length}`)
+        }
+
         const response = await callAI(prompt, options.model || 'gpt-4o-mini')
         const results = JSON.parse(response)
 

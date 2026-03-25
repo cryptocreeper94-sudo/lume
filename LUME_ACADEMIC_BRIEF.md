@@ -783,7 +783,7 @@ This ensures that the build is **reproducible 10 years from now** — even if th
 
 **Headless Build Policy:**
 
-In CI/CD environments where no human is available to disambiguate, Lume enforces a **strict resolution policy**: any instruction with confidence C < 0.85 triggers a hard `RESOLUTION_ERROR` rather than a best-guess resolution. This prevents silent semantic errors from reaching production. The CI pipeline can be configured via `lume build --headless --min-confidence=0.85`.
+In CI/CD environments where no human is available to disambiguate, Lume v0.9 enforces a **strict resolution policy**: any instruction that cannot be cleanly resolved via patterns or an existing `lume.lock` manifest cache triggers a hard AST error rather than a best-guess resolution. This prevents silent semantic errors from reaching production and perfectly isolates runtime environments from external API latency. The CI pipeline can be configured via `lume build --strict`.
 | Compiler version changes | Manifest records compiler version; warnings on version mismatch |
 | Drift detection | `lume verify` compares current resolution against manifest; reports any divergence |
 

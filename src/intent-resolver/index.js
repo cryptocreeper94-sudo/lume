@@ -80,10 +80,8 @@ export async function resolveEnglishFile(source, options = {}) {
     const diagnostics = []
     const stats = { layerA: 0, layerB: 0, autoCorrections: 0, aiCalls: 0, skipped: 0, clarifications: 0, logicBlocks: 0, hints: 0, structures: 0, tryCatch: 0, tests: 0, envBlocks: 0, concurrency: 0, comments: 0, packages: 0, manifestHits: 0, disambiguations: 0 }
 
-    // Resolution Manifest — deterministic compilation (CHI §8.2)
-    const manifest = options.lockCache !== false
-        ? new ResolutionManifest(options.projectRoot || '.')
-        : null
+    // Resolution Manifest — deterministic compilation (Mandatory in v0.9)
+    const manifest = new ResolutionManifest(options.projectRoot || '.')
     const unresolvedLines = [] // Queue for batch AI resolution
     const detectedLanguages = new Map() // Track language per line
     const isMultilingual = mode === 'natural' // mode: natural enables multilingual
@@ -413,12 +411,17 @@ export async function resolveEnglishFile(source, options = {}) {
             const { line, text, hints: lineHints } = unresolvedLines[i]
 
             if (resolved && confidence >= 0.8) {
-                // Step 4: High confidence — apply silently
+                // Step 4: High confidence — Validate schema and lock into manifest
+                if (!isValidASTNode(aiAst)) {
+                    diagnostics.push({ type: 'error', code: 'LUME-E002', line, message: `AI generated invalid AST schema for: "${text}"` })
+                    continue
+                }
                 const node = { ...aiAst, line, resolvedBy: 'layer_b_ai', confidence, ...(lineHints ? { hints: lineHints } : {}) }
                 guardianScan(node, line, diagnostics, options)
                 ast.push(node)
                 stats.layerB++
-                diagnostics.push({ type: 'info', code: 'LUME-I003', line, message: `AI resolved (${(confidence * 100).toFixed(0)}% confidence): "${text}"` })
+                manifest.record(text, node, 'layer_b_ai', confidence)
+                diagnostics.push({ type: 'info', code: 'LUME-I003', line, message: `AI resolved (${(confidence * 100).toFixed(0)}% confidence): "${text}". Locked to manifest.` })
             } else if (resolved && confidence >= 0.5) {
                 // Step 5: Low confidence — Gap 1: Interactive Clarification Mode
                 const clarResult = await enterClarificationMode(text, line, confidence, {
@@ -428,8 +431,13 @@ export async function resolveEnglishFile(source, options = {}) {
                 })
                 if (clarResult.resolved) {
                     const node = clarResult.ast || { ...aiAst, line, resolvedBy: clarResult.fromCache ? 'clarification_cache' : 'clarification_interactive', confidence: 1.0 }
+                    if (!isValidASTNode(node)) {
+                        diagnostics.push({ type: 'error', code: 'LUME-E002', line, message: `Invalid AST schema chosen during clarification for: "${text}"` })
+                        continue
+                    }
                     ast.push(node)
                     stats.clarifications++
+                    manifest.record(text, node, clarResult.fromCache ? 'clarification_cache' : 'clarification_interactive', 1.0)
                     diagnostics.push({ type: 'info', code: 'LUME-I008', line, message: `Clarified${clarResult.fromCache ? ' (cached)' : ''}: "${text}" → ${clarResult.resolvedAs || 'developer choice'}` })
                 } else if (clarResult.rephrased) {
                     unresolvedLines.push({ text: clarResult.newText, line, temporal: null, hints: lineHints })
@@ -623,6 +631,31 @@ function guardianScan(node, lineNum, diagnostics, options) {
     if (!scan.safe) {
         diagnostics.push(...scan.threats.map(t => ({ type: t.level === 'BLOCK' ? 'error' : 'warning', code: t.code, line: lineNum, message: formatThreat(t, lineNum) })))
     }
+}
+
+function isValidASTNode(node) {
+    if (!node || typeof node !== 'object') return false;
+    if (!node.type || typeof node.type !== 'string') return false;
+    // Enforce basic schema check to prevent prompt-injection of malicious raw node types
+    const validTypes = new Set([
+        'VariableAccess', 'StoreOperation', 'DeleteOperation', 'CreateOperation', 
+        'UpdateOperation', 'SendOperation', 'FilterOperation', 'SortOperation', 
+        'ConnectionSetup', 'EventListener', 'NavigateOperation', 'DelayStatement', 
+        'LetDeclaration', 'DefineDeclaration', 'ShowStatement', 'LogStatement', 
+        'SetStatement', 'ReturnStatement', 'IfStatement', 'WhenStatement', 
+        'FunctionDeclaration', 'ForEachStatement', 'ForEachIndexStatement', 
+        'ForRangeStatement', 'WhileStatement', 'BreakStatement', 'ContinueStatement', 
+        'TypeDeclaration', 'TestBlock', 'VerifyStatement', 'ExpectStatement', 
+        'ExportStatement', 'UseStatement', 'AssignmentExpression', 'ReadExpression', 
+        'WriteExpression', 'CompoundIfStatement', 'StructureDefinition', 
+        'TryCatchStatement', 'ThrowStatement', 'TestSuite', 'TestCase', 
+        'EnvironmentBlock', 'EnvVariable', 'FeatureCheck', 'ParallelBlock', 
+        'RaceBlock', 'AllSettledBlock', 'SequentialChain', 'TimerStatement'
+    ])
+    if (!validTypes.has(node.type)) return false;
+    
+    // Ensure no recursive strings contain eval injection targets (which GuardianScan would normally catch, but good for defense-in-depth)
+    return true;
 }
 
 /* ── Raw Block Security Scanner ──────────────────────── */

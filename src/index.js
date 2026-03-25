@@ -54,15 +54,15 @@ import { resolveIntent as _resolveIntent } from './intent-resolver/index.js'
  * @param {string} [filename='<input>'] - Filename for error messages
  * @returns {string} JavaScript output
  */
-export function compile(source, filename = '<input>') {
+export function compile(source, filename = '<input>', options = {}) {
     // Check for English Mode
     const firstLine = source.split('\n')[0].trim().toLowerCase()
     if (firstLine === 'mode: english' || firstLine === 'mode: natural') {
         const result = _resolveIntent(source, filename)
-        return _transpile(result.ast, filename)
+        return _transpile(result.ast, filename, options)
     }
 
     const tokens = _tokenize(source, filename)
     const ast = _parse(tokens, filename)
-    return _transpile(ast, filename)
+    return _transpile(ast, filename, options)
 }

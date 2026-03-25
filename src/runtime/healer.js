@@ -9,8 +9,8 @@
  *   - Cached/default value fallback
  *   - Dependency timeout handling
  */
-
 import monitor from './monitor.js'
+import { execSync } from 'node:child_process'
 
 export class CircuitBreaker {
     constructor(name, config = {}) {
@@ -200,6 +200,15 @@ export class Healer {
                 }
                 return await healer.retry(execute, { label, retries: options.retries })
             } catch (err) {
+                if (options.autoRewrite) {
+                    healer._logHeal({ type: 'auto_rewrite_start', function: label, error: err.message })
+                    try {
+                        healer._attemptAutoRewrite(err)
+                        healer._logHeal({ type: 'auto_rewrite_success', function: label })
+                    } catch (rewriteErr) {
+                        healer._logHeal({ type: 'auto_rewrite_failed', function: label, error: rewriteErr.message })
+                    }
+                }
                 if (fallback) {
                     healer._logHeal({
                         type: 'fallback_final',
@@ -262,6 +271,31 @@ export class Healer {
 
     _sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+    _attemptAutoRewrite(err) {
+        if (!err.stack) throw new Error('No stack trace available for auto-rewrite')
+        const stack = err.stack.split('\n')
+        let callerFile = null
+        for (const line of stack) {
+            if (line.includes('.lume') || (line.includes('.js') && !line.includes('healer.js'))) {
+                const match = line.match(/\((.*?):(\d+):(\d+)\)/) || line.match(/at\s+(.*?):(\d+):(\d+)/)
+                if (match && match[1] && !match[1].startsWith('node:')) {
+                    callerFile = match[1]
+                    break
+                }
+            }
+        }
+        if (!callerFile) throw new Error('Could not isolate failing file geometry for AST auto-rewrite')
+
+        // Invoke the lume compiler in self-healing mode to dynamically mutate the AST and hot-swap
+        try {
+            const lumeBin = process.platform === 'win32' ? 'node .\\bin\\lume.js' : 'node ./bin/lume.js'
+            const sanitizedError = err.message.replace(/"/g, "'").replace(/\n/g, ' ')
+            execSync(`${lumeBin} build "${callerFile}" --heal="${sanitizedError}"`, { stdio: 'ignore' })
+        } catch (e) {
+            throw new Error(`Auto-rewrite AST compilation failed: ${e.message}`)
+        }
     }
 }
 

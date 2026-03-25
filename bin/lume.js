@@ -41,6 +41,7 @@ import { loadVoiceConfig, matchesVoiceCommand } from '../src/intent-resolver/voi
 import { processTranscription, processCorrection, splitRunOnSentences } from '../src/intent-resolver/voice-input.js'
 import { diffVersions, analyzeUpgradeImpact, formatUpgradeReport, getAvailableVersions, PATTERN_LIBRARY_VERSION } from '../src/intent-resolver/pattern-versioning.js'
 import { generateDocs } from '../src/intent-resolver/comments.js'
+import { estimateCost } from '../src/estimator.js'
 
 const VERSION = '0.8.0'
 
@@ -106,6 +107,8 @@ function main() {
             return bundleCmd(args[1], flags)
         case 'compile':
             return compileCmd(args[1], flags)
+        case 'estimate':
+            return estimateCmd(args[1], flags)
         case 'diff':
             return diffCmd(args[1], args[2])
         case 'voice':
@@ -254,9 +257,11 @@ function loadSecurityConfig() {
 
 function runFile(filepath, flags = []) {
     const { source, filename } = readSource(filepath)
+    const budgetFlag = flags.find(f => f.startsWith('--budget'))
+    const budget = budgetFlag ? parseInt(budgetFlag.includes('=') ? budgetFlag.split('=')[1] : flags[flags.indexOf(budgetFlag) + 1]) : undefined
 
     try {
-        const { js } = compile(source, filename)
+        const { js } = compile(source, filename, { budget, quiet: flags.includes('--quiet'), strict: flags.includes('--strict-english') })
         const hasAICalls = js.includes('__lume_ask') || js.includes('__lume_think') || js.includes('__lume_generate')
 
         if (hasAICalls) {
@@ -287,9 +292,11 @@ function buildFile(filepath, flags = []) {
     const { source, filename } = readSource(filepath)
     const langFlag = flags.find(f => f.startsWith('--lang'))
     const lang = langFlag ? (langFlag.includes('=') ? langFlag.split('=')[1] : flags[flags.indexOf(langFlag) + 1]) : undefined
+    const budgetFlag = flags.find(f => f.startsWith('--budget'))
+    const budget = budgetFlag ? parseInt(budgetFlag.includes('=') ? budgetFlag.split('=')[1] : flags[flags.indexOf(budgetFlag) + 1]) : undefined
 
     try {
-        const result = compile(source, filename, { quiet: flags.includes('--quiet'), lang })
+        const result = compile(source, filename, { quiet: flags.includes('--quiet'), lang, budget, strict: flags.includes('--strict-english') })
 
         // Handle async (English Mode returns a Promise)
         const finish = (compiled) => {
@@ -489,6 +496,36 @@ function printTokens(filepath) {
         for (const tok of tokens) console.log(tok.toString())
     } catch (err) {
         console.error(color('red', err.message))
+        process.exit(1)
+    }
+}
+
+function estimateCmd(filepath, flags) {
+    const { source, filename } = readSource(filepath)
+    console.log(color('magenta', `\n  ✦ Lume Estimator — ${filename}`))
+
+    try {
+        const { ast } = compile(source, filename, { quiet: true })
+        if (!ast) {
+            console.error(color('red', '  ✗ Failed to parse AST'))
+            return
+        }
+
+        const metrics = estimateCost(ast)
+        
+        console.log(color('cyan', '\n  Execution Boundaries (LLM Calls):'))
+        console.log(color('dim', `    ask:      ${metrics.askCount}`))
+        console.log(color('dim', `    think:    ${metrics.thinkCount}`))
+        console.log(color('dim', `    generate: ${metrics.generateCount}`))
+        console.log(color('dim', `    runtime:  ${metrics.runtimeBlocks} (monitor/heal/optimize/evolve)`))
+        console.log(color('dim', `    english:  ${metrics.englishIntentBlocks} (IntentBlocks)`))
+        
+        console.log(color('cyan', '\n  Financial Projection (gpt-4o-mini nominal bounds):'))
+        console.log(color('green', `    Total AI Operations: ${metrics.totalCalls}`))
+        console.log(color('green', `    Expected Cost ~ $${metrics.estimatedCost.toFixed(5)} USD / execution loop\n`))
+
+    } catch (err) {
+        console.error(color('red', `  ✗ Error: ${err.message}\n`))
         process.exit(1)
     }
 }

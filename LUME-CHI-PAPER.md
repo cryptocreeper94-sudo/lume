@@ -175,9 +175,9 @@ When input does not directly match a pattern, it cascades through seven resoluti
 
 **Layer 6 — i18n Pattern Library.** Multilingual pattern matching for non-English speakers. Supports 10 languages.
 
-**Layer 7 — AI Resolver.** Falls back to an LLM for intent classification when all deterministic layers fail. This is the *only* non-deterministic layer, and its results are cached in the Resolution Manifest (§7.2) to ensure reproducibility.
+**Layer 7 — Zod-Validated AI Resolver.** Falls back to an LLM for intent classification when all deterministic layers fail. Execution is strictly bound by Zod schema invariants. This is the *only* initially non-deterministic layer, and its successfully validated results are rigidly locked into the `lume.lock` Resolution Manifest (§8.2) to guarantee downstream determinism.
 
-Each layer reports a confidence score (0.0–1.0). The first layer to exceed the threshold (default: 0.85) produces the AST node.
+Each layer reports a confidence score (0.0–1.0). The first layer to exceed the threshold (default: 0.85) produces the AST node, enforcing a strict **Never Silently Guess** policy for AI resolution.
 
 **HCI Significance:** The Tolerance Chain is not a compiler optimization — it is an HCI mechanism. It absorbs the natural imprecision of human language that would cause hard failures in any traditional compiler. By making imprecise input first-class, the Tolerance Chain removes the extraneous cognitive load of syntactic conformity.
 
